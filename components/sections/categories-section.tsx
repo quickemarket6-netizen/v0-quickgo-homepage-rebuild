@@ -3,68 +3,74 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, ShoppingBag, Utensils, Pill, Shirt, ShoppingCart, Bot, Sparkles } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 const categories = [
   {
     id: "market",
     title: "Market",
     subtitle: "Des milliers de produits",
-    icon: ShoppingBag,
     href: "/marketplace",
-    gradient: "from-orange-500 to-red-500",
-    bgColor: "bg-gradient-to-br from-orange-500/20 to-red-500/20",
-    products: ["🛍️", "📦", "🎁"],
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_19_44-8xw5FhUr3Zk36b2rwl2ByAS0vBUOkM.png",
   },
   {
     id: "restaurants",
     title: "Restaurants",
-    subtitle: "Vos plats préférés",
-    icon: Utensils,
+    subtitle: "Vos plats preferes",
     href: "/marketplace?category=restaurants",
-    gradient: "from-amber-500 to-orange-500",
-    bgColor: "bg-gradient-to-br from-amber-500/20 to-orange-500/20",
-    products: ["🍔", "🍕", "🍜"],
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_19_55-etCIVo6QXySXKqsDKzppsqOu5DNr8t.png",
   },
   {
     id: "pharmacie",
     title: "Pharmacie",
-    subtitle: "Santé & bien-être",
-    icon: Pill,
+    subtitle: "Sante & bien-etre",
     href: "/marketplace?category=pharmacy",
-    gradient: "from-emerald-500 to-teal-500",
-    bgColor: "bg-gradient-to-br from-emerald-500/20 to-teal-500/20",
-    products: ["💊", "🩹", "💉"],
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_20_05-yCuWqeCloq9kLRXlz0LcMlghdIIVNX.png",
   },
   {
     id: "mode",
     title: "Mode",
     subtitle: "Tendances & styles",
-    icon: Shirt,
     href: "/marketplace?category=fashion",
-    gradient: "from-pink-500 to-rose-500",
-    bgColor: "bg-gradient-to-br from-pink-500/20 to-rose-500/20",
-    products: ["👕", "👗", "👟"],
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_20_15-QR3f8WiJyJZ0ew7DHFMBSRRolUehLi.png",
   },
   {
     id: "supermarche",
-    title: "Supermarché",
+    title: "Supermarche",
     subtitle: "Tout le quotidien",
-    icon: ShoppingCart,
     href: "/marketplace?category=supermarket",
-    gradient: "from-blue-500 to-cyan-500",
-    bgColor: "bg-gradient-to-br from-blue-500/20 to-cyan-500/20",
-    products: ["🥬", "🥛", "🧃"],
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_20_23-gcEQzMu6FJHi6qJ0yKrX5EZE8MKpA8.png",
   },
   {
     id: "ai-assistant",
     title: "AI Assistant",
     subtitle: "Votre assistant intelligent",
-    icon: Bot,
     href: "/ai",
-    gradient: "from-quickgo-blue to-quickgo-cyan",
-    bgColor: "bg-gradient-to-br from-quickgo-blue/20 to-quickgo-cyan/20",
-    isAI: true,
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_22_18-MJbF5ZuTXc8ldqWNTJC2uMXkxI10oy.png",
+  },
+]
+
+const serviceCards = [
+  {
+    id: "livraison",
+    title: "Transport & Livraison",
+    subtitle: "Suivre ma livraison",
+    href: "/tracking",
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_24_04-wWFeAWw1cjayTmbGPbHtYRUykcLHVz.png",
+  },
+  {
+    id: "checkout",
+    title: "Panier & Checkout",
+    subtitle: "Valider ma commande",
+    href: "/marketplace/cart",
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_25_43-V6yuZSgan4UZfkfe95ik51ddRIG5gg.png",
+  },
+  {
+    id: "tracking",
+    title: "Suivez votre livraison",
+    subtitle: "En temps reel",
+    href: "/tracking",
+    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2022_26_38-EaywNcPnEgBNDjijrvRnNf451sYjlP.png",
   },
 ]
 
@@ -77,8 +83,23 @@ export function CategoriesSection() {
       </div>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Categories Grid - Matching mockup design */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-5">
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+            Explorez nos <span className="text-quickgo-blue">categories</span>
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Tout ce dont vous avez besoin, livre chez vous en un temps record
+          </p>
+        </motion.div>
+
+        {/* Categories Grid - Using Premium Mockup Images */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-5 mb-12">
           {categories.map((category, index) => (
             <motion.div
               key={category.id}
@@ -88,58 +109,74 @@ export function CategoriesSection() {
               transition={{ delay: index * 0.1 }}
             >
               <Link href={category.href}>
-                <div className={`group relative h-[160px] lg:h-[180px] rounded-2xl overflow-hidden cursor-pointer ${category.bgColor} border border-border/30 hover:border-quickgo-blue/50 transition-all duration-300`}>
-                  {/* Gradient Overlay */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${category.gradient} opacity-10 group-hover:opacity-20 transition-opacity`} />
+                <div className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer border border-border/30 hover:border-quickgo-blue/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-quickgo-blue/20">
+                  {/* Image */}
+                  <Image
+                    src={category.image}
+                    alt={category.title}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                  />
                   
-                  {/* Products Preview (for non-AI categories) */}
-                  {!category.isAI && category.products && (
-                    <div className="absolute top-4 right-4 flex flex-col gap-1">
-                      {category.products.map((emoji, i) => (
-                        <span key={i} className="text-2xl opacity-60 group-hover:opacity-100 transition-opacity" style={{ transitionDelay: `${i * 50}ms` }}>
-                          {emoji}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* AI Sparkle Effect */}
-                  {category.isAI && (
-                    <div className="absolute top-4 right-4">
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                      >
-                        <Sparkles className="w-8 h-8 text-quickgo-cyan opacity-60" />
-                      </motion.div>
-                    </div>
-                  )}
-                  
-                  {/* Content */}
-                  <div className="absolute inset-0 p-4 flex flex-col justify-end">
-                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center mb-3 shadow-lg`}>
-                      <category.icon className="h-6 w-6 text-white" />
-                    </div>
-                    <h3 className="text-lg font-bold text-white mb-0.5">
-                      {category.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {category.subtitle}
-                    </p>
-                    
-                    {category.isAI && (
-                      <div className="mt-3">
-                        <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-quickgo-blue/20 border border-quickgo-blue/30 text-xs font-medium text-quickgo-blue">
-                          Demander à l&apos;AI
-                          <ArrowRight className="h-3 w-3" />
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   
                   {/* Hover Arrow */}
-                  <div className="absolute top-4 left-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ArrowRight className="w-5 h-5 text-white" />
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                    <div className="w-8 h-8 rounded-full bg-quickgo-blue/90 flex items-center justify-center">
+                      <ArrowRight className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                  
+                  {/* Title on hover */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <h3 className="text-sm font-bold text-white">{category.title}</h3>
+                    <p className="text-xs text-white/70">{category.subtitle}</p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Service Cards - Large Premium Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {serviceCards.map((card, index) => (
+            <motion.div
+              key={card.id}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.15 }}
+            >
+              <Link href={card.href}>
+                <div className="group relative h-[280px] lg:h-[320px] rounded-3xl overflow-hidden cursor-pointer border border-border/30 hover:border-quickgo-blue/50 transition-all duration-300 hover:shadow-2xl hover:shadow-quickgo-blue/20">
+                  {/* Image */}
+                  <Image
+                    src={card.image}
+                    alt={card.title}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                  
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  
+                  {/* Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <h3 className="text-xl font-bold text-white mb-1">{card.title}</h3>
+                    <div className="flex items-center gap-2 text-quickgo-blue group-hover:gap-3 transition-all">
+                      <span className="text-sm font-medium">{card.subtitle}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
+                  </div>
+                  
+                  {/* Glow effect on hover */}
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                    <div className="absolute inset-0 bg-quickgo-blue/10" />
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-1/2 bg-quickgo-blue/20 blur-3xl" />
                   </div>
                 </div>
               </Link>
