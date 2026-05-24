@@ -3,34 +3,67 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Zap, Shield, Clock, Star, Users, CheckCircle2, Package } from "lucide-react"
+import { ArrowRight, Zap, Shield, Clock, Star, Users, CheckCircle2, Package, Play, Volume2, VolumeX } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useState, useRef } from "react"
 
 const stats = [
   { value: "10 000+", label: "Clients satisfaits", icon: Users },
   { value: "200K+", label: "Produits disponibles", icon: Package },
-  { value: "5K+", label: "Magasins vérifiés", icon: CheckCircle2 },
+  { value: "5K+", label: "Magasins verifies", icon: CheckCircle2 },
   { value: "30 min", label: "Livraison en moyenne", icon: Clock },
-  { value: "100%", label: "Paiement sécurisé", icon: Shield },
+  { value: "100%", label: "Paiement securise", icon: Shield },
 ]
 
 export function HeroSection() {
+  const [isMuted, setIsMuted] = useState(true)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted
+      setIsMuted(!isMuted)
+    }
+  }
+
   return (
     <section className="relative min-h-screen overflow-hidden bg-background pt-20 lg:pt-24">
-      {/* Layer 1: Animated Dark Background with City */}
+      {/* Layer 1: Premium Video Background */}
       <div className="absolute inset-0">
-        <Image
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0017-VfUk2GL8cI8XZwFiuVYUELEHdaQEQW.jpg"
-          alt="African city skyline at night"
-          fill
-          className="object-cover object-center opacity-40"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/70" />
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-50"
+        >
+          <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/background%20videos%20E-market%20hero-tiwMHaJdezDuLsRvu9dKGD6duCx1gr.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background/80" />
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/60" />
+        {/* Scan lines effect */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
+        }} />
       </div>
 
-      {/* Layer 2: Blue Glow Effects */}
+      {/* Video Sound Control */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        onClick={toggleMute}
+        className="absolute bottom-8 right-8 z-50 p-3 rounded-full bg-card/80 backdrop-blur-xl border border-border/30 hover:bg-card transition-all"
+      >
+        {isMuted ? (
+          <VolumeX className="w-5 h-5 text-muted-foreground" />
+        ) : (
+          <Volume2 className="w-5 h-5 text-quickgo-lime" />
+        )}
+      </motion.button>
+
+      {/* Layer 2: Animated Glow Effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
@@ -69,7 +102,7 @@ export function HeroSection() {
             >
               <Zap className="h-4 w-4 text-quickgo-lime" />
               <span className="text-sm font-medium text-quickgo-lime">
-                LIVRAISON RAPIDE & SÉCURISÉE
+                LIVRAISON RAPIDE & SECURISEE
               </span>
             </motion.div>
 
@@ -84,8 +117,8 @@ export function HeroSection() {
               <br />
               <span className="text-white">vous avez besoin.</span>
               <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-quickgo-lime to-quickgo-cyan">
-                Livré intelligemment.
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-quickgo-lime via-quickgo-cyan to-quickgo-blue">
+                Livre intelligemment.
               </span>
             </motion.h1>
 
@@ -96,7 +129,7 @@ export function HeroSection() {
               transition={{ delay: 0.4 }}
               className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 text-pretty"
             >
-              Marketplace locale, livraison express, paiements sécurisés, 
+              Marketplace locale, livraison express, paiements securises, 
               et bien plus encore dans une seule super app.
             </motion.p>
 
@@ -110,7 +143,7 @@ export function HeroSection() {
               <Link href="/marketplace">
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto h-14 px-8 bg-quickgo-lime text-background hover:bg-quickgo-lime/90 font-semibold text-base shadow-[0_0_30px_rgba(191,255,0,0.3)]"
+                  className="w-full sm:w-auto h-14 px-8 bg-quickgo-lime text-background hover:bg-quickgo-lime/90 font-semibold text-base shadow-[0_0_30px_rgba(191,255,0,0.3)] transition-all hover:shadow-[0_0_50px_rgba(191,255,0,0.5)]"
                 >
                   Commander maintenant
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -120,7 +153,7 @@ export function HeroSection() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full sm:w-auto h-14 px-8 border-white/20 bg-white/5 hover:bg-white/10 font-semibold text-base text-white"
+                  className="w-full sm:w-auto h-14 px-8 border-white/20 bg-white/5 hover:bg-white/10 font-semibold text-base text-white backdrop-blur-sm"
                 >
                   Explorer les services
                 </Button>
@@ -135,10 +168,10 @@ export function HeroSection() {
               className="mt-8 flex items-center gap-4 justify-center lg:justify-start"
             >
               <div className="flex -space-x-3">
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="w-10 h-10 rounded-full border-2 border-background bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-xs font-bold text-white"
+                    className="w-10 h-10 rounded-full border-2 border-background bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-xs font-bold text-white shadow-lg"
                   >
                     {String.fromCharCode(64 + i)}
                   </div>
@@ -152,69 +185,117 @@ export function HeroSection() {
                   {[1, 2, 3, 4, 5].map((i) => (
                     <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                   ))}
+                  <span className="text-xs text-muted-foreground ml-1">4.9/5</span>
                 </div>
               </div>
             </motion.div>
           </motion.div>
 
-          {/* RIGHT SIDE: Visual Composition - Phone + Driver + Cards */}
+          {/* RIGHT SIDE: Premium Visual Composition */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
             className="relative h-[500px] sm:h-[600px] lg:h-[700px]"
           >
-            {/* Central Phone Mockup */}
+            {/* Central Phone Mockup with Video */}
             <motion.div
               initial={{ y: 50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.8 }}
-              className="absolute left-1/2 -translate-x-1/2 lg:left-[20%] lg:translate-x-0 top-[10%] z-20"
+              className="absolute left-1/2 -translate-x-1/2 lg:left-[15%] lg:translate-x-0 top-[10%] z-20"
             >
               <div className="relative">
                 {/* Phone Frame */}
-                <div className="relative w-[240px] sm:w-[280px] h-[480px] sm:h-[560px] rounded-[40px] bg-gradient-to-br from-gray-800 to-gray-900 p-2 shadow-2xl shadow-quickgo-blue/20">
-                  <div className="w-full h-full rounded-[32px] overflow-hidden bg-background">
-                    <Image
-                      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0016-IpaaSd5m5JlRtEUTamyVqEWz5LXvX3.jpg"
-                      alt="QuickGo App Interface"
-                      fill
-                      className="object-cover object-top"
-                    />
+                <div className="relative w-[240px] sm:w-[280px] h-[480px] sm:h-[560px] rounded-[40px] bg-gradient-to-br from-gray-800 via-gray-900 to-black p-2 shadow-2xl shadow-quickgo-blue/30">
+                  <div className="w-full h-full rounded-[32px] overflow-hidden bg-background relative">
+                    {/* Phone Video Content */}
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    >
+                      <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mokup%20videos%20-MWFOWqEEekv6R5k5Q8dlveU6tmwux9.mp4" type="video/mp4" />
+                    </video>
                   </div>
                   {/* Phone Notch */}
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-6 bg-black rounded-full" />
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 w-24 h-7 bg-black rounded-full flex items-center justify-center">
+                    <div className="w-3 h-3 rounded-full bg-gray-800" />
+                  </div>
+                  {/* Phone side button */}
+                  <div className="absolute right-[-3px] top-[120px] w-[3px] h-12 bg-gray-700 rounded-l-sm" />
+                  <div className="absolute left-[-3px] top-[100px] w-[3px] h-8 bg-gray-700 rounded-r-sm" />
+                  <div className="absolute left-[-3px] top-[140px] w-[3px] h-16 bg-gray-700 rounded-r-sm" />
                 </div>
                 {/* Glow behind phone */}
-                <div className="absolute inset-0 -z-10 bg-gradient-to-br from-quickgo-blue to-quickgo-cyan rounded-[40px] blur-2xl opacity-30 scale-110" />
+                <div className="absolute inset-0 -z-10 bg-gradient-to-br from-quickgo-blue via-quickgo-cyan to-quickgo-lime rounded-[40px] blur-3xl opacity-40 scale-110" />
               </div>
             </motion.div>
 
-            {/* Driver on Scooter */}
+            {/* Premium Scooter Image */}
             <motion.div
               initial={{ x: 100, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.8 }}
-              className="absolute right-0 lg:right-[-50px] bottom-[10%] z-30 hidden sm:block"
+              className="absolute right-[-20px] lg:right-[-80px] bottom-[5%] z-30 hidden sm:block"
             >
-              <div className="relative w-[300px] lg:w-[400px] h-[300px] lg:h-[400px]">
+              <div className="relative w-[350px] lg:w-[450px] h-[280px] lg:h-[350px]">
                 <Image
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0021-hbRlzm2m1MSbUn3z0gbeDJE0nctAF6.jpg"
-                  alt="QuickGo Delivery Driver"
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2021_11_46-8mzFh4yQO9UW9LSf5eIpCGipdkYWOz.png"
+                  alt="QuickGo Premium Delivery Scooter"
                   fill
-                  className="object-contain object-right-bottom"
+                  className="object-contain object-right-bottom drop-shadow-[0_0_30px_rgba(0,212,255,0.3)]"
+                />
+                {/* Animated glow under scooter */}
+                <motion.div
+                  animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80%] h-4 bg-quickgo-cyan/50 blur-xl rounded-full"
                 />
               </div>
             </motion.div>
 
-            {/* Floating Card: Livraison Express */}
+            {/* AI Robot Mascot */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 1, duration: 0.5, type: "spring" }}
+              className="absolute bottom-[25%] left-[0%] z-40 hidden lg:block"
+            >
+              <div className="relative w-[100px] h-[100px]">
+                <Image
+                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ChatGPT%20Image%2024%20mai%202026%2C%2021_18_12-20M2gRj8gMJKKXWNXDlFcKWyuuUVMd.png"
+                  alt="QuickGo AI Assistant"
+                  fill
+                  className="object-contain drop-shadow-[0_0_20px_rgba(0,212,255,0.5)]"
+                />
+              </div>
+              {/* Speech bubble */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.3 }}
+                className="absolute -top-12 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-xl rounded-xl px-3 py-2 border border-quickgo-cyan/30 whitespace-nowrap"
+              >
+                <p className="text-xs text-white font-medium">{"Comment puis-je vous aider?"}</p>
+                <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-card/90 border-r border-b border-quickgo-cyan/30 rotate-45" />
+              </motion.div>
+            </motion.div>
+
+            {/* Floating Cards */}
             <motion.div
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.7, duration: 0.6 }}
-              className="absolute top-[5%] right-[10%] z-40"
+              className="absolute top-[5%] right-[5%] z-40"
             >
-              <div className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-border/30 shadow-xl">
+              <motion.div
+                animate={{ y: [0, -5, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-quickgo-blue/30 shadow-xl shadow-quickgo-blue/10"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-quickgo-blue/20 flex items-center justify-center">
                     <Zap className="w-5 h-5 text-quickgo-blue" />
@@ -224,57 +305,67 @@ export function HeroSection() {
                     <p className="text-xs text-muted-foreground">en moins de 30 min</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
 
-            {/* Floating Card: Paiement Sécurisé */}
             <motion.div
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8, duration: 0.6 }}
-              className="absolute top-[20%] right-[5%] z-40"
+              className="absolute top-[20%] right-[0%] z-40"
             >
-              <div className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-border/30 shadow-xl">
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-quickgo-lime/30 shadow-xl shadow-quickgo-lime/10"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-quickgo-lime/20 flex items-center justify-center">
                     <Shield className="w-5 h-5 text-quickgo-lime" />
                   </div>
                   <div>
-                    <p className="text-white font-semibold text-sm">Paiement Sécurisé</p>
-                    <p className="text-xs text-muted-foreground">100% protégé</p>
+                    <p className="text-white font-semibold text-sm">Paiement Securise</p>
+                    <p className="text-xs text-muted-foreground">100% protege</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
 
-            {/* Floating Card: Support 24/7 */}
             <motion.div
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.6 }}
-              className="absolute top-[35%] right-[0%] z-40"
+              className="absolute top-[35%] right-[-5%] z-40"
             >
-              <div className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-border/30 shadow-xl">
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-cyan-500/30 shadow-xl shadow-cyan-500/10"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
                     <Users className="w-5 h-5 text-cyan-400" />
                   </div>
                   <div>
                     <p className="text-white font-semibold text-sm">Support 24/7</p>
-                    <p className="text-xs text-muted-foreground">Nous sommes là</p>
+                    <p className="text-xs text-muted-foreground">Nous sommes la</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
 
             {/* Live Tracking Widget */}
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 1, duration: 0.6 }}
-              className="absolute bottom-[20%] left-[5%] z-40 hidden lg:block"
+              transition={{ delay: 1.1, duration: 0.6 }}
+              className="absolute bottom-[40%] left-[-5%] z-40 hidden lg:block"
             >
-              <div className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-quickgo-blue/30 shadow-xl w-[200px]">
+              <motion.div
+                animate={{ scale: [1, 1.02, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="bg-card/90 backdrop-blur-xl rounded-2xl p-4 border border-quickgo-blue/30 shadow-xl w-[200px]"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs text-muted-foreground">En route</span>
                   <span className="flex items-center gap-1 text-quickgo-lime text-xs">
@@ -282,9 +373,18 @@ export function HeroSection() {
                     Live
                   </span>
                 </div>
-                <p className="text-white font-semibold">Arrivée estimée</p>
+                <p className="text-white font-semibold">Arrivee estimee</p>
                 <p className="text-2xl font-bold text-quickgo-blue">10 - 15 min</p>
-              </div>
+                {/* Progress bar */}
+                <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: "0%" }}
+                    animate={{ width: "65%" }}
+                    transition={{ delay: 1.5, duration: 1.5 }}
+                    className="h-full bg-gradient-to-r from-quickgo-blue to-quickgo-lime rounded-full"
+                  />
+                </div>
+              </motion.div>
             </motion.div>
           </motion.div>
         </div>
@@ -296,7 +396,7 @@ export function HeroSection() {
           transition={{ delay: 1.1 }}
           className="relative z-20 pb-12 lg:pb-20"
         >
-          <div className="bg-card/50 backdrop-blur-xl border border-border/30 rounded-2xl p-6 lg:p-8">
+          <div className="bg-card/50 backdrop-blur-xl border border-border/30 rounded-3xl p-6 lg:p-8 shadow-2xl">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 lg:gap-8">
               {stats.map((stat, index) => (
                 <motion.div
@@ -304,10 +404,10 @@ export function HeroSection() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1.2 + index * 0.1 }}
-                  className="text-center"
+                  className="text-center group"
                 >
                   <div className="flex items-center justify-center gap-2 mb-2">
-                    <stat.icon className="h-5 w-5 text-quickgo-blue" />
+                    <stat.icon className="h-5 w-5 text-quickgo-blue group-hover:text-quickgo-lime transition-colors" />
                     <span className="text-2xl lg:text-3xl font-bold text-white">
                       {stat.value}
                     </span>
