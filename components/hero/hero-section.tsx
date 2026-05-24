@@ -42,9 +42,22 @@ export function HeroSection() {
 
   // Update video source when index changes
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.src = backgroundVideos[currentVideoIndex]
-      videoRef.current.play()
+    const video = videoRef.current
+    if (video) {
+      video.src = backgroundVideos[currentVideoIndex]
+      video.load()
+      
+      const handleCanPlay = () => {
+        video.play().catch(() => {
+          // Ignore play errors - browser autoplay policy
+        })
+      }
+      
+      video.addEventListener('canplay', handleCanPlay, { once: true })
+      
+      return () => {
+        video.removeEventListener('canplay', handleCanPlay)
+      }
     }
   }, [currentVideoIndex])
 
