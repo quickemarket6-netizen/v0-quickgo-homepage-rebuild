@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar"
 import { HeroSection } from "@/components/hero"
-import { CategoriesSection, CitiesSection, PartnersSection, FeaturesSection, TestimonialsSection, VideoShowcaseSection } from "@/components/sections"
+import { CategoriesSection, CitiesSection, PartnersSection, FeaturesSection, TestimonialsSection } from "@/components/sections"
 import { Footer } from "@/components/footer"
 import JsonLd from "@/components/seo/json-ld"
 
@@ -14,7 +14,6 @@ export default function HomePage() {
         <CategoriesSection />
         <CitiesSection />
         <FeaturesSection />
-        <VideoShowcaseSection />
         <TestimonialsSection />
         <PartnersSection />
         <Footer />
