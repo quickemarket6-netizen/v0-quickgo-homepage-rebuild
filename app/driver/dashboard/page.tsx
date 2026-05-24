@@ -35,16 +35,16 @@ import {
 import { Button } from "@/components/ui/button"
 
 const sidebarItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", active: true },
-  { icon: MapPin, label: "Missions disponibles", badge: 6 },
-  { icon: Car, label: "Mes courses" },
-  { icon: DollarSign, label: "Revenus" },
-  { icon: Wallet, label: "Portefeuille" },
-  { icon: TrendingUp, label: "Performance" },
-  { icon: MessageSquare, label: "Messages", badge: 2 },
-  { icon: Gift, label: "Incitations" },
-  { icon: HelpCircle, label: "Assistance" },
-  { icon: Settings, label: "Paramètres" },
+  { icon: LayoutDashboard, label: "Tableau de bord", href: "/driver/dashboard", active: true },
+  { icon: MapPin, label: "Missions disponibles", href: "/driver/missions", badge: 6 },
+  { icon: Car, label: "Mes courses", href: "/driver/navigation" },
+  { icon: DollarSign, label: "Revenus", href: "/driver/earnings" },
+  { icon: Wallet, label: "Portefeuille", href: "/wallet" },
+  { icon: TrendingUp, label: "Performance", href: "/driver/ranking" },
+  { icon: MessageSquare, label: "Messages", href: "#", badge: 2 },
+  { icon: Gift, label: "Incitations", href: "/driver/ranking" },
+  { icon: HelpCircle, label: "Assistance", href: "/support" },
+  { icon: Settings, label: "Paramètres", href: "#" },
 ]
 
 const activeZones = [
@@ -90,7 +90,7 @@ export default function DriverDashboardPage() {
           {sidebarItems.map((item) => (
             <Link
               key={item.label}
-              href="#"
+              href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 item.active
                   ? "bg-quickgo-blue/20 text-quickgo-blue"
@@ -384,6 +384,35 @@ export default function DriverDashboardPage() {
                       Voir plus de zones
                     </Button>
                   </div>
+                </div>
+              </motion.div>
+
+              {/* Control Center Quick Access */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="bg-gradient-to-br from-red-500/20 via-orange-500/20 to-yellow-500/20 rounded-3xl p-6 border border-red-500/30"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-2xl bg-red-500/30 flex items-center justify-center">
+                        <Target className="w-7 h-7 text-red-400" />
+                      </div>
+                      <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Centre de contrôle</h3>
+                      <p className="text-sm text-muted-foreground">Vue temps réel des opérations</p>
+                    </div>
+                  </div>
+                  <Link href="/driver/control-center">
+                    <Button className="rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30">
+                      Ouvrir
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
                 </div>
               </motion.div>
 
