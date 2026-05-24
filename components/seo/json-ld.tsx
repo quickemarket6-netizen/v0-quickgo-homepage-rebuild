@@ -54,8 +54,8 @@ export default function JsonLd() {
       "dayOfWeek": [
         "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
       ],
-      "opens": "00:00",
-      "closes": "23:59"
+      "opens": "07:00",
+      "closes": "22:00"
     },
     "aggregateRating": {
       "@type": "AggregateRating",
