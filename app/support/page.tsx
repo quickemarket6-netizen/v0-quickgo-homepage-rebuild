@@ -28,46 +28,52 @@ const categories = [
     title: "Commandes & Livraison",
     description: "Questions sur vos commandes et livraisons",
     articles: 24,
+    slug: "commandes",
   },
   {
     icon: CreditCard,
     title: "Paiements & Facturation",
     description: "Méthodes de paiement, remboursements",
     articles: 18,
+    slug: "paiements",
   },
   {
     icon: Shield,
     title: "Compte & Sécurité",
     description: "Gestion de compte, confidentialité",
     articles: 15,
+    slug: "compte",
   },
   {
     icon: Truck,
     title: "Devenir Livreur",
     description: "Inscription, missions, gains",
     articles: 12,
+    slug: "livreur",
   },
   {
     icon: HelpCircle,
     title: "Produits & Services",
     description: "Catalogue, qualité, retours",
     articles: 21,
+    slug: "produits",
   },
   {
     icon: Bot,
     title: "QuickGo AI",
     description: "Utilisation de l'assistant IA",
     articles: 8,
+    slug: "ai",
   },
 ]
 
 const popularQuestions = [
-  "Comment suivre ma commande ?",
-  "Comment annuler une commande ?",
-  "Quels sont les délais de livraison ?",
-  "Comment demander un remboursement ?",
-  "Comment devenir livreur ?",
-  "Comment contacter le support ?",
+  { label: "Comment suivre ma commande ?", slug: "commandes" },
+  { label: "Comment annuler une commande ?", slug: "commandes" },
+  { label: "Quels sont les délais de livraison ?", slug: "commandes" },
+  { label: "Comment demander un remboursement ?", slug: "paiements" },
+  { label: "Comment devenir livreur ?", slug: "livreur" },
+  { label: "Comment contacter le support ?", slug: "compte" },
 ]
 
 const contactMethods = [
@@ -134,13 +140,13 @@ export default function SupportPage() {
               {/* Popular Questions */}
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 <span className="text-sm text-muted-foreground">Questions populaires:</span>
-                {popularQuestions.slice(0, 3).map((question) => (
+                {popularQuestions.slice(0, 3).map((q) => (
                   <Link
-                    key={question}
-                    href="#"
+                    key={q.label}
+                    href={`/support/${q.slug}`}
                     className="text-sm text-primary hover:underline"
                   >
-                    {question}
+                    {q.label}
                   </Link>
                 ))}
               </div>
@@ -174,7 +180,7 @@ export default function SupportPage() {
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Link href="#">
+                  <Link href={`/support/${category.slug}`}>
                     <div className="group p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5">
                       <div className="flex items-start justify-between">
                         <div className="p-3 rounded-xl bg-primary/10">
@@ -246,13 +252,15 @@ export default function SupportPage() {
                   <p className="text-xs text-muted-foreground mb-4">
                     Disponible: {method.availability}
                   </p>
-                  <Button
-                    className={method.primary ? "bg-primary text-primary-foreground" : ""}
-                    variant={method.primary ? "default" : "outline"}
-                    size="sm"
-                  >
-                    {method.action}
-                  </Button>
+                  <Link href={method.primary ? "/dashboard/messages" : method.title === "Email" ? "mailto:support@quickgo.cm" : "tel:+237695555555"}>
+                    <Button
+                      className={method.primary ? "bg-primary text-primary-foreground" : ""}
+                      variant={method.primary ? "default" : "outline"}
+                      size="sm"
+                    >
+                      {method.action}
+                    </Button>
+                  </Link>
                 </motion.div>
               ))}
             </div>

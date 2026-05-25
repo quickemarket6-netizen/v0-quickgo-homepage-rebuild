@@ -27,19 +27,19 @@ const features = [
     image: "/images/premium/securise.jpg",
     title: "100% Securise",
     description: "Vos transactions sont protegees par cryptage avance",
-    href: "/security",
+    href: "/wallet/security",
   },
   {
     image: "/images/premium/cashback-recompenses.jpg",
     title: "Cashback & Recompenses",
     description: "Gagnez jusqu a 5% de cashback sur vos achats",
-    href: "/rewards",
+    href: "/wallet/rewards",
   },
   {
     image: "/images/premium/transfert-intelligent.jpg",
     title: "Transferts gratuits",
     description: "Envoyez de l argent gratuitement a vos proches",
-    href: "/transfer",
+    href: "/wallet/transfer",
   },
 ]
 

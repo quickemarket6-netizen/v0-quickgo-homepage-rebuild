@@ -6,22 +6,32 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Mail, CheckCircle, Loader2 } from "lucide-react"
+import { ArrowLeft, Mail, CheckCircle, Loader2, AlertCircle } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
+    setError("")
+
+    const supabase = createClient()
+    const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    })
+
     setIsLoading(false)
-    setIsSubmitted(true)
+
+    if (supabaseError) {
+      setError(supabaseError.message)
+    } else {
+      setIsSubmitted(true)
+    }
   }
 
   return (
@@ -83,6 +93,13 @@ export default function ForgotPasswordPage() {
                     />
                   </div>
                 </div>
+
+                {error && (
+                  <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-sm flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {error}
+                  </div>
+                )}
 
                 <Button 
                   type="submit" 

@@ -40,9 +40,9 @@ const sidebarItems = [
   { icon: Heart, label: "Favoris", href: "/marketplace/favorites" },
   { icon: Wallet, label: "Portefeuille", href: "/wallet" },
   { icon: Gift, label: "Recompenses", href: "/marketplace/offers" },
-  { icon: MessageSquare, label: "Messages", href: "#", badge: 3 },
+  { icon: MessageSquare, label: "Messages", href: "/dashboard/messages", badge: 3 },
   { icon: HelpCircle, label: "Support", href: "/support" },
-  { icon: Settings, label: "Parametres", href: "#" },
+  { icon: Settings, label: "Parametres", href: "/dashboard/settings" },
 ]
 
 const recentOrders = [

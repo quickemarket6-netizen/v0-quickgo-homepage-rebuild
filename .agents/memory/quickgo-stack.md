@@ -27,9 +27,20 @@ Next.js 16 (App Router, Turbopack), TypeScript, Tailwind CSS v4, shadcn/ui, Fram
 - `next.config.mjs` — remote image patterns, ignoreBuildErrors false, optimizePackageImports
 - `public/site.webmanifest` — created full PWA manifest
 
-## Pending (needs Supabase credentials)
-- Full auth flow (login/register/password reset)
-- Protected routes actually enforcing auth
-- Real orders, products, vendors from database
-- Payment integration (CinetPay, Orange Money, MTN)
-- Realtime order tracking
+## Auth — All Real Supabase Calls ✅
+- forgot-password: resetPasswordForEmail(); reset-password: updateUser(); verify: verifyOtp({email from ?email= param})
+
+## New Pages Created
+- /wallet/transfer, /wallet/rewards, /wallet/security
+- /dashboard/settings (4 tabs: profile/notifications/security/language)
+- /dashboard/messages (chat UI with contacts list)
+- /support/[slug] (dynamic: commandes/paiements/compte/livreur/produits/ai)
+
+## Database Schema
+- supabase/schema.sql — full schema with RLS, trigger for auto-profile creation on signup
+
+## Remaining (not done)
+- Tracking map: CSS gradient placeholder (no Leaflet/Mapbox)
+- AI chat: static demo UI (no LLM backend)
+- Wallet balance: hardcoded (not from DB yet)
+- Payment integration: CinetPay / Orange Money / MTN MoMo
