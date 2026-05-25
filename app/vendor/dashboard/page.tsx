@@ -27,13 +27,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 const sidebarItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", active: true },
-  { icon: Package, label: "Produits" },
-  { icon: ShoppingBag, label: "Commandes" },
-  { icon: DollarSign, label: "Revenus" },
-  { icon: BarChart3, label: "Analyses" },
-  { icon: Users, label: "Clients" },
-  { icon: Settings, label: "Paramètres" },
+  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard", active: true },
+  { icon: Package, label: "Produits", href: "/vendor/products" },
+  { icon: ShoppingBag, label: "Commandes", href: "/vendor/orders" },
+  { icon: DollarSign, label: "Revenus", href: "/vendor/analytics" },
+  { icon: BarChart3, label: "Analyses", href: "/vendor/analytics" },
+  { icon: Users, label: "Clients", href: "/vendor/customers" },
+  { icon: Settings, label: "Paramètres", href: "/vendor/settings" },
 ]
 
 const recentOrders = [
@@ -73,7 +73,7 @@ export default function VendorDashboardPage() {
           {sidebarItems.map((item) => (
             <Link
               key={item.label}
-              href="#"
+              href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 item.active
                   ? "bg-quickgo-blue/20 text-quickgo-blue"

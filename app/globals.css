@@ -127,6 +127,15 @@
 }
 
 @layer utilities {
+  /* Scrollbar Hide */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Glow Effects */
   .glow-blue {
     box-shadow: 0 0 40px -10px oklch(0.55 0.25 250 / 0.5),

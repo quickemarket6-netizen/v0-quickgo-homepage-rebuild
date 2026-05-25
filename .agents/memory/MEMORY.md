@@ -1,0 +1,3 @@
+- [Next.js 16 proxy](nextjs16-proxy.md) — Next.js 16 renamed middleware.ts → proxy.ts; export must be named `proxy`, not `middleware`
+- [Supabase client null-safe](supabase-nullsafe.md) — createClient() must guard against missing env vars or it throws and crashes the app
+- [QuickGo stack](quickgo-stack.md) — Project overview, key files, and what has been fixed/pending

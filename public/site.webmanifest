@@ -1,0 +1,53 @@
+{
+  "name": "QuickGo - Livraison Express Cameroun",
+  "short_name": "QuickGo",
+  "description": "La super application de livraison au Cameroun. Marketplace, livraison express, paiements sécurisés.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1a",
+  "theme_color": "#0a0f1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-light-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["shopping", "food", "lifestyle"],
+  "lang": "fr",
+  "shortcuts": [
+    {
+      "name": "Marketplace",
+      "url": "/marketplace",
+      "description": "Explorer la marketplace"
+    },
+    {
+      "name": "Livraison Express",
+      "url": "/delivery",
+      "description": "Créer une livraison"
+    },
+    {
+      "name": "Suivi",
+      "url": "/tracking",
+      "description": "Suivre une commande"
+    }
+  ]
+}

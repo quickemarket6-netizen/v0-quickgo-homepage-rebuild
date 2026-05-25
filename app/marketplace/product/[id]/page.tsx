@@ -4,9 +4,12 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
+import { toast } from "sonner"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { useCart } from "@/lib/store/cart"
+import { useRouter } from "next/navigation"
 import {
   Star,
   Heart,
@@ -101,8 +104,33 @@ export default function ProductPage() {
   const [selectedStorage, setSelectedStorage] = useState(1)
   const [quantity, setQuantity] = useState(1)
   const [isFavorite, setIsFavorite] = useState(false)
+  const { addItem } = useCart()
+  const router = useRouter()
 
   const currentPrice = product.storage[selectedStorage].price
+
+  const handleAddToCart = () => {
+    addItem({
+      productId: product.id,
+      name: product.name,
+      brand: product.brand,
+      price: currentPrice,
+      originalPrice: product.originalPrice,
+      quantity,
+      image: product.images[0],
+      color: product.colors[selectedColor].name,
+      vendor: product.vendor.name,
+    })
+    toast.success("Ajouté au panier", {
+      description: `${product.name} × ${quantity}`,
+      action: { label: "Voir le panier", onClick: () => router.push("/marketplace/cart") },
+    })
+  }
+
+  const handleBuyNow = () => {
+    handleAddToCart()
+    router.push("/marketplace/checkout")
+  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -282,6 +310,7 @@ export default function ProductPage() {
               <div className="flex gap-3 pt-4">
                 <Button
                   size="lg"
+                  onClick={handleAddToCart}
                   className="flex-1 h-14 rounded-xl bg-secondary text-secondary-foreground hover:bg-secondary/90"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
@@ -289,6 +318,7 @@ export default function ProductPage() {
                 </Button>
                 <Button
                   size="lg"
+                  onClick={handleBuyNow}
                   className="flex-1 h-14 rounded-xl"
                 >
                   Acheter maintenant
