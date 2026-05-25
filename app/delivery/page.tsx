@@ -1,377 +1,286 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
+import { 
+  Bike, 
+  Car, 
+  Truck, 
+  Zap,
+  MapPin,
+  Shield,
+  Clock,
+  Star,
+  CheckCircle,
+  ArrowRight,
+  Headphones,
+  CreditCard,
+  Package
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import {
-  Zap,
-  ArrowRight,
-  CheckCircle2,
-} from "lucide-react"
 
-const deliveryOptions = [
+const transportTypes = [
   {
     id: "moto",
-    image: "/images/premium/transfert-scooter.jpg",
     name: "Moto",
-    description: "Ideal pour les petits colis",
-    price: "1 500 CFA",
-    time: "15-30 min",
-    maxWeight: "5 kg",
-    href: "/delivery/create?type=moto",
-    selected: true,
+    subtitle: "Rapide et flexible",
+    image: "/images/transport/moto-delivery.jpg",
+    recommended: true,
+    features: [
+      { icon: Zap, label: "Livraison ultra rapide", desc: "En moyenne 30 - 60 min" },
+      { icon: MapPin, label: "Parfait pour la ville", desc: "Acces facile partout" },
+      { icon: Shield, label: "Securite garantie", desc: "Livreurs verifies" },
+      { icon: CreditCard, label: "Tarifs avantageux", desc: "A partir de 1 000 FCFA" }
+    ]
   },
   {
     id: "voiture",
-    image: "/images/premium/livraison-geree.jpg",
     name: "Voiture",
-    description: "Pour vos colis moyens",
-    price: "3 500 CFA",
-    time: "20-40 min",
-    maxWeight: "20 kg",
-    href: "/delivery/create?type=voiture",
+    subtitle: "Confortable et sur",
+    image: "/images/transport/voiture-delivery.jpg",
+    recommended: false,
+    features: [
+      { icon: Zap, label: "Livraison rapide", desc: "En moyenne 30 - 60 min" },
+      { icon: MapPin, label: "Suivi en temps reel", desc: "Suivez votre commande" },
+      { icon: Shield, label: "Chauffeur professionnel", desc: "Experimente et courtois" },
+      { icon: Clock, label: "Disponible 24/7", desc: "A tout moment" }
+    ]
+  },
+  {
+    id: "camionnette",
+    name: "Camionnette",
+    subtitle: "Ideal pour colis moyens",
+    image: "/images/transport/voiture-delivery.jpg",
+    recommended: false,
+    features: [
+      { icon: Package, label: "Grande capacite", desc: "Jusqu a 500kg" },
+      { icon: Shield, label: "Securite maximale", desc: "Marchandises assurees" },
+      { icon: Zap, label: "Livraison optimisee", desc: "Delais garantis" },
+      { icon: MapPin, label: "Suivi GPS", desc: "Localisation en direct" }
+    ]
   },
   {
     id: "camion",
-    image: "/images/premium/camion-gros-colis.jpg",
     name: "Camion",
-    description: "Pour les gros colis",
-    price: "7 000 CFA",
-    time: "45-90 min",
-    maxWeight: "100 kg",
-    href: "/delivery/create?type=camion",
-  },
+    subtitle: "Pour les gros volumes",
+    image: "/images/transport/camion-delivery.jpg",
+    recommended: false,
+    features: [
+      { icon: MapPin, label: "Livraison longue distance", desc: "Toutes les villes du Cameroun" },
+      { icon: Package, label: "Grande capacite", desc: "5 a 20 tonnes" },
+      { icon: Shield, label: "Securite garantie", desc: "Marchandises assurees" },
+      { icon: Zap, label: "Livraison rapide", desc: "Delais optimises" }
+    ]
+  }
 ]
 
-const features = [
-  {
-    image: "/images/premium/livraison-express.jpg",
-    title: "Rapide",
-    description: "Livraison en moins de 30 minutes",
-    href: "/delivery/create",
-  },
-  {
-    image: "/images/premium/securise.jpg",
-    title: "Securise",
-    description: "Vos colis sont 100% proteges",
-    href: "/security",
-  },
-  {
-    image: "/images/premium/transfert-intelligent.jpg",
-    title: "Suivi en temps reel",
-    description: "Suivez votre commande a chaque etape",
-    href: "/tracking",
-  },
-  {
-    image: "/images/premium/support-dedie.jpg",
-    title: "Support 24/7",
-    description: "Service disponible a toute heure",
-    href: "/support",
-  },
-]
-
-const steps = [
-  { number: 1, title: "Creez votre commande", description: "Indiquez les details de votre livraison" },
-  { number: 2, title: "Choisissez le transport", description: "Moto, voiture ou camion selon vos besoins" },
-  { number: 3, title: "Un livreur accepte", description: "Un livreur proche de vous accepte la mission" },
-  { number: 4, title: "Suivez en direct", description: "Suivez votre colis en temps reel sur la carte" },
-  { number: 5, title: "Recevez votre colis", description: "Confirmation par QR code ou signature" },
+const bottomFeatures = [
+  { icon: Clock, label: "Service 24/7", desc: "Toujours disponible" },
+  { icon: MapPin, label: "Suivi en temps reel", desc: "Localisation precise" },
+  { icon: CreditCard, label: "Paiement securise", desc: "100% securise" },
+  { icon: Headphones, label: "Support client", desc: "Assistance rapide" }
 ]
 
 export default function DeliveryPage() {
+  const [selectedTransport, setSelectedTransport] = useState("moto")
+  const currentTransport = transportTypes.find(t => t.id === selectedTransport)!
+
   return (
-    <main className="min-h-screen bg-black">
+    <main className="min-h-screen bg-[#0a1628]">
       <Navbar />
       
-      <div className="pt-20 lg:pt-24">
-        {/* Hero Section */}
-        <section className="relative py-16 lg:py-24 overflow-hidden">
+      <div className="pt-20">
+        {/* Hero Section - Full Width Transport Selector */}
+        <section className="relative min-h-[90vh]">
+          {/* Background Image - Full screen */}
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-lime-500/5 via-black to-lime-500/5" />
-          </div>
-          
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Left Content */}
+            <AnimatePresence mode="wait">
               <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
+                key={selectedTransport}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="absolute inset-0"
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime-500/10 border border-lime-500/30 mb-6">
-                  <Zap className="h-4 w-4 text-lime-500" />
-                  <span className="text-sm font-medium text-lime-500">
-                    LIVRAISON EXPRESS
-                  </span>
-                </div>
-                
-                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6">
-                  Livraison ultra rapide{" "}
-                  <span className="text-lime-500">ou que vous soyez</span>
-                </h1>
-                
-                <p className="text-lg text-zinc-400 mb-8 max-w-lg">
-                  Envoyez ou recevez vos colis en toute securite avec suivi en temps reel.
-                  Service disponible 24h/24, 7j/7.
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                  <Link href="/delivery/create">
-                    <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
-                      Livraison Express
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <Button size="lg" variant="outline" className="h-14 px-8 border-lime-500/30 text-lime-500 hover:bg-lime-500/10">
-                    Livraison Standard
-                  </Button>
-                </div>
+                <Image
+                  src={currentTransport.image}
+                  alt={currentTransport.name}
+                  fill
+                  className="object-cover object-center"
+                  priority
+                  quality={100}
+                />
               </motion.div>
+            </AnimatePresence>
+            {/* Subtle gradient overlay only on edges */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0a1628]/90 via-transparent to-[#0a1628]/70" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a1628] via-transparent to-[#0a1628]/30" />
+          </div>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+            <div className="grid lg:grid-cols-12 gap-6 items-start min-h-[80vh]">
               
-              {/* Right - Visual */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="relative"
-              >
-                <Link href="/delivery/create" className="block group">
-                  <div className="relative aspect-square max-w-lg mx-auto rounded-2xl overflow-hidden border border-lime-500/30 hover:border-lime-500/60 transition-all duration-500 hover:shadow-[0_0_60px_rgba(132,204,22,0.2)]">
-                    <Image
-                      src="/images/premium/livraison-express.jpg"
-                      alt="QuickGo Delivery"
-                      fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
-                      priority
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-lime-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              {/* Left Column - Transport Selection Menu */}
+              <div className="lg:col-span-3 space-y-4">
+                {/* Header Label */}
+                <div className="flex items-center gap-2 text-lime-400 mb-4">
+                  <div className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
+                  <span className="text-xs font-medium uppercase tracking-wider">Type de transport</span>
+                </div>
+
+                <div>
+                  <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight">
+                    Choisissez votre<br />
+                    mode de <span className="text-lime-400">livraison</span>
+                  </h1>
+                  <p className="text-gray-400 text-sm mt-2">
+                    Rapide, securise et adapte a vos besoins.
+                  </p>
+                </div>
+
+                {/* Transport Options List */}
+                <div className="space-y-2 mt-6">
+                  {transportTypes.map((transport) => (
+                    <motion.button
+                      key={transport.id}
+                      onClick={() => setSelectedTransport(transport.id)}
+                      className={`w-full p-3 rounded-xl border transition-all duration-300 text-left ${
+                        selectedTransport === transport.id
+                          ? "bg-lime-500/20 border-lime-500 shadow-lg shadow-lime-500/20"
+                          : "bg-[#0a1628]/80 border-gray-700/50 hover:border-gray-600 backdrop-blur-sm"
+                      }`}
+                      whileHover={{ x: 4 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${
+                            selectedTransport === transport.id ? "bg-lime-500/30" : "bg-gray-800/80"
+                          }`}>
+                            {transport.id === "moto" && <Bike className={`w-4 h-4 ${selectedTransport === transport.id ? "text-lime-400" : "text-gray-400"}`} />}
+                            {transport.id === "voiture" && <Car className={`w-4 h-4 ${selectedTransport === transport.id ? "text-lime-400" : "text-gray-400"}`} />}
+                            {transport.id === "camionnette" && <Truck className={`w-4 h-4 ${selectedTransport === transport.id ? "text-lime-400" : "text-gray-400"}`} />}
+                            {transport.id === "camion" && <Truck className={`w-4 h-4 ${selectedTransport === transport.id ? "text-lime-400" : "text-gray-400"}`} />}
+                          </div>
+                          <div>
+                            <p className={`font-semibold text-sm ${selectedTransport === transport.id ? "text-white" : "text-gray-300"}`}>
+                              {transport.name}
+                            </p>
+                            <p className="text-xs text-gray-500">{transport.subtitle}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {selectedTransport === transport.id ? (
+                            <div className="w-5 h-5 rounded-full bg-lime-500 flex items-center justify-center">
+                              <CheckCircle className="w-3 h-3 text-black" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-full border border-gray-600" />
+                          )}
+                          <ArrowRight className={`w-4 h-4 ${selectedTransport === transport.id ? "text-lime-400" : "text-gray-600"}`} />
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Center - Empty space to show the image */}
+              <div className="lg:col-span-5 hidden lg:block" />
+
+              {/* Right Column - Transport Details Panel */}
+              <div className="lg:col-span-4 space-y-4">
+                {/* Security Badge - Top Right */}
+                <div className="flex justify-end">
+                  <div className="bg-[#0a1628]/90 border border-gray-700/50 rounded-xl px-4 py-3 backdrop-blur-md flex items-center gap-3">
+                    <div className="p-2 bg-lime-500/20 rounded-lg">
+                      <Shield className="w-5 h-5 text-lime-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-sm">Livraison securisee</p>
+                      <p className="text-gray-400 text-xs">Vos colis sont entre de bonnes mains.</p>
+                    </div>
                   </div>
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-        </section>
+                </div>
 
-        {/* Premium Features with Images */}
-        <section className="py-16 lg:py-24 bg-zinc-950">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                Pourquoi choisir <span className="text-lime-500">QuickGo Delivery</span> ?
-              </h2>
-              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-                Une experience de livraison premium
-              </p>
-            </motion.div>
-            
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link href={feature.href} className="block group">
-                    <div className="relative h-64 rounded-2xl overflow-hidden border border-lime-500/20 hover:border-lime-500/60 transition-all duration-500 hover:shadow-[0_0_40px_rgba(132,204,22,0.2)] hover:scale-[1.02]">
-                      <Image
-                        src={feature.image}
-                        alt={feature.title}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                      />
-                      
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-500" />
-                      
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-lime-500 to-transparent" />
-                      </div>
-
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-lime-400 transition-colors duration-300">
-                          {feature.title}
-                        </h3>
-                        <p className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300">
-                          {feature.description}
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Delivery Options with Premium Images */}
-        <section className="py-16 lg:py-24 bg-black">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                Choisissez votre <span className="text-lime-500">type de transport</span>
-              </h2>
-              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-                Selectionnez le vehicule adapte a la taille de votre colis
-              </p>
-            </motion.div>
-            
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {deliveryOptions.map((option, index) => (
-                <motion.div
-                  key={option.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link href={option.href} className="block group">
-                    <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-500 hover:scale-[1.02] ${
-                      option.selected
-                        ? "border-lime-500 shadow-[0_0_30px_rgba(132,204,22,0.3)]"
-                        : "border-lime-500/20 hover:border-lime-500/60"
-                    }`}>
-                      {option.selected && (
-                        <div className="absolute top-4 right-4 z-20">
-                          <CheckCircle2 className="h-6 w-6 text-lime-500" />
-                        </div>
+                {/* Transport Info Card */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={selectedTransport}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-gradient-to-br from-[#0f1d32]/95 to-[#0a1628]/90 border border-gray-700/50 rounded-2xl p-5 backdrop-blur-md"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-xl font-bold text-white">{currentTransport.name}</h3>
+                      {currentTransport.recommended && (
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500 text-black flex items-center gap-1">
+                          <Star className="w-3 h-3" />
+                          Recommande
+                        </span>
                       )}
-                      
-                      {/* Image */}
-                      <div className="relative h-48">
-                        <Image
-                          src={option.image}
-                          alt={option.name}
-                          fill
-                          className="object-cover transition-transform duration-700 group-hover:scale-110"
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-                      </div>
-                      
-                      {/* Content */}
-                      <div className="relative p-5 bg-zinc-900">
-                        <h3 className="text-xl font-bold text-white mb-1 group-hover:text-lime-400 transition-colors">
-                          {option.name}
-                        </h3>
-                        <p className="text-sm text-zinc-400 mb-4">
-                          {option.description}
-                        </p>
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-zinc-500">Prix</span>
-                            <span className="font-semibold text-lime-500">{option.price}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-zinc-500">Temps estime</span>
-                            <span className="font-medium text-white">{option.time}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm text-zinc-500">Poids max</span>
-                            <span className="font-medium text-white">{option.maxWeight}</span>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 pt-4 border-t border-lime-500/20">
-                          <span className="inline-flex items-center gap-2 text-sm font-medium text-lime-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                            Selectionner
-                            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                          </span>
-                        </div>
-                      </div>
                     </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        {/* How it Works */}
-        <section className="py-16 lg:py-24 bg-zinc-950">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                Comment ca <span className="text-lime-500">marche</span> ?
-              </h2>
-              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-                En 5 etapes simples, votre colis est livre
-              </p>
-            </motion.div>
-            
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={step.number}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative"
-                >
-                  <div className="text-center p-4 rounded-2xl bg-zinc-900/50 border border-lime-500/20 hover:border-lime-500/40 transition-colors">
-                    <div className="w-12 h-12 rounded-full bg-lime-500 text-black text-xl font-bold flex items-center justify-center mx-auto mb-4">
-                      {step.number}
+                    {/* Features List */}
+                    <div className="space-y-3">
+                      {currentTransport.features.map((feature, index) => (
+                        <div key={index} className="flex items-start gap-3">
+                          <div className="p-1.5 bg-lime-500/10 rounded-lg mt-0.5">
+                            <feature.icon className="w-4 h-4 text-lime-400" />
+                          </div>
+                          <div>
+                            <p className="text-white text-sm font-medium">{feature.label}</p>
+                            <p className="text-gray-500 text-xs">{feature.desc}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <h3 className="font-semibold text-white mb-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-sm text-zinc-500">
-                      {step.description}
-                    </p>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="absolute bottom-8 left-4 right-4 lg:left-8 lg:right-8">
+              <div className="bg-[#0a1628]/95 border border-gray-700/50 rounded-2xl p-4 backdrop-blur-md">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
+                  {/* Features */}
+                  <div className="flex flex-wrap items-center justify-center gap-4 lg:gap-8">
+                    {bottomFeatures.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <feature.icon className="w-4 h-4 text-lime-400" />
+                        <div>
+                          <p className="text-white text-xs font-medium">{feature.label}</p>
+                          <p className="text-gray-500 text-[10px]">{feature.desc}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   
-                  {index < steps.length - 1 && (
-                    <div className="hidden lg:block absolute top-10 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-lime-500 to-lime-500/20" />
-                  )}
-                </motion.div>
-              ))}
+                  {/* CTA Button */}
+                  <Link href={`/delivery/create?type=${selectedTransport}`}>
+                    <Button className="bg-lime-500 hover:bg-lime-400 text-black font-bold px-6 py-5 rounded-xl group whitespace-nowrap">
+                      <span className="flex items-center gap-2">
+                        {selectedTransport === "moto" && <Bike className="w-5 h-5" />}
+                        {selectedTransport === "voiture" && <Car className="w-5 h-5" />}
+                        {selectedTransport === "camionnette" && <Truck className="w-5 h-5" />}
+                        {selectedTransport === "camion" && <Truck className="w-5 h-5" />}
+                        Continuer avec {currentTransport.name}
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="py-16 lg:py-24 bg-gradient-to-r from-lime-500/10 via-black to-lime-500/10 border-t border-lime-500/20">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                Pret a envoyer votre <span className="text-lime-500">colis</span> ?
-              </h2>
-              <p className="text-lg text-zinc-400 mb-8">
-                Creez votre premiere livraison en moins de 2 minutes
-              </p>
-              <Link href="/delivery/create">
-                <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
-                  Commander une livraison
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-            </motion.div>
           </div>
         </section>
       </div>
