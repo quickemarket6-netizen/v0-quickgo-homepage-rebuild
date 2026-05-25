@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { createClient } from "@/lib/supabase/client"
+import { mutate } from "swr"
 import {
   LayoutDashboard,
   Package,
@@ -18,13 +20,14 @@ import {
   Shield,
   CreditCard,
   Globe,
-  Palette,
   Mail,
-  Smartphone,
-  Database,
+  Phone,
   Key,
   Save,
   AlertCircle,
+  CheckCircle,
+  Loader2,
+  MessageCircle,
 } from "lucide-react"
 
 const sidebarItems = [
@@ -46,13 +49,19 @@ const settingsSections = [
 
 export default function AdminSettingsPage() {
   const [activeSection, setActiveSection] = useState("general")
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle")
+  const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState({
     siteName: "QuickGo",
     siteUrl: "https://quickgo.cm",
     supportEmail: "support@quickgo.cm",
-    supportPhone: "+237 690 000 000",
+    supportPhone: "+237 690 773 615",
+    whatsappNumber: "+237690773615",
     currency: "XAF",
     timezone: "Africa/Douala",
+    minDeliveryFee: "1000",
+    maxDeliveryDistance: "50",
     orderNotifications: true,
     driverNotifications: true,
     marketingEmails: false,
@@ -66,6 +75,78 @@ export default function AdminSettingsPage() {
     apiEnabled: true,
     webhooksEnabled: true,
   })
+
+  // Load settings from database on mount
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from("admin_settings")
+          .select("key, value")
+        
+        if (data) {
+          const dbSettings: Record<string, string> = {}
+          data.forEach(item => { dbSettings[item.key] = item.value })
+          
+          setSettings(prev => ({
+            ...prev,
+            siteName: dbSettings.company_name || prev.siteName,
+            supportEmail: dbSettings.company_email || prev.supportEmail,
+            supportPhone: dbSettings.support_phone || prev.supportPhone,
+            whatsappNumber: dbSettings.whatsapp_number || prev.whatsappNumber,
+            minDeliveryFee: dbSettings.min_delivery_fee || prev.minDeliveryFee,
+            maxDeliveryDistance: dbSettings.max_delivery_distance || prev.maxDeliveryDistance,
+          }))
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadSettings()
+  }, [])
+
+  const handleSaveSettings = async () => {
+    setSaving(true)
+    setSaveStatus("idle")
+    
+    try {
+      const supabase = createClient()
+      
+      // Map frontend settings to database keys
+      const settingsToSave = [
+        { key: "company_name", value: settings.siteName },
+        { key: "company_email", value: settings.supportEmail },
+        { key: "support_phone", value: settings.supportPhone },
+        { key: "whatsapp_number", value: settings.whatsappNumber },
+        { key: "min_delivery_fee", value: settings.minDeliveryFee },
+        { key: "max_delivery_distance", value: settings.maxDeliveryDistance },
+      ]
+
+      for (const setting of settingsToSave) {
+        await supabase
+          .from("admin_settings")
+          .upsert({ 
+            key: setting.key, 
+            value: setting.value,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "key" })
+      }
+
+      // Invalidate SWR cache for WhatsApp button
+      mutate("/api/settings")
+      
+      setSaveStatus("success")
+      setTimeout(() => setSaveStatus("idle"), 3000)
+    } catch (error) {
+      console.error("Error saving settings:", error)
+      setSaveStatus("error")
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleToggle = (key: string) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }))
@@ -125,9 +206,15 @@ export default function AdminSettingsPage() {
                   Configuration de la plateforme QuickGo
                 </p>
               </div>
-              <Button className="gap-2 bg-primary hover:bg-primary/90 mt-4 sm:mt-0">
-                <Save className="h-4 w-4" />
-                Sauvegarder
+              <Button onClick={handleSaveSettings} disabled={saving} className="gap-2 bg-primary hover:bg-primary/90 mt-4 sm:mt-0">
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : saveStatus === "success" ? (
+                  <CheckCircle className="h-4 w-4" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {saveStatus === "success" ? "Sauvegarde!" : "Sauvegarder"}
               </Button>
             </motion.div>
 
@@ -194,7 +281,8 @@ export default function AdminSettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-primary" />
                           Email support
                         </label>
                         <Input 
@@ -204,7 +292,8 @@ export default function AdminSettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-primary" />
                           Telephone support
                         </label>
                         <Input 
@@ -212,6 +301,27 @@ export default function AdminSettingsPage() {
                           onChange={(e) => setSettings(prev => ({ ...prev, supportPhone: e.target.value }))}
                           className="bg-background"
                         />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4 text-green-500" />
+                          Numero WhatsApp (bouton flottant)
+                        </label>
+                        <div className="flex gap-2">
+                          <Input 
+                            value={settings.whatsappNumber}
+                            onChange={(e) => setSettings(prev => ({ ...prev, whatsappNumber: e.target.value }))}
+                            className="bg-background"
+                            placeholder="+237690773615"
+                          />
+                          <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            <span className="text-green-500 text-sm whitespace-nowrap">WhatsApp actif</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Ce numero sera utilise pour le bouton WhatsApp flottant sur tout le site
+                        </p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">
@@ -230,6 +340,36 @@ export default function AdminSettingsPage() {
                         <Input 
                           value={settings.timezone}
                           onChange={(e) => setSettings(prev => ({ ...prev, timezone: e.target.value }))}
+                          className="bg-background"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Delivery Settings */}
+                    <h3 className="text-lg font-bold text-foreground mt-8 mb-6 flex items-center gap-2">
+                      <Truck className="h-5 w-5 text-primary" />
+                      Parametres de livraison
+                    </h3>
+                    <div className="grid sm:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Frais minimum (FCFA)
+                        </label>
+                        <Input 
+                          type="number"
+                          value={settings.minDeliveryFee}
+                          onChange={(e) => setSettings(prev => ({ ...prev, minDeliveryFee: e.target.value }))}
+                          className="bg-background"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Distance max (km)
+                        </label>
+                        <Input 
+                          type="number"
+                          value={settings.maxDeliveryDistance}
+                          onChange={(e) => setSettings(prev => ({ ...prev, maxDeliveryDistance: e.target.value }))}
                           className="bg-background"
                         />
                       </div>
