@@ -6,8 +6,24 @@ export async function GET(request: Request) {
   const category = searchParams.get("category")
   const city = searchParams.get("city")
   const featured = searchParams.get("featured")
+  const my = searchParams.get("my")
   
   const supabase = await createClient()
+
+  // ?my=true — return the authenticated user's vendor(s)
+  if (my === "true") {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+
+    const { data, error } = await supabase
+      .from("vendors")
+      .select("*")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false })
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(data)
+  }
   
   let query = supabase
     .from("vendors")

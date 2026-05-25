@@ -1,34 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
-  LayoutDashboard,
-  Package,
-  Users,
-  Truck,
-  Store,
-  BarChart3,
-  Settings,
-  Bell,
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Filter,
-  Download,
-  ShieldCheck,
-  RefreshCw,
-  ChevronRight,
-  CreditCard,
-  Banknote,
-  Smartphone,
+  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
+  Settings, Wallet, TrendingUp, TrendingDown, DollarSign,
+  ArrowDownLeft, ArrowUpRight, Filter, Download, ShieldCheck,
+  RefreshCw, ChevronRight, CreditCard, Banknote, Smartphone,
+  CheckCircle2, XCircle, AlertTriangle, Eye, Lock, Unlock,
+  Clock, Search, MoreVertical, ChevronDown, X, Activity,
+  Shield, Bell,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
+// ─── Sidebar ────────────────────────────────────────────────────
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Vue d'ensemble", href: "/admin" },
   { icon: Package, label: "Commandes", href: "/admin/orders", badge: 48 },
@@ -40,400 +27,880 @@ const sidebarItems = [
   { icon: Settings, label: "Paramètres", href: "/admin/settings" },
 ]
 
-const stats = [
-  {
-    label: "Revenus totaux",
-    value: "45.8M CFA",
-    change: "+23.4%",
-    trend: "up",
-    icon: DollarSign,
-    color: "from-green-500 to-emerald-500",
-    sub: "Ce mois",
-  },
-  {
-    label: "Commissions",
-    value: "3.2M CFA",
-    change: "+18.2%",
-    trend: "up",
-    icon: TrendingUp,
-    color: "from-quickgo-blue to-quickgo-cyan",
-    sub: "7% moyen",
-  },
-  {
-    label: "Paiements vendeurs",
-    value: "38.6M CFA",
-    change: "+21.1%",
-    trend: "up",
-    icon: ArrowUpRight,
-    color: "from-purple-500 to-pink-500",
-    sub: "Payés ce mois",
-  },
-  {
-    label: "En attente",
-    value: "4.0M CFA",
-    change: "-5.3%",
-    trend: "down",
-    icon: ArrowDownLeft,
-    color: "from-orange-500 to-red-500",
-    sub: "À traiter",
-  },
-]
-
-const transactions = [
-  {
-    id: "TXN-001",
-    type: "commission",
-    vendor: "Apple Store Cameroun",
-    amount: "+125 000 CFA",
-    method: "Orange Money",
-    status: "completed",
-    date: "25 Mai 2026",
-  },
-  {
-    id: "TXN-002",
-    type: "payout",
-    vendor: "Mode Africaine",
-    amount: "-850 000 CFA",
-    method: "MTN Mobile Money",
-    status: "completed",
-    date: "25 Mai 2026",
-  },
-  {
-    id: "TXN-003",
-    type: "commission",
-    vendor: "Pharmacie Plus",
-    amount: "+45 000 CFA",
-    method: "Orange Money",
-    status: "completed",
-    date: "24 Mai 2026",
-  },
-  {
-    id: "TXN-004",
-    type: "payout",
-    vendor: "Tech Galaxy",
-    amount: "-220 000 CFA",
-    method: "Virement bancaire",
-    status: "pending",
-    date: "24 Mai 2026",
-  },
-  {
-    id: "TXN-005",
-    type: "refund",
-    vendor: "SuperMarché Central",
-    amount: "-15 000 CFA",
-    method: "Orange Money",
-    status: "processing",
-    date: "23 Mai 2026",
-  },
-]
-
-const paymentChannels = [
-  { name: "Orange Money", amount: "18.5M CFA", share: 40, color: "bg-orange-500", icon: Smartphone },
-  { name: "MTN Mobile Money", amount: "16.2M CFA", share: 35, color: "bg-yellow-500", icon: Smartphone },
-  { name: "Carte bancaire", amount: "7.4M CFA", share: 16, color: "bg-blue-500", icon: CreditCard },
-  { name: "QuickGo Pay", amount: "3.7M CFA", share: 9, color: "bg-quickgo-lime", icon: Wallet },
-]
-
-const statusConfig: Record<string, { label: string; className: string }> = {
-  completed: { label: "Complété", className: "bg-green-500/20 text-green-400" },
-  pending: { label: "En attente", className: "bg-yellow-500/20 text-yellow-400" },
-  processing: { label: "En cours", className: "bg-quickgo-blue/20 text-quickgo-blue" },
-  failed: { label: "Échoué", className: "bg-red-500/20 text-red-400" },
+// ─── Types ───────────────────────────────────────────────────────
+interface FinanceSummary {
+  total_revenue: number
+  total_commissions: number
+  total_vendor_paid: number
+  pending_payouts_count: number
+  pending_payouts_total: number
+  frozen_wallets: number
 }
 
-export default function AdminFinancesPage() {
-  const [period, setPeriod] = useState("Ce mois")
+interface DailyPoint {
+  date: string
+  revenue: number
+  commission: number
+  vendor: number
+}
+
+interface PendingPayout {
+  id: string
+  vendor_id: string
+  amount: number
+  payout_method: string
+  payout_phone: string
+  status: string
+  created_at: string
+  vendors: { name: string; logo_url: string | null } | null
+}
+
+interface VendorWallet {
+  vendor_id: string
+  pending_balance: number
+  available_balance: number
+  withdrawn_balance: number
+  total_earned: number
+  total_sales: number
+  frozen: boolean
+  freeze_reason: string | null
+  vendors: { id: string; name: string; logo_url: string | null; is_active: boolean } | null
+}
+
+interface FinanceData {
+  summary: FinanceSummary
+  daily_trend: DailyPoint[]
+  pending_payouts: PendingPayout[]
+  vendor_wallets: VendorWallet[]
+  recent_transactions: unknown[]
+  fraud_flags: unknown[]
+}
+
+// ─── Helpers ────────────────────────────────────────────────────
+function formatCFA(n: number) {
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " F"
+}
+
+function formatDate(s: string) {
+  return new Date(s).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+}
+
+// ─── Mini sparkline ─────────────────────────────────────────────
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (!data.length) return null
+  const max = Math.max(...data, 1)
+  const min = Math.min(...data, 0)
+  const range = max - min || 1
+  const w = 80
+  const h = 32
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w
+    const y = h - ((v - min) / range) * h
+    return `${x},${y}`
+  }).join(" ")
+  return (
+    <svg width={w} height={h} className="opacity-70">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ─── Bar chart component ─────────────────────────────────────────
+function RevenueChart({ data }: { data: DailyPoint[] }) {
+  const maxRev = Math.max(...data.map((d) => d.revenue), 1)
+  const last7 = data.slice(-14)
+  return (
+    <div className="flex items-end gap-1 h-28 w-full">
+      {last7.map((d, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+          <div
+            className="w-full rounded-t-sm bg-gradient-to-t from-quickgo-blue/60 to-quickgo-cyan/80 transition-all duration-300 group-hover:from-quickgo-blue group-hover:to-quickgo-cyan cursor-pointer"
+            style={{ height: `${Math.max(4, (d.revenue / maxRev) * 100)}%` }}
+          />
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+            {d.date.slice(5)} — {formatCFA(d.revenue)}
+          </div>
+          <span className="text-[8px] text-gray-500 truncate w-full text-center">{d.date.slice(8)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Approve/Reject Modal ────────────────────────────────────────
+function PayoutActionModal({
+  payout,
+  action,
+  onClose,
+  onSuccess,
+}: {
+  payout: PendingPayout | null
+  action: "approve" | "reject" | null
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [reason, setReason] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  if (!payout || !action) return null
+
+  async function handleSubmit() {
+    if (!payout) return
+    if (action === "reject" && !reason.trim()) {
+      toast.error("Une raison est requise")
+      return
+    }
+    setLoading(true)
+    try {
+      const url = `/api/payouts/${payout.id}/${action}`
+      const body = action === "reject" ? { reason } : {}
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Erreur")
+      toast.success(action === "approve" ? "Paiement approuvé et initié" : "Paiement refusé")
+      onSuccess()
+      onClose()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erreur serveur")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 bg-card/30">
-        <div className="p-6 border-b border-border/30">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center">
-              <span className="text-white font-bold text-lg">Q</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+      >
+        <div className={`p-6 rounded-t-2xl ${action === "approve" ? "bg-green-50 border-b border-green-100" : "bg-red-50 border-b border-red-100"}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {action === "approve"
+                ? <CheckCircle2 className="text-green-600" size={24} />
+                : <XCircle className="text-red-600" size={24} />}
+              <h2 className="text-lg font-bold text-gray-900">
+                {action === "approve" ? "Approuver le paiement" : "Refuser le paiement"}
+              </h2>
             </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Vendeur</span>
+              <span className="font-semibold text-gray-900">{payout.vendors?.name ?? "—"}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Montant</span>
+              <span className="font-bold text-xl text-gray-900">{formatCFA(payout.amount)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Méthode</span>
+              <span className="font-medium capitalize text-gray-700">{payout.payout_method.replace("_", " ")}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Téléphone</span>
+              <span className="font-medium text-gray-700">{payout.payout_phone}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Demandé le</span>
+              <span className="text-gray-700">{formatDate(payout.created_at)}</span>
+            </div>
+          </div>
+
+          {action === "reject" && (
             <div>
-              <span className="text-xl font-bold text-white">QUICK</span>
-              <span className="text-xl font-bold text-quickgo-lime">GO</span>
-              <p className="text-[10px] text-red-400 uppercase tracking-wider font-semibold">Admin</p>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Raison du refus <span className="text-red-500">*</span></label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-300 focus:border-red-400 outline-none resize-none"
+                rows={3}
+                placeholder="Ex: Informations de compte incorrectes..."
+              />
             </div>
+          )}
+
+          {action === "approve" && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3">
+              <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={16} />
+              <p className="text-xs text-amber-800">
+                Ce paiement sera immédiatement initié via CinetPay. Le montant sera débité du portefeuille vendeur et transféré vers {payout.payout_method.replace("_", " ")} au {payout.payout_phone}.
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={onClose} className="flex-1">Annuler</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className={`flex-1 text-white ${action === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+            >
+              {loading
+                ? <RefreshCw size={16} className="animate-spin mr-2" />
+                : action === "approve" ? <CheckCircle2 size={16} className="mr-2" /> : <XCircle size={16} className="mr-2" />}
+              {action === "approve" ? "Confirmer & Payer" : "Refuser"}
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ─── Freeze/Unfreeze modal ───────────────────────────────────────
+function FreezeModal({
+  wallet,
+  onClose,
+  onSuccess,
+}: {
+  wallet: VendorWallet | null
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [reason, setReason] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  if (!wallet) return null
+  const isFrozen = wallet.frozen
+
+  async function handleSubmit() {
+    if (!wallet) return
+    if (!isFrozen && !reason.trim()) {
+      toast.error("Une raison est requise pour geler un portefeuille")
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/wallets/${wallet.vendor_id}/freeze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ frozen: !isFrozen, reason }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      toast.success(isFrozen ? "Portefeuille réactivé" : "Portefeuille gelé")
+      onSuccess()
+      onClose()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Erreur")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+      >
+        <div className={`p-6 rounded-t-2xl ${isFrozen ? "bg-green-50 border-b border-green-100" : "bg-orange-50 border-b border-orange-100"}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isFrozen ? <Unlock className="text-green-600" size={24} /> : <Lock className="text-orange-600" size={24} />}
+              <h2 className="text-lg font-bold text-gray-900">
+                {isFrozen ? "Réactiver le portefeuille" : "Geler le portefeuille"}
+              </h2>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-gray-600">
+            Vendeur: <span className="font-semibold text-gray-900">{wallet.vendors?.name}</span>
+          </p>
+          {!isFrozen && (
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Raison du gel <span className="text-red-500">*</span></label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-orange-300 outline-none resize-none"
+                rows={3}
+                placeholder="Ex: Activité suspecte détectée..."
+              />
+            </div>
+          )}
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={onClose} className="flex-1">Annuler</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className={`flex-1 text-white ${isFrozen ? "bg-green-600 hover:bg-green-700" : "bg-orange-600 hover:bg-orange-700"}`}
+            >
+              {loading && <RefreshCw size={16} className="animate-spin mr-2" />}
+              {isFrozen ? "Réactiver" : "Geler"}
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ─── Main page ───────────────────────────────────────────────────
+export default function AdminFinancesPage() {
+  const [data, setData] = useState<FinanceData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState("30")
+  const [activeTab, setActiveTab] = useState<"payouts" | "wallets" | "transactions">("payouts")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedPayout, setSelectedPayout] = useState<PendingPayout | null>(null)
+  const [payoutAction, setPayoutAction] = useState<"approve" | "reject" | null>(null)
+  const [selectedWallet, setSelectedWallet] = useState<VendorWallet | null>(null)
+  const [allPayouts, setAllPayouts] = useState<PendingPayout[]>([])
+  const [payoutsFilter, setPayoutsFilter] = useState("pending")
+  const [loadingAllPayouts, setLoadingAllPayouts] = useState(false)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/finances?period=${period}`)
+      if (res.ok) setData(await res.json())
+    } catch {
+      toast.error("Erreur de chargement des données financières")
+    } finally {
+      setLoading(false)
+    }
+  }, [period])
+
+  const fetchAllPayouts = useCallback(async () => {
+    setLoadingAllPayouts(true)
+    try {
+      const res = await fetch(`/api/payouts?status=${payoutsFilter}&limit=100`)
+      if (res.ok) {
+        const d = await res.json()
+        setAllPayouts(d.payouts ?? [])
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingAllPayouts(false)
+    }
+  }, [payoutsFilter])
+
+  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    if (activeTab === "payouts") fetchAllPayouts()
+  }, [activeTab, fetchAllPayouts])
+
+  const summary = data?.summary
+  const sparkData = (data?.daily_trend ?? []).map((d) => d.commission)
+
+  const statCards = summary
+    ? [
+        {
+          label: "Revenus totaux",
+          value: formatCFA(summary.total_revenue),
+          sub: `${period}j`,
+          icon: DollarSign,
+          gradient: "from-green-500 to-emerald-600",
+          trend: "+18.4%",
+          up: true,
+        },
+        {
+          label: "Commissions QuickGo",
+          value: formatCFA(summary.total_commissions),
+          sub: "7% moyen",
+          icon: TrendingUp,
+          gradient: "from-quickgo-blue to-quickgo-cyan",
+          trend: "+12.1%",
+          up: true,
+        },
+        {
+          label: "Reversé aux vendeurs",
+          value: formatCFA(summary.total_vendor_paid),
+          sub: "Net après frais",
+          icon: ArrowUpRight,
+          gradient: "from-purple-500 to-violet-600",
+          trend: "+9.7%",
+          up: true,
+        },
+        {
+          label: "Retraits en attente",
+          value: `${summary.pending_payouts_count}`,
+          sub: formatCFA(summary.pending_payouts_total),
+          icon: Clock,
+          gradient: "from-orange-500 to-amber-500",
+          trend: summary.pending_payouts_count > 5 ? "Urgent" : "Normal",
+          up: summary.pending_payouts_count <= 5,
+          alert: summary.pending_payouts_count > 5,
+        },
+        {
+          label: "Portefeuilles gelés",
+          value: `${summary.frozen_wallets}`,
+          sub: "Fraude / vérif.",
+          icon: Shield,
+          gradient: summary.frozen_wallets > 0 ? "from-red-500 to-rose-600" : "from-gray-400 to-gray-500",
+          alert: summary.frozen_wallets > 0,
+        },
+        {
+          label: "Commissions / jour",
+          value: formatCFA(
+            data!.daily_trend.length
+              ? summary.total_commissions / data!.daily_trend.length
+              : 0,
+          ),
+          sub: "Moyenne",
+          icon: Activity,
+          gradient: "from-teal-500 to-cyan-600",
+          sparkline: sparkData,
+        },
+      ]
+    : []
+
+  const filteredWallets = (data?.vendor_wallets ?? []).filter((w) =>
+    searchQuery ? w.vendors?.name?.toLowerCase().includes(searchQuery.toLowerCase()) : true,
+  )
+
+  const payoutsToShow = activeTab === "payouts"
+    ? allPayouts.filter((p) =>
+        searchQuery ? p.vendors?.name?.toLowerCase().includes(searchQuery.toLowerCase()) : true,
+      )
+    : []
+
+  function openApprove(p: PendingPayout) { setSelectedPayout(p); setPayoutAction("approve") }
+  function openReject(p: PendingPayout) { setSelectedPayout(p); setPayoutAction("reject") }
+  function closeModal() { setSelectedPayout(null); setPayoutAction(null) }
+
+  const payoutMethodIcon = (method: string) =>
+    method === "orange_money" ? "🟠" : method === "mtn_momo" ? "💛" : "🏦"
+
+  const statusBadge = (status: string) => {
+    const map: Record<string, string> = {
+      pending: "bg-amber-100 text-amber-700",
+      approved: "bg-blue-100 text-blue-700",
+      processing: "bg-purple-100 text-purple-700",
+      completed: "bg-green-100 text-green-700",
+      rejected: "bg-red-100 text-red-700",
+      failed: "bg-gray-100 text-gray-600",
+    }
+    const labels: Record<string, string> = {
+      pending: "En attente",
+      approved: "Approuvé",
+      processing: "En cours",
+      completed: "Complété",
+      rejected: "Refusé",
+      failed: "Échoué",
+    }
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? "bg-gray-100 text-gray-600"}`}>
+        {labels[status] ?? status}
+      </span>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full z-20 shadow-sm">
+        <div className="p-6 border-b border-gray-100">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-quickgo-blue to-quickgo-cyan rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">Q</span>
+            </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-quickgo-blue to-quickgo-cyan bg-clip-text text-transparent">QuickGo</span>
           </Link>
+          <span className="text-xs text-gray-500 mt-1 block">Administration</span>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {sidebarItems.map((item) => (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                item.active
-                  ? "bg-quickgo-blue/20 text-quickgo-blue"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${item.active
+                ? "bg-gradient-to-r from-quickgo-blue/10 to-quickgo-cyan/10 text-quickgo-blue font-semibold"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
             >
-              <item.icon className="w-5 h-5" />
-              <span className="text-sm font-medium">{item.label}</span>
+              <item.icon size={18} />
+              <span className="text-sm flex-1">{item.label}</span>
               {item.badge && (
-                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[20px] text-center">
                   {item.badge}
                 </span>
               )}
             </Link>
           ))}
         </nav>
-        <div className="p-4 border-t border-border/30">
-          <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl p-4">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="w-5 h-5 text-green-400" />
-              <div>
-                <p className="text-white font-semibold text-sm">Système OK</p>
-                <p className="text-xs text-green-400">Tous services actifs</p>
-              </div>
+        <div className="p-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-quickgo-blue to-quickgo-cyan rounded-full flex items-center justify-center text-white text-xs font-bold">A</div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Admin</p>
+              <p className="text-xs text-gray-500">Super Admin</p>
             </div>
           </div>
         </div>
-      </aside>
+      </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-white">Finances & Paiements</h1>
-              <p className="text-sm text-muted-foreground">Gestion des revenus, commissions et paiements vendeurs</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-card/50 rounded-full p-1">
-                {["Ce mois", "3 mois", "6 mois", "Tout"].map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      period === p ? "bg-quickgo-blue text-white" : "text-muted-foreground hover:text-white"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-              <Button variant="outline" size="sm" className="rounded-full">
-                <Download className="w-4 h-4 mr-2" />
-                Exporter
-              </Button>
-              <button className="relative p-2 hover:bg-white/5 rounded-full">
-                <Bell className="w-5 h-5 text-muted-foreground" />
-              </button>
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">AD</span>
-              </div>
-            </div>
+      {/* Main content */}
+      <div className="ml-64 flex-1 flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Tableau de bord financier</h1>
+            <p className="text-sm text-gray-500">Escrow · Commissions · Retraits vendeurs</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-quickgo-blue/20"
+            >
+              <option value="7">7 derniers jours</option>
+              <option value="30">30 derniers jours</option>
+              <option value="90">90 derniers jours</option>
+            </select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchData}
+              disabled={loading}
+              className="gap-2"
+            >
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              Actualiser
+            </Button>
+            <Button size="sm" className="gap-2 bg-gradient-to-r from-quickgo-blue to-quickgo-cyan text-white border-0">
+              <Download size={14} />
+              Exporter
+            </Button>
           </div>
         </header>
 
-        <div className="p-6">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {stats.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-card/50 backdrop-blur-xl rounded-2xl p-5 border border-border/30 relative overflow-hidden"
+        <main className="flex-1 p-8 space-y-8">
+          {/* Urgent alert: pending payouts > 5 */}
+          {(summary?.pending_payouts_count ?? 0) > 5 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4"
+            >
+              <AlertTriangle className="text-amber-600 shrink-0" size={24} />
+              <div>
+                <p className="font-semibold text-amber-900">
+                  {summary?.pending_payouts_count} retraits en attente de validation
+                </p>
+                <p className="text-sm text-amber-700">
+                  Montant total: {formatCFA(summary?.pending_payouts_total ?? 0)} — Action requise
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => { setActiveTab("payouts"); setPayoutsFilter("pending") }}
+                className="ml-auto bg-amber-600 hover:bg-amber-700 text-white"
               >
-                <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.color} opacity-10 rounded-full -translate-y-1/2 translate-x-1/2`} />
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`p-2 rounded-xl bg-gradient-to-br ${stat.color}`}>
-                    <stat.icon className="h-5 w-5 text-white" />
+                Traiter maintenant
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Fraud alerts */}
+          {(summary?.frozen_wallets ?? 0) > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-4"
+            >
+              <Shield className="text-red-600 shrink-0" size={24} />
+              <div>
+                <p className="font-semibold text-red-900">
+                  {summary?.frozen_wallets} portefeuille{(summary?.frozen_wallets ?? 0) > 1 ? "s" : ""} gelé{(summary?.frozen_wallets ?? 0) > 1 ? "s" : ""}
+                </p>
+                <p className="text-sm text-red-700">Activités suspectes signalées — vérification en cours</p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Stat Cards */}
+          <div className="grid grid-cols-3 gap-4">
+            {loading
+              ? Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl p-5 animate-pulse h-28">
+                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-3" />
+                    <div className="h-7 bg-gray-200 rounded w-3/4" />
                   </div>
-                  <span className={`flex items-center gap-1 text-sm font-medium ${
-                    stat.trend === "up" ? "text-green-400" : "text-red-400"
-                  }`}>
-                    {stat.trend === "up" ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-                    {stat.change}
+                ))
+              : statCards.map((card, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={`bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden ${card.alert ? "ring-2 ring-red-200" : ""}`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
+                        <card.icon className="text-white" size={18} />
+                      </div>
+                      {card.trend && (
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.up ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                          {card.trend}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mb-1">{card.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                    {card.sub && <p className="text-xs text-gray-400 mt-1">{card.sub}</p>}
+                    {card.sparkline && card.sparkline.length > 1 && (
+                      <div className="absolute bottom-3 right-3 opacity-50">
+                        <Sparkline data={card.sparkline} color="#3B82F6" />
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+          </div>
+
+          {/* Revenue Chart */}
+          {!loading && data && data.daily_trend.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="font-bold text-gray-900">Évolution des revenus</h2>
+                  <p className="text-sm text-gray-500">Chiffre d&apos;affaires journalier — {period} jours</p>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-quickgo-blue to-quickgo-cyan" />
+                    Revenus bruts
                   </span>
                 </div>
-                <p className="text-2xl font-bold text-white mb-1">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">{stat.sub}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-6 mb-6">
-            {/* Revenue Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-2 bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-white">Revenus mensuels</h3>
-                <Button variant="outline" size="sm" className="rounded-full">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtrer
-                </Button>
               </div>
-              <div className="h-48 flex items-end gap-2">
-                {[35, 55, 42, 68, 52, 75, 88, 72, 92, 78, 95, 85].map((h, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                    <div
-                      className="w-full bg-gradient-to-t from-quickgo-blue to-quickgo-cyan rounded-t transition-all hover:from-quickgo-lime hover:to-quickgo-lime cursor-pointer"
-                      style={{ height: `${h}%` }}
-                    />
-                    <span className="text-[10px] text-muted-foreground">
-                      {["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"][i]}
+              <RevenueChart data={data.daily_trend} />
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="flex items-center border-b border-gray-100 px-6 gap-1">
+              {(["payouts", "wallets", "transactions"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-4 text-sm font-medium border-b-2 transition-all ${activeTab === tab
+                    ? "border-quickgo-blue text-quickgo-blue"
+                    : "border-transparent text-gray-500 hover:text-gray-900"}`}
+                >
+                  {tab === "payouts" ? "Retraits vendeurs" : tab === "wallets" ? "Portefeuilles" : "Transactions"}
+                  {tab === "payouts" && (summary?.pending_payouts_count ?? 0) > 0 && (
+                    <span className="ml-2 bg-amber-500 text-white text-xs rounded-full px-1.5 py-0.5">
+                      {summary?.pending_payouts_count}
                     </span>
-                  </div>
-                ))}
+                  )}
+                </button>
+              ))}
+              <div className="ml-auto flex items-center gap-2 py-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Rechercher..."
+                    className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-quickgo-blue/20 w-48"
+                  />
+                </div>
+                {activeTab === "payouts" && (
+                  <select
+                    value={payoutsFilter}
+                    onChange={(e) => setPayoutsFilter(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none"
+                  >
+                    <option value="pending">En attente</option>
+                    <option value="approved">Approuvés</option>
+                    <option value="processing">En cours</option>
+                    <option value="completed">Complétés</option>
+                    <option value="rejected">Refusés</option>
+                    <option value="failed">Échoués</option>
+                  </select>
+                )}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Payment Channels */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
-            >
-              <h3 className="text-lg font-bold text-white mb-6">Canaux de paiement</h3>
-              <div className="space-y-4">
-                {paymentChannels.map((channel) => (
-                  <div key={channel.name}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <channel.icon className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm text-white">{channel.name}</span>
+            {/* Payouts Tab */}
+            {activeTab === "payouts" && (
+              <div className="divide-y divide-gray-50">
+                {loadingAllPayouts ? (
+                  <div className="p-12 flex items-center justify-center">
+                    <RefreshCw className="animate-spin text-quickgo-blue" size={24} />
+                  </div>
+                ) : payoutsToShow.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Wallet className="mx-auto text-gray-300 mb-3" size={40} />
+                    <p className="text-gray-500 font-medium">Aucun retrait trouvé</p>
+                    <p className="text-sm text-gray-400">Aucun retrait avec ce statut pour le moment</p>
+                  </div>
+                ) : (
+                  payoutsToShow.map((payout) => (
+                    <motion.div
+                      key={payout.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors"
+                    >
+                      <div className="text-2xl">{payoutMethodIcon(payout.payout_method)}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-gray-900 truncate">
+                            {payout.vendors?.name ?? "Vendeur inconnu"}
+                          </p>
+                          {statusBadge(payout.status)}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {payout.payout_phone} · {payout.payout_method.replace("_", " ")} · {formatDate(payout.created_at)}
+                        </p>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm text-white font-medium">{channel.amount}</span>
-                        <span className="text-xs text-muted-foreground ml-2">{channel.share}%</span>
+                        <p className="font-bold text-gray-900 text-lg">{formatCFA(payout.amount)}</p>
+                        <p className="text-xs text-gray-400">{payout.id.slice(0, 8).toUpperCase()}</p>
+                      </div>
+                      {payout.status === "pending" && (
+                        <div className="flex gap-2 ml-2">
+                          <Button
+                            size="sm"
+                            onClick={() => openApprove(payout)}
+                            className="bg-green-600 hover:bg-green-700 text-white gap-1"
+                          >
+                            <CheckCircle2 size={14} />
+                            Payer
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openReject(payout)}
+                            className="border-red-200 text-red-600 hover:bg-red-50 gap-1"
+                          >
+                            <XCircle size={14} />
+                            Refuser
+                          </Button>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Wallets Tab */}
+            {activeTab === "wallets" && (
+              <div className="divide-y divide-gray-50">
+                {loading ? (
+                  <div className="p-12 flex items-center justify-center">
+                    <RefreshCw className="animate-spin text-quickgo-blue" size={24} />
+                  </div>
+                ) : filteredWallets.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Wallet className="mx-auto text-gray-300 mb-3" size={40} />
+                    <p className="text-gray-500">Aucun portefeuille trouvé</p>
+                  </div>
+                ) : (
+                  filteredWallets.map((w) => (
+                    <div key={w.vendor_id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-quickgo-blue/20 to-quickgo-cyan/20 flex items-center justify-center text-quickgo-blue font-bold text-sm shrink-0">
+                        {w.vendors?.name?.charAt(0) ?? "?"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-gray-900 truncate">{w.vendors?.name ?? "—"}</p>
+                          {w.frozen && (
+                            <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Lock size={10} /> Gelé
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                          <span>En attente: <b className="text-amber-600">{formatCFA(w.pending_balance)}</b></span>
+                          <span>Disponible: <b className="text-green-600">{formatCFA(w.available_balance)}</b></span>
+                          <span>Retiré: <b className="text-gray-700">{formatCFA(w.withdrawn_balance)}</b></span>
+                          <span>{w.total_sales} ventes</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">{formatCFA(w.total_earned)}</p>
+                        <p className="text-xs text-gray-400">Total gagné</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedWallet(w)}
+                        className={`ml-2 gap-1 ${w.frozen ? "border-green-200 text-green-600 hover:bg-green-50" : "border-orange-200 text-orange-600 hover:bg-orange-50"}`}
+                      >
+                        {w.frozen ? <Unlock size={14} /> : <Lock size={14} />}
+                        {w.frozen ? "Réactiver" : "Geler"}
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Transactions Tab */}
+            {activeTab === "transactions" && (
+              <div className="divide-y divide-gray-50">
+                {loading ? (
+                  <div className="p-12 flex items-center justify-center">
+                    <RefreshCw className="animate-spin text-quickgo-blue" size={24} />
+                  </div>
+                ) : (data?.recent_transactions ?? []).length === 0 ? (
+                  <div className="p-12 text-center">
+                    <CreditCard className="mx-auto text-gray-300 mb-3" size={40} />
+                    <p className="text-gray-500">Aucune transaction récente</p>
+                  </div>
+                ) : (
+                  (data?.recent_transactions as Array<Record<string, unknown>> ?? []).map((txn, i) => (
+                    <div key={i} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${txn.status === "completed" ? "bg-green-100" : txn.status === "failed" ? "bg-red-100" : "bg-amber-100"}`}>
+                        <CreditCard size={16} className={txn.status === "completed" ? "text-green-600" : txn.status === "failed" ? "text-red-600" : "text-amber-600"} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 text-sm">
+                          Transaction #{String(txn.transaction_id ?? "—").slice(0, 12)}
+                        </p>
+                        <p className="text-xs text-gray-500">{formatDate(String(txn.created_at))}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-gray-900">{formatCFA(Number(txn.amount ?? 0))}</p>
+                        {statusBadge(String(txn.status ?? ""))}
                       </div>
                     </div>
-                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${channel.color} rounded-full transition-all`}
-                        style={{ width: `${channel.share}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
-              <div className="mt-6 pt-4 border-t border-border/30">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total traité</span>
-                  <span className="text-quickgo-lime font-bold">45.8M CFA</span>
-                </div>
-              </div>
-            </motion.div>
+            )}
           </div>
+        </main>
+      </div>
 
-          {/* Pending Payouts */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="mb-6 p-6 rounded-3xl bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-white">Paiements en attente</h3>
-                <p className="text-sm text-muted-foreground">3 vendeurs attendent leur paiement · Total: 4.0M CFA</p>
-              </div>
-              <Button className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">
-                <Banknote className="w-4 h-4 mr-2" />
-                Traiter les paiements
-              </Button>
-            </div>
-          </motion.div>
-
-          {/* Transactions Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-card/50 backdrop-blur-xl rounded-3xl border border-border/30 overflow-hidden"
-          >
-            <div className="flex items-center justify-between p-6 border-b border-border/30">
-              <h3 className="text-lg font-bold text-white">Dernières transactions</h3>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="rounded-full">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Actualiser
-                </Button>
-                <Link href="/admin/analytics">
-                  <Button size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">
-                    Voir tout
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/20">
-                    <th className="text-left text-xs text-muted-foreground font-medium py-3 px-6">Transaction</th>
-                    <th className="text-left text-xs text-muted-foreground font-medium py-3 px-4">Vendeur</th>
-                    <th className="text-left text-xs text-muted-foreground font-medium py-3 px-4">Méthode</th>
-                    <th className="text-left text-xs text-muted-foreground font-medium py-3 px-4">Montant</th>
-                    <th className="text-left text-xs text-muted-foreground font-medium py-3 px-4">Statut</th>
-                    <th className="text-left text-xs text-muted-foreground font-medium py-3 px-4">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((tx, i) => (
-                    <tr key={tx.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl ${
-                            tx.type === "commission" ? "bg-green-500/20" :
-                            tx.type === "payout" ? "bg-quickgo-blue/20" : "bg-orange-500/20"
-                          }`}>
-                            {tx.type === "commission" ? (
-                              <ArrowDownLeft className={`w-4 h-4 text-green-400`} />
-                            ) : tx.type === "payout" ? (
-                              <ArrowUpRight className="w-4 h-4 text-quickgo-blue" />
-                            ) : (
-                              <RefreshCw className="w-4 h-4 text-orange-400" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-white text-sm font-mono">{tx.id}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{tx.type}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-white">{tx.vendor}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-muted-foreground">{tx.method}</span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`text-sm font-bold ${
-                          tx.amount.startsWith("+") ? "text-green-400" : "text-red-400"
-                        }`}>
-                          {tx.amount}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[tx.status]?.className}`}>
-                          {statusConfig[tx.status]?.label}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4">
-                        <span className="text-sm text-muted-foreground">{tx.date}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        </div>
-      </main>
+      {/* Modals */}
+      <AnimatePresence>
+        {selectedPayout && payoutAction && (
+          <PayoutActionModal
+            payout={selectedPayout}
+            action={payoutAction}
+            onClose={closeModal}
+            onSuccess={() => { fetchData(); fetchAllPayouts() }}
+          />
+        )}
+        {selectedWallet && (
+          <FreezeModal
+            wallet={selectedWallet}
+            onClose={() => setSelectedWallet(null)}
+            onSuccess={fetchData}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
