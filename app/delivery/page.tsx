@@ -126,19 +126,19 @@ export default function DeliveryPage() {
             <div className="grid lg:grid-cols-12 gap-6 items-start min-h-[80vh]">
               
               {/* Left Column - Transport Selection Menu */}
-              <div className="lg:col-span-3 space-y-4">
+              <div className="lg:col-span-3 space-y-3">
                 {/* Header Label */}
-                <div className="flex items-center gap-2 text-lime-400 mb-4">
+                <div className="flex items-center gap-2 text-lime-400 mb-2">
                   <div className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
                   <span className="text-xs font-medium uppercase tracking-wider">Type de transport</span>
                 </div>
 
-                <div>
-                  <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight">
+                <div className="bg-[#0a1628]/80 backdrop-blur-sm rounded-xl p-3">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-white leading-tight">
                     Choisissez votre<br />
                     mode de <span className="text-lime-400">livraison</span>
                   </h1>
-                  <p className="text-gray-400 text-sm mt-2">
+                  <p className="text-gray-400 text-xs mt-1">
                     Rapide, securise et adapte a vos besoins.
                   </p>
                 </div>

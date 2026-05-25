@@ -2,19 +2,31 @@
 
 import { useState, useEffect } from "react"
 import { MessageCircle, X, Send } from "lucide-react"
+import useSWR from "swr"
 
 interface WhatsAppButtonProps {
   phoneNumber?: string
   message?: string
 }
 
+const fetcher = (url: string) => fetch(url).then(res => res.json())
+
 export function WhatsAppButton({ 
-  phoneNumber = "+237690773615",
+  phoneNumber: propPhoneNumber,
   message = "Bonjour QuickGo! J'ai une question concernant vos services."
 }: WhatsAppButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [customMessage, setCustomMessage] = useState(message)
   const [showPulse, setShowPulse] = useState(true)
+
+  // Fetch WhatsApp number from database
+  const { data: settingsData } = useSWR("/api/settings", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000
+  })
+
+  // Use prop number as fallback, then database, then default
+  const phoneNumber = propPhoneNumber || settingsData?.data?.whatsapp_number || "+237690773615"
 
   useEffect(() => {
     // Show pulse animation for first 10 seconds
