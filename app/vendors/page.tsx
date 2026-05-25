@@ -8,58 +8,55 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import {
   Store,
-  TrendingUp,
-  Package,
-  Users,
-  Shield,
-  Headphones,
-  BarChart3,
-  Zap,
   ArrowRight,
   CheckCircle2,
 } from "lucide-react"
 
 const benefits = [
   {
-    icon: TrendingUp,
+    image: "/images/premium/augmentez-ventes.jpg",
     title: "Augmentez vos ventes",
-    description: "Accédez à des milliers de clients potentiels",
+    description: "Accedez a des milliers de clients potentiels",
+    href: "/marketplace",
   },
   {
-    icon: Package,
-    title: "Livraison gérée",
-    description: "Nous gérons toute la logistique pour vous",
+    image: "/images/premium/livraison-geree.jpg",
+    title: "Livraison geree",
+    description: "Nous gerons toute la logistique pour vous",
+    href: "/delivery",
   },
   {
-    icon: BarChart3,
-    title: "Analytics avancés",
-    description: "Suivez vos performances en temps réel",
+    image: "/images/premium/analytics-avances.jpg",
+    title: "Analytics avances",
+    description: "Suivez vos performances en temps reel",
+    href: "/vendor/dashboard",
   },
   {
-    icon: Headphones,
-    title: "Support dédié",
-    description: "Une équipe dédiée pour vous accompagner",
+    image: "/images/premium/support-dedie.jpg",
+    title: "Support dedie",
+    description: "Une equipe dediee pour vous accompagner",
+    href: "/support",
   },
 ]
 
 const steps = [
   { number: 1, title: "Informations", description: "Remplissez vos informations business" },
-  { number: 2, title: "Documents", description: "Téléchargez vos documents légaux" },
-  { number: 3, title: "Vérification", description: "Validation par notre équipe" },
-  { number: 4, title: "Terminé", description: "Commencez à vendre sur QuickGo" },
+  { number: 2, title: "Documents", description: "Telechargez vos documents legaux" },
+  { number: 3, title: "Verification", description: "Validation par notre equipe" },
+  { number: 4, title: "Termine", description: "Commencez a vendre sur QuickGo" },
 ]
 
 const stats = [
   { value: "5 000+", label: "Vendeurs actifs" },
-  { value: "200K+", label: "Produits listés" },
+  { value: "200K+", label: "Produits listes" },
   { value: "98%", label: "Satisfaction vendeurs" },
-  { value: "24h", label: "Délai vérification" },
+  { value: "24h", label: "Delai verification" },
 ]
 
 const features = [
   "Tableau de bord complet",
-  "Gestion des stocks en temps réel",
-  "Paiements sécurisés",
+  "Gestion des stocks en temps reel",
+  "Paiements securises",
   "Support prioritaire 24/7",
   "Formation et accompagnement",
   "Marketing et promotions inclus",
@@ -67,15 +64,14 @@ const features = [
 
 export default function VendorsPage() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-black">
       <Navbar />
       
       <div className="pt-20 lg:pt-24">
         {/* Hero Section */}
         <section className="relative py-16 lg:py-24 overflow-hidden">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-secondary/10" />
-            <div className="absolute inset-0 bg-grid opacity-30" />
+            <div className="absolute inset-0 bg-gradient-to-br from-lime-500/5 via-black to-lime-500/5" />
           </div>
           
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -86,37 +82,37 @@ export default function VendorsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-                  <Store className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime-500/10 border border-lime-500/30 mb-6">
+                  <Store className="h-4 w-4 text-lime-500" />
+                  <span className="text-sm font-medium text-lime-500">
                     DEVENEZ VENDEUR QUICKGO
                   </span>
                 </div>
                 
-                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground mb-6">
-                  Développez votre{" "}
-                  <span className="text-gradient-blue">business</span>
+                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6">
+                  Developpez votre{" "}
+                  <span className="text-lime-500">business</span>
                 </h1>
                 
-                <p className="text-lg text-muted-foreground mb-8 max-w-lg">
+                <p className="text-lg text-zinc-400 mb-8 max-w-lg">
                   Rejoignez la marketplace QuickGo et vendez vos produits 
-                  à des milliers de clients. Nous gérons la livraison pour vous.
+                  a des milliers de clients. Nous gerons la livraison pour vous.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
                   <Link href="/auth/register?type=vendor">
-                    <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8">
+                    <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
                       Commencer maintenant
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Button>
                   </Link>
-                  <Button size="lg" variant="outline" className="h-14 px-8">
+                  <Button size="lg" variant="outline" className="h-14 px-8 border-lime-500/30 text-lime-500 hover:bg-lime-500/10">
                     En savoir plus
                   </Button>
                 </div>
                 
                 {/* Stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-zinc-900/50 border border-lime-500/20">
                   {stats.map((stat, index) => (
                     <motion.div
                       key={stat.label}
@@ -125,8 +121,8 @@ export default function VendorsPage() {
                       transition={{ delay: 0.2 + index * 0.1 }}
                       className="text-center"
                     >
-                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+                      <p className="text-2xl font-bold text-lime-500">{stat.value}</p>
+                      <p className="text-xs text-zinc-500">{stat.label}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -139,22 +135,26 @@ export default function VendorsPage() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="relative"
               >
-                <div className="relative aspect-square max-w-lg mx-auto">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0027-AyXWtmDc6FDhYC9s31HBkM205LH8BF.jpg"
-                    alt="QuickGo Vendor Dashboard"
-                    fill
-                    className="object-contain"
-                    priority
-                  />
-                </div>
+                <Link href="/vendor/dashboard" className="block group">
+                  <div className="relative aspect-square max-w-lg mx-auto rounded-2xl overflow-hidden border border-lime-500/30 hover:border-lime-500/60 transition-all duration-500 hover:shadow-[0_0_60px_rgba(132,204,22,0.2)]">
+                    <Image
+                      src="/images/premium/vendor-dashboard.jpg"
+                      alt="QuickGo Vendor Dashboard"
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      priority
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-lime-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  </div>
+                </Link>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Benefits */}
-        <section className="py-16 lg:py-24 bg-muted/30">
+        {/* Premium Benefits with Images */}
+        <section className="py-16 lg:py-24 bg-zinc-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -162,11 +162,11 @@ export default function VendorsPage() {
               viewport={{ once: true }}
               className="text-center mb-12"
             >
-              <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                Pourquoi vendre sur QuickGo ?
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                Pourquoi vendre sur <span className="text-lime-500">QuickGo</span> ?
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Des outils puissants pour développer votre activité
+              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+                Des outils puissants pour developper votre activite
               </p>
             </motion.div>
             
@@ -178,17 +178,42 @@ export default function VendorsPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="p-6 rounded-2xl bg-card border border-border/50"
                 >
-                  <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4">
-                    <benefit.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">
-                    {benefit.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {benefit.description}
-                  </p>
+                  <Link href={benefit.href} className="block group">
+                    <div className="relative h-72 lg:h-80 rounded-2xl overflow-hidden border border-lime-500/20 hover:border-lime-500/60 transition-all duration-500 hover:shadow-[0_0_40px_rgba(132,204,22,0.2)] hover:scale-[1.02]">
+                      <Image
+                        src={benefit.image}
+                        alt={benefit.title}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-500" />
+                      
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-lime-500 to-transparent" />
+                      </div>
+
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-lime-400 transition-colors duration-300">
+                          {benefit.title}
+                        </h3>
+                        <p className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 mb-3">
+                          {benefit.description}
+                        </p>
+                        
+                        <span className="inline-flex items-center gap-2 text-sm font-medium text-lime-500 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                          Decouvrir
+                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </div>
+
+                      <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-lime-500/30 to-transparent transform rotate-45 translate-x-12 -translate-y-12 group-hover:from-lime-500/50 transition-colors duration-500" />
+                      </div>
+                    </div>
+                  </Link>
                 </motion.div>
               ))}
             </div>
@@ -196,7 +221,7 @@ export default function VendorsPage() {
         </section>
 
         {/* Onboarding Steps */}
-        <section className="py-16 lg:py-24">
+        <section className="py-16 lg:py-24 bg-black">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -204,11 +229,11 @@ export default function VendorsPage() {
               viewport={{ once: true }}
               className="text-center mb-12"
             >
-              <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                Comment ça marche ?
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                Comment ca <span className="text-lime-500">marche</span> ?
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Inscription simple en 4 étapes
+              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+                Inscription simple en 4 etapes
               </p>
             </motion.div>
             
@@ -220,20 +245,20 @@ export default function VendorsPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="relative text-center"
+                  className="relative text-center p-6 rounded-2xl bg-zinc-900/50 border border-lime-500/20 hover:border-lime-500/40 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground text-xl font-bold flex items-center justify-center mx-auto mb-4">
+                  <div className="w-12 h-12 rounded-full bg-lime-500 text-black text-xl font-bold flex items-center justify-center mx-auto mb-4">
                     {step.number}
                   </div>
-                  <h3 className="font-semibold text-foreground mb-2">
+                  <h3 className="font-semibold text-white mb-2">
                     {step.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-zinc-500">
                     {step.description}
                   </p>
                   
                   {index < steps.length - 1 && (
-                    <div className="hidden lg:block absolute top-6 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-primary to-primary/20" />
+                    <div className="hidden lg:block absolute top-12 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-lime-500 to-lime-500/20" />
                   )}
                 </motion.div>
               ))}
@@ -242,7 +267,7 @@ export default function VendorsPage() {
         </section>
 
         {/* Features List */}
-        <section className="py-16 lg:py-24 bg-muted/30">
+        <section className="py-16 lg:py-24 bg-zinc-950">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -250,11 +275,11 @@ export default function VendorsPage() {
               viewport={{ once: true }}
               className="text-center mb-12"
             >
-              <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                Ce qui est inclus
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                Ce qui est <span className="text-lime-500">inclus</span>
               </h2>
-              <p className="text-lg text-muted-foreground">
-                Tout ce dont vous avez besoin pour réussir
+              <p className="text-lg text-zinc-400">
+                Tout ce dont vous avez besoin pour reussir
               </p>
             </motion.div>
             
@@ -265,9 +290,9 @@ export default function VendorsPage() {
               className="grid sm:grid-cols-2 gap-4"
             >
               {features.map((feature, index) => (
-                <div key={index} className="flex items-center gap-3 p-4 rounded-xl bg-card border border-border/50">
-                  <CheckCircle2 className="h-5 w-5 text-secondary shrink-0" />
-                  <span className="text-foreground">{feature}</span>
+                <div key={index} className="flex items-center gap-3 p-4 rounded-xl bg-zinc-900/50 border border-lime-500/20 hover:border-lime-500/40 transition-colors">
+                  <CheckCircle2 className="h-5 w-5 text-lime-500 shrink-0" />
+                  <span className="text-white">{feature}</span>
                 </div>
               ))}
             </motion.div>
@@ -275,21 +300,21 @@ export default function VendorsPage() {
         </section>
 
         {/* CTA */}
-        <section className="py-16 lg:py-24 bg-gradient-to-r from-primary/20 via-accent/20 to-secondary/20">
+        <section className="py-16 lg:py-24 bg-gradient-to-r from-lime-500/10 via-black to-lime-500/10 border-t border-lime-500/20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                Prêt à développer votre business ?
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                Pret a developper votre <span className="text-lime-500">business</span> ?
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Rejoignez des milliers de vendeurs qui réussissent sur QuickGo
+              <p className="text-lg text-zinc-400 mb-8">
+                Rejoignez des milliers de vendeurs qui reussissent sur QuickGo
               </p>
               <Link href="/auth/register?type=vendor">
-                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-8">
+                <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
                   Commencer maintenant
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>

@@ -8,40 +8,38 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import {
   Wallet,
-  CreditCard,
   ArrowUpRight,
   ArrowDownLeft,
   Send,
   QrCode,
-  Shield,
-  Zap,
-  TrendingUp,
   Gift,
-  Smartphone,
   ArrowRight,
-  CheckCircle2,
 } from "lucide-react"
 
 const features = [
   {
-    icon: Zap,
-    title: "Paiements instantanés",
+    image: "/images/premium/paiement-instantane.jpg",
+    title: "Paiements instantanes",
     description: "Payez en un instant sur QuickGo et chez nos partenaires",
+    href: "/marketplace/checkout",
   },
   {
-    icon: Shield,
-    title: "100% Sécurisé",
-    description: "Vos transactions sont protégées par cryptage avancé",
+    image: "/images/premium/securise.jpg",
+    title: "100% Securise",
+    description: "Vos transactions sont protegees par cryptage avance",
+    href: "/security",
   },
   {
-    icon: Gift,
-    title: "Cashback & Récompenses",
-    description: "Gagnez jusqu'à 5% de cashback sur vos achats",
+    image: "/images/premium/cashback-recompenses.jpg",
+    title: "Cashback & Recompenses",
+    description: "Gagnez jusqu a 5% de cashback sur vos achats",
+    href: "/rewards",
   },
   {
-    icon: Send,
+    image: "/images/premium/transfert-intelligent.jpg",
     title: "Transferts gratuits",
-    description: "Envoyez de l'argent gratuitement à vos proches",
+    description: "Envoyez de l argent gratuitement a vos proches",
+    href: "/transfer",
   },
 ]
 
@@ -56,20 +54,19 @@ const paymentMethods = [
 const transactions = [
   { type: "received", name: "Commande #QG12345", amount: "+12 500 CFA", time: "Il y a 2 min" },
   { type: "sent", name: "Orange Money", amount: "-50 000 CFA", time: "Il y a 1h" },
-  { type: "cashback", name: "Cashback reçu", amount: "+500 CFA", time: "Il y a 3h" },
+  { type: "cashback", name: "Cashback recu", amount: "+500 CFA", time: "Il y a 3h" },
 ]
 
 export default function WalletPage() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-black">
       <Navbar />
       
       <div className="pt-20 lg:pt-24">
         {/* Hero Section */}
         <section className="relative py-16 lg:py-24 overflow-hidden">
           <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 via-background to-primary/10" />
-            <div className="absolute inset-0 bg-grid opacity-30" />
+            <div className="absolute inset-0 bg-gradient-to-br from-lime-500/5 via-black to-lime-500/5" />
           </div>
           
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -80,46 +77,46 @@ export default function WalletPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 mb-6">
-                  <Wallet className="h-4 w-4 text-secondary" />
-                  <span className="text-sm font-medium text-secondary">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime-500/10 border border-lime-500/30 mb-6">
+                  <Wallet className="h-4 w-4 text-lime-500" />
+                  <span className="text-sm font-medium text-lime-500">
                     QUICKGO PAY
                   </span>
                 </div>
                 
-                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground mb-6">
+                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6">
                   Votre portefeuille{" "}
-                  <span className="text-gradient-lime">intelligent</span>
+                  <span className="text-lime-500">intelligent</span>
                 </h1>
                 
-                <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-                  Payez, recevez et gérez votre argent en toute simplicité.
-                  Profitez du cashback et des récompenses exclusives.
+                <p className="text-lg text-zinc-400 mb-8 max-w-lg">
+                  Payez, recevez et gerez votre argent en toute simplicite.
+                  Profitez du cashback et des recompenses exclusives.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                  <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-14 px-8">
+                  <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
                     Activer QuickGo Pay
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
-                  <Button size="lg" variant="outline" className="h-14 px-8">
+                  <Button size="lg" variant="outline" className="h-14 px-8 border-lime-500/30 text-lime-500 hover:bg-lime-500/10">
                     En savoir plus
                   </Button>
                 </div>
                 
                 {/* Payment Methods */}
                 <div>
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-zinc-500 mb-3">
                     Ajoutez vos moyens de paiement
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {paymentMethods.map((method) => (
                       <div
                         key={method.name}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card border border-border/50"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-lime-500/20"
                       >
                         <div className={`w-3 h-3 rounded-full ${method.color}`} />
-                        <span className="text-sm font-medium text-foreground">
+                        <span className="text-sm font-medium text-white">
                           {method.name}
                         </span>
                       </div>
@@ -137,25 +134,25 @@ export default function WalletPage() {
               >
                 <div className="relative max-w-md mx-auto">
                   {/* Wallet Card */}
-                  <div className="relative p-6 rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-accent overflow-hidden">
+                  <div className="relative p-6 rounded-3xl bg-gradient-to-br from-lime-500 via-lime-600 to-lime-700 overflow-hidden border border-lime-400/30">
                     {/* Pattern */}
-                    <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0 opacity-20">
                       <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl" />
-                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-secondary rounded-full blur-2xl" />
+                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-lime-300 rounded-full blur-2xl" />
                     </div>
                     
                     <div className="relative z-10">
                       <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2">
-                          <Wallet className="h-6 w-6 text-white" />
-                          <span className="font-bold text-white">QuickGo Wallet</span>
+                          <Wallet className="h-6 w-6 text-black" />
+                          <span className="font-bold text-black">QuickGo Wallet</span>
                         </div>
-                        <span className="text-xs text-white/70">Premium</span>
+                        <span className="text-xs text-black/70 px-2 py-1 bg-black/10 rounded-full">Premium</span>
                       </div>
                       
                       <div className="mb-8">
-                        <p className="text-sm text-white/70 mb-1">Solde actuel</p>
-                        <p className="text-4xl font-bold text-white">125 500 CFA</p>
+                        <p className="text-sm text-black/70 mb-1">Solde actuel</p>
+                        <p className="text-4xl font-bold text-black">125 500 CFA</p>
                       </div>
                       
                       {/* Quick Actions */}
@@ -168,10 +165,10 @@ export default function WalletPage() {
                         ].map((action) => (
                           <button
                             key={action.label}
-                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-black/10 hover:bg-black/20 transition-colors"
                           >
-                            <action.icon className="h-5 w-5 text-white" />
-                            <span className="text-xs text-white">{action.label}</span>
+                            <action.icon className="h-5 w-5 text-black" />
+                            <span className="text-xs text-black font-medium">{action.label}</span>
                           </button>
                         ))}
                       </div>
@@ -179,38 +176,38 @@ export default function WalletPage() {
                   </div>
                   
                   {/* Transaction History Preview */}
-                  <div className="mt-6 p-4 rounded-2xl bg-card border border-border/50">
+                  <div className="mt-6 p-4 rounded-2xl bg-zinc-900 border border-lime-500/20">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-foreground">Historique</h3>
-                      <span className="text-xs text-primary">Voir tout</span>
+                      <h3 className="font-semibold text-white">Historique</h3>
+                      <span className="text-xs text-lime-500">Voir tout</span>
                     </div>
                     
                     <div className="space-y-3">
                       {transactions.map((tx, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 rounded-xl bg-muted/30"
+                          className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50"
                         >
                           <div className="flex items-center gap-3">
                             <div className={`p-2 rounded-lg ${
-                              tx.type === "received" ? "bg-secondary/20" :
-                              tx.type === "cashback" ? "bg-primary/20" : "bg-muted"
+                              tx.type === "received" ? "bg-lime-500/20" :
+                              tx.type === "cashback" ? "bg-lime-500/20" : "bg-zinc-700"
                             }`}>
                               {tx.type === "received" ? (
-                                <ArrowDownLeft className="h-4 w-4 text-secondary" />
+                                <ArrowDownLeft className="h-4 w-4 text-lime-500" />
                               ) : tx.type === "cashback" ? (
-                                <Gift className="h-4 w-4 text-primary" />
+                                <Gift className="h-4 w-4 text-lime-500" />
                               ) : (
-                                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                                <ArrowUpRight className="h-4 w-4 text-zinc-400" />
                               )}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-foreground">{tx.name}</p>
-                              <p className="text-xs text-muted-foreground">{tx.time}</p>
+                              <p className="text-sm font-medium text-white">{tx.name}</p>
+                              <p className="text-xs text-zinc-500">{tx.time}</p>
                             </div>
                           </div>
                           <span className={`text-sm font-semibold ${
-                            tx.amount.startsWith("+") ? "text-secondary" : "text-foreground"
+                            tx.amount.startsWith("+") ? "text-lime-500" : "text-white"
                           }`}>
                             {tx.amount}
                           </span>
@@ -224,8 +221,8 @@ export default function WalletPage() {
           </div>
         </section>
 
-        {/* Features */}
-        <section className="py-16 lg:py-24 bg-muted/30">
+        {/* Premium Features with Images */}
+        <section className="py-16 lg:py-24 bg-zinc-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -233,11 +230,11 @@ export default function WalletPage() {
               viewport={{ once: true }}
               className="text-center mb-12"
             >
-              <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                Pourquoi choisir QuickGo Pay ?
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                Pourquoi choisir <span className="text-lime-500">QuickGo Pay</span> ?
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Une solution de paiement complète conçue pour simplifier votre quotidien
+              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+                Une solution de paiement complete concue pour simplifier votre quotidien
               </p>
             </motion.div>
             
@@ -249,17 +246,42 @@ export default function WalletPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="p-6 rounded-2xl bg-card border border-border/50"
                 >
-                  <div className="p-3 rounded-xl bg-secondary/10 w-fit mb-4">
-                    <feature.icon className="h-6 w-6 text-secondary" />
-                  </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {feature.description}
-                  </p>
+                  <Link href={feature.href} className="block group">
+                    <div className="relative h-72 lg:h-80 rounded-2xl overflow-hidden border border-lime-500/20 hover:border-lime-500/60 transition-all duration-500 hover:shadow-[0_0_40px_rgba(132,204,22,0.2)] hover:scale-[1.02]">
+                      <Image
+                        src={feature.image}
+                        alt={feature.title}
+                        fill
+                        className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      />
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-500" />
+                      
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-lime-500 to-transparent" />
+                      </div>
+
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-lime-400 transition-colors duration-300">
+                          {feature.title}
+                        </h3>
+                        <p className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 mb-3">
+                          {feature.description}
+                        </p>
+                        
+                        <span className="inline-flex items-center gap-2 text-sm font-medium text-lime-500 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                          Decouvrir
+                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </div>
+
+                      <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-lime-500/30 to-transparent transform rotate-45 translate-x-12 -translate-y-12 group-hover:from-lime-500/50 transition-colors duration-500" />
+                      </div>
+                    </div>
+                  </Link>
                 </motion.div>
               ))}
             </div>
@@ -267,20 +289,20 @@ export default function WalletPage() {
         </section>
 
         {/* CTA */}
-        <section className="py-16 lg:py-24 bg-gradient-to-r from-secondary/20 via-primary/20 to-accent/20">
+        <section className="py-16 lg:py-24 bg-gradient-to-r from-lime-500/10 via-black to-lime-500/10 border-t border-lime-500/20">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
             >
-              <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
-                Activez votre portefeuille maintenant
+              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
+                Activez votre portefeuille <span className="text-lime-500">maintenant</span>
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Rejoignez des milliers d&apos;utilisateurs qui font confiance à QuickGo Pay
+              <p className="text-lg text-zinc-400 mb-8">
+                Rejoignez des milliers d&apos;utilisateurs qui font confiance a QuickGo Pay
               </p>
-              <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-14 px-8">
+              <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
                 Commencer gratuitement
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
