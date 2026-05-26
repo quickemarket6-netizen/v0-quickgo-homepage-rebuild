@@ -109,7 +109,6 @@ Tu connais bien les villes du Cameroun: Yaounde, Douala, Bafoussam, etc.
 Si tu ne peux pas aider directement, dirige vers le support WhatsApp: +237 690 773 615`,
     messages: await convertToModelMessages(messages),
     tools: quickGoTools,
-    maxSteps: 5,
     abortSignal: req.signal,
   })
 

@@ -410,7 +410,7 @@ export default function VendorFinancesPage() {
               <div>
                 <p className="font-semibold text-red-900">Portefeuille temporairement gelé</p>
                 <p className="text-sm text-red-700">
-                  {realtimeWallet.freezeReason ?? wallet?.freeze_reason ?? "Vérification en cours"}
+                  {((realtimeWallet as unknown) as Record<string, unknown>).freezeReason as string ?? wallet?.freeze_reason ?? "Vérification en cours"}
                   . Contactez le support: support@quickgo.cm
                 </p>
               </div>

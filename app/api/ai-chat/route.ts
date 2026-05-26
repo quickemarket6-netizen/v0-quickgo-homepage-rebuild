@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       system: QUICKGO_SYSTEM_PROMPT,
       messages: await convertToModelMessages(messages),
       temperature: 0.7,
-      maxTokens: 2048,
+      maxOutputTokens: 2048,
     })
 
     return result.toUIMessageStreamResponse()

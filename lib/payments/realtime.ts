@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js"
 
 export interface VendorWalletState {
   pendingBalance: number
@@ -76,7 +77,7 @@ export function useVendorWallet(vendorId: string | null): VendorWalletState {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "vendor_wallets", filter: `vendor_id=eq.${vendorId}` },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const d = payload.new as Record<string, unknown>
           setState({
             pendingBalance: Number(d.pending_balance ?? 0),
@@ -117,7 +118,7 @@ export function useFinancialNotifications(userId: string | null) {
 
     if (data) {
       setNotifications(data)
-      setUnreadCount(data.filter((n) => !n.read).length)
+      setUnreadCount(data.filter((n: { read: boolean }) => !n.read).length)
     }
     setLoading(false)
   }, [userId])
@@ -147,7 +148,7 @@ export function useFinancialNotifications(userId: string | null) {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "financial_notifications", filter: `user_id=eq.${userId}` },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const n = payload.new as FinancialNotification
           setNotifications((prev) => [n, ...prev])
           setUnreadCount((c) => c + 1)
@@ -178,7 +179,7 @@ export function usePayoutStatus(payoutId: string | null) {
       .select("status")
       .eq("id", payoutId)
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: { status: string } | null }) => {
         setStatus(data?.status ?? null)
         setLoading(false)
       })
@@ -188,7 +189,7 @@ export function usePayoutStatus(payoutId: string | null) {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "vendor_payouts", filter: `id=eq.${payoutId}` },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const d = payload.new as { status: string }
           setStatus(d.status)
         },

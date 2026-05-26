@@ -82,7 +82,7 @@ export function TransportCarousel({ selectedType, onSelect }: TransportCarouselP
 
   const currentTransport = transportTypes[currentIndex]
 
-  const slideVariants = {
+  const slideVariants: import("framer-motion").Variants = {
     enter: (direction: number) => ({
       x: direction > 0 ? 300 : -300,
       opacity: 0,

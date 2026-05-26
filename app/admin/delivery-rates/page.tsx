@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard, Package, Users, Truck, Store, BarChart3,
   Settings, Wallet, Plus, Edit2, Trash2, RefreshCw, Save,
-  X, CheckCircle2, AlertTriangle, Toggle, ToggleLeft,
+  X, CheckCircle2, AlertTriangle, Eye, EyeOff,
   ArrowUpDown, DollarSign,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -355,7 +355,7 @@ export default function AdminDeliveryRatesPage() {
           <div className="grid grid-cols-3 gap-4">
             {[
               { label: "Tarifs actifs",   value: activeCount,               color: "text-green-600",  bg: "bg-green-100",  icon: CheckCircle2 },
-              { label: "Tarifs inactifs", value: inactiveCount,             color: "text-gray-500",   bg: "bg-gray-100",   icon: ToggleLeft },
+              { label: "Tarifs inactifs", value: inactiveCount,             color: "text-gray-500",   bg: "bg-gray-100",   icon: EyeOff },
               { label: "Tarif max",       value: formatCFA(Math.max(...rates.map((r) => r.amount), 0)), color: "text-quickgo-blue", bg: "bg-blue-100", icon: ArrowUpDown },
             ].map((c, i) => (
               <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center gap-4">
@@ -448,7 +448,7 @@ export default function AdminDeliveryRatesPage() {
                         title={rate.is_active ? "Désactiver" : "Activer"}
                         className={`p-2 rounded-lg transition-colors ${rate.is_active ? "text-green-600 hover:bg-green-50" : "text-gray-400 hover:bg-gray-100"}`}
                       >
-                        {rate.is_active ? <Toggle size={16} /> : <ToggleLeft size={16} />}
+                        {rate.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
                       </button>
                       <button
                         onClick={() => openEdit(rate)}

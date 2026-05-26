@@ -63,7 +63,7 @@ export async function PUT(
   // Get driver
   const { data: driver } = await supabase
     .from("drivers")
-    .select("id")
+    .select("id, total_earnings, total_deliveries")
     .eq("user_id", user.id)
     .single()
   
@@ -108,20 +108,21 @@ export async function PUT(
     
     if (delivery) {
       // Update driver earnings
-      await supabase.rpc("increment_driver_stats", {
+      const rpcResult = await supabase.rpc("increment_driver_stats", {
         p_driver_id: driver.id,
         p_earnings: delivery.price,
         p_deliveries: 1
-      }).catch(() => {
+      })
+      if (rpcResult.error) {
         // Fallback if RPC doesn't exist
-        supabase
+        await supabase
           .from("drivers")
           .update({
             total_earnings: driver.total_earnings + delivery.price,
             total_deliveries: driver.total_deliveries + 1
           })
           .eq("id", driver.id)
-      })
+      }
     }
   }
   
