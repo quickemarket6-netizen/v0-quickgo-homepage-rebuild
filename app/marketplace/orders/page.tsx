@@ -1,304 +1,251 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import Image from "next/image"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
 import {
-  Package,
-  Truck,
-  CheckCircle2,
-  Clock,
-  ChevronRight,
-  MapPin,
-  Phone,
-  MessageSquare,
-  Star,
-  RotateCcw,
-  XCircle,
-  Filter,
+  Package, Clock, CheckCircle, XCircle, Truck, ChevronRight,
+  Phone, Star, RotateCcw, ArrowLeft, RefreshCw, MapPin,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-const orders = [
-  {
-    id: "QG2026052401",
-    date: "24 Mai 2026",
-    status: "delivered",
-    statusLabel: "Livree",
-    total: 1150000,
-    items: [
-      { name: "iPhone 15 Pro Max 256GB", quantity: 1, price: 850000, image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=200" },
-      { name: "AirPods Pro 2", quantity: 2, price: 150000, image: "https://images.unsplash.com/photo-1606220945770-b5b6c2c55bf1?w=200" },
-    ],
-    deliveryAddress: "123 Rue Bastos, Yaounde",
-    deliveredAt: "24 Mai 2026, 14:32",
-    canReview: true,
-  },
-  {
-    id: "QG2026052302",
-    date: "23 Mai 2026",
-    status: "in_transit",
-    statusLabel: "En livraison",
-    total: 280000,
-    items: [
-      { name: "Apple Watch Series 9", quantity: 1, price: 280000, image: "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?w=200" },
-    ],
-    deliveryAddress: "456 Avenue Kennedy, Douala",
-    estimatedDelivery: "23 Mai 2026, 16:00",
-    driverName: "Jean Paul N.",
-    driverPhone: "+237 6 77 88 99 00",
-  },
-  {
-    id: "QG2026052203",
-    date: "22 Mai 2026",
-    status: "processing",
-    statusLabel: "En preparation",
-    total: 1150000,
-    items: [
-      { name: "MacBook Air M2", quantity: 1, price: 1150000, image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200" },
-    ],
-    deliveryAddress: "123 Rue Bastos, Yaounde",
-    estimatedDelivery: "22 Mai 2026, 18:00",
-  },
-  {
-    id: "QG2026052004",
-    date: "20 Mai 2026",
-    status: "cancelled",
-    statusLabel: "Annulee",
-    total: 650000,
-    items: [
-      { name: "Samsung Galaxy S24 Ultra", quantity: 1, price: 650000, image: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=200" },
-    ],
-    deliveryAddress: "123 Rue Bastos, Yaounde",
-    cancelledReason: "Annule par le client",
-  },
-]
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof Clock; step?: number }> = {
+  pending:    { label: "En attente",      color: "text-yellow-400",  bg: "bg-yellow-500/20",  icon: Clock,         step: 1 },
+  confirmed:  { label: "Confirmé",        color: "text-blue-400",    bg: "bg-blue-500/20",    icon: CheckCircle,   step: 2 },
+  preparing:  { label: "En préparation",  color: "text-purple-400",  bg: "bg-purple-500/20",  icon: Package,       step: 3 },
+  ready:      { label: "Prêt",            color: "text-cyan-400",    bg: "bg-cyan-500/20",    icon: CheckCircle,   step: 4 },
+  delivering: { label: "En livraison",    color: "text-quickgo-blue", bg: "bg-quickgo-blue/20", icon: Truck,        step: 5 },
+  delivered:  { label: "Livré",           color: "text-green-400",   bg: "bg-green-500/20",   icon: CheckCircle,   step: 6 },
+  cancelled:  { label: "Annulé",          color: "text-red-400",     bg: "bg-red-500/20",     icon: XCircle },
+}
+const STEPS = ["En attente", "Confirmé", "Préparation", "Prêt", "En livraison", "Livré"]
 
-const statusConfig = {
-  delivered: { icon: CheckCircle2, color: "text-secondary", bg: "bg-secondary/20" },
-  in_transit: { icon: Truck, color: "text-primary", bg: "bg-primary/20" },
-  processing: { icon: Package, color: "text-accent", bg: "bg-accent/20" },
-  cancelled: { icon: XCircle, color: "text-destructive", bg: "bg-destructive/20" },
+interface OrderItem { product_name: string; quantity: number; unit_price: number; total_price: number }
+interface Order {
+  id: string; order_number: string; status: string
+  total_amount: number; delivery_fee: number; subtotal: number
+  created_at: string; estimated_delivery_time: string | null
+  delivery_address: { street?: string; city?: string } | string | null
+  vendor: { id: string; name: string; phone: string | null; logo_url: string | null } | null
+  driver: { id: string; rating: number | null; user: { full_name: string; phone: string; avatar_url: string | null } | null } | null
+  items: OrderItem[]
 }
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat("fr-FR").format(price) + " FCFA"
+function formatCFA(n: number) {
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " F"
+}
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+}
+function deliveryAddr(addr: Order["delivery_address"]) {
+  if (!addr) return null
+  if (typeof addr === "string") return addr
+  return [addr.street, addr.city].filter(Boolean).join(", ")
 }
 
-export default function OrdersPage() {
-  const [filter, setFilter] = useState("all")
+export default function MarketplaceOrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<"active" | "done" | "cancelled">("active")
+  const [expanded, setExpanded] = useState<string | null>(null)
 
-  const filteredOrders = filter === "all" 
-    ? orders 
-    : orders.filter(o => o.status === filter)
+  const fetchOrders = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/orders")
+      if (res.ok) setOrders(await res.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchOrders() }, [fetchOrders])
+
+  const active = orders.filter((o) => !["delivered", "cancelled"].includes(o.status))
+  const done = orders.filter((o) => o.status === "delivered")
+  const cancelled = orders.filter((o) => o.status === "cancelled")
+  const tabOrders = tab === "active" ? active : tab === "done" ? done : cancelled
 
   return (
-    <main className="min-h-screen bg-background">
-      <Navbar />
-      
-      <div className="pt-20 lg:pt-24 pb-20">
-        {/* Header */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">
-              Mes Commandes
-            </h1>
-            <p className="text-muted-foreground">
-              Suivez et gerez toutes vos commandes
-            </p>
-          </motion.div>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border/30 px-4 py-3 flex items-center gap-3">
+        <Link href="/marketplace" className="p-2 hover:bg-white/5 rounded-full">
+          <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+        </Link>
+        <div className="flex-1">
+          <h1 className="text-white font-bold">Mes Commandes</h1>
+          <p className="text-xs text-muted-foreground">{orders.length} commandes au total</p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={fetchOrders}>
+          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </header>
 
-          {/* Filters */}
-          <div className="flex items-center gap-2 mt-8 overflow-x-auto pb-2">
-            {[
-              { id: "all", label: "Toutes" },
-              { id: "in_transit", label: "En livraison" },
-              { id: "processing", label: "En cours" },
-              { id: "delivered", label: "Livrees" },
-              { id: "cancelled", label: "Annulees" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                  filter === f.id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+      <div className="max-w-2xl mx-auto p-4">
+        {/* Tabs */}
+        <div className="flex gap-1 mb-5 bg-card/50 rounded-xl p-1">
+          {[
+            { key: "active",    label: "En cours",   count: active.length },
+            { key: "done",      label: "Terminées",  count: done.length },
+            { key: "cancelled", label: "Annulées",   count: cancelled.length },
+          ].map((t) => (
+            <button key={t.key}
+              onClick={() => setTab(t.key as typeof tab)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                tab === t.key ? "bg-quickgo-blue text-white" : "text-muted-foreground hover:text-white"
+              }`}
+            >
+              {t.label}
+              {t.count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-white/20" : "bg-white/10"}`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* Orders List */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-6">
-            {filteredOrders.map((order, index) => {
-              const statusInfo = statusConfig[order.status as keyof typeof statusConfig]
-              const StatusIcon = statusInfo.icon
+        {/* Orders */}
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-40 rounded-2xl bg-card/30 animate-pulse mb-3" />
+          ))
+        ) : tabOrders.length === 0 ? (
+          <div className="text-center py-16">
+            <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground">Aucune commande dans cet onglet</p>
+            <Link href="/marketplace">
+              <Button className="mt-4 rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">Faire une commande</Button>
+            </Link>
+          </div>
+        ) : tabOrders.map((order) => {
+          const cfg = STATUS_CONFIG[order.status]
+          const StatusIcon = cfg?.icon ?? Package
+          const isExpanded = expanded === order.id
+          const step = cfg?.step ?? 0
 
-              return (
-                <motion.div
-                  key={order.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="p-6 rounded-2xl bg-card border border-border/50"
-                >
-                  {/* Order Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/50">
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-foreground">Commande #{order.id}</h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${statusInfo.bg} ${statusInfo.color}`}>
-                          <StatusIcon className="w-3 h-3" />
-                          {order.statusLabel}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{order.date}</p>
+          return (
+            <motion.div key={order.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="mb-3 bg-card/50 rounded-2xl border border-border/30 overflow-hidden"
+            >
+              {/* Header row */}
+              <button className="w-full p-4 text-left" onClick={() => setExpanded(isExpanded ? null : order.id)}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="font-mono font-bold text-quickgo-blue text-sm">#{order.order_number}</p>
+                    <p className="text-white font-medium text-sm mt-0.5">{(order.vendor as { name?: string } | null)?.name ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formatDate(order.created_at)}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${cfg?.bg ?? ""} ${cfg?.color ?? ""}`}>
+                      <StatusIcon className="w-3 h-3" />
+                      {cfg?.label ?? order.status}
+                    </span>
+                    <p className="text-white font-bold mt-1">{formatCFA(order.total_amount)}</p>
+                  </div>
+                </div>
+
+                {/* Progress bar (active orders only) */}
+                {order.status !== "cancelled" && step > 0 && (
+                  <div className="mt-3">
+                    <div className="flex items-center gap-1">
+                      {STEPS.map((s, i) => (
+                        <div key={s} className={`flex-1 h-1 rounded-full transition-colors ${
+                          i < step ? "bg-quickgo-blue" : "bg-white/10"
+                        }`} />
+                      ))}
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-foreground">{formatPrice(order.total)}</p>
-                      <p className="text-xs text-muted-foreground">{order.items.length} article{order.items.length > 1 && "s"}</p>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-[9px] text-muted-foreground">Passée</span>
+                      <span className="text-[9px] text-muted-foreground">Livrée</span>
                     </div>
                   </div>
+                )}
+              </button>
 
+              {/* Expanded details */}
+              {isExpanded && (
+                <div className="px-4 pb-4 border-t border-border/20 pt-3 space-y-3">
                   {/* Items */}
-                  <div className="py-4 space-y-3">
-                    {order.items.map((item, idx) => (
-                      <div key={idx} className="flex items-center gap-4">
-                        <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted/30 shrink-0">
-                          <Image src={item.image} alt={item.name} fill className="object-cover" />
-                          {item.quantity > 1 && (
-                            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                              {item.quantity}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-foreground text-sm line-clamp-1">{item.name}</h4>
-                          <p className="text-sm text-muted-foreground">{formatPrice(item.price)} x {item.quantity}</p>
-                        </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Articles commandés</p>
+                    {(order.items ?? []).map((item, i) => (
+                      <div key={i} className="flex items-center justify-between py-1.5 border-b border-border/20 last:border-0">
+                        <p className="text-sm text-white">{item.product_name} <span className="text-muted-foreground">×{item.quantity}</span></p>
+                        <p className="text-sm text-white font-medium">{formatCFA(item.total_price)}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Delivery Info */}
-                  <div className="pt-4 border-t border-border/50">
-                    <div className="flex items-start gap-3 mb-4">
-                      <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Adresse de livraison</p>
-                        <p className="text-sm font-medium text-foreground">{order.deliveryAddress}</p>
-                      </div>
+                  {/* Totals */}
+                  <div className="bg-white/5 rounded-xl p-3 space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Sous-total</span><span>{formatCFA(order.subtotal)}</span>
                     </div>
-
-                    {order.status === "delivered" && order.deliveredAt && (
-                      <div className="flex items-center gap-2 text-sm text-secondary mb-4">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>Livree le {order.deliveredAt}</span>
-                      </div>
-                    )}
-
-                    {order.status === "in_transit" && order.driverName && (
-                      <div className="p-4 rounded-xl bg-primary/10 border border-primary/20 mb-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                              <Truck className="w-5 h-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-foreground">{order.driverName}</p>
-                              <p className="text-sm text-muted-foreground">Livreur</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="rounded-full">
-                              <Phone className="w-4 h-4" />
-                            </Button>
-                            <Button size="sm" variant="outline" className="rounded-full">
-                              <MessageSquare className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {order.status === "cancelled" && order.cancelledReason && (
-                      <div className="flex items-center gap-2 text-sm text-destructive mb-4">
-                        <XCircle className="w-4 h-4" />
-                        <span>{order.cancelledReason}</span>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex flex-wrap gap-3">
-                      {order.status === "in_transit" && (
-                        <Link href={`/tracking?order=${order.id}`}>
-                          <Button className="rounded-xl">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            Suivre la livraison
-                          </Button>
-                        </Link>
-                      )}
-                      
-                      {order.status === "delivered" && order.canReview && (
-                        <Button variant="outline" className="rounded-xl">
-                          <Star className="w-4 h-4 mr-2" />
-                          Laisser un avis
-                        </Button>
-                      )}
-
-                      {order.status === "delivered" && (
-                        <Button variant="outline" className="rounded-xl">
-                          <RotateCcw className="w-4 h-4 mr-2" />
-                          Commander a nouveau
-                        </Button>
-                      )}
-
-                      <Button variant="ghost" className="rounded-xl text-muted-foreground">
-                        Voir les details
-                        <ChevronRight className="w-4 h-4 ml-1" />
-                      </Button>
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Livraison</span><span>{formatCFA(order.delivery_fee)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-white font-bold pt-1 border-t border-border/20">
+                      <span>Total</span><span>{formatCFA(order.total_amount)}</span>
                     </div>
                   </div>
-                </motion.div>
-              )
-            })}
-          </div>
 
-          {filteredOrders.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center py-20"
-            >
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted/30 flex items-center justify-center">
-                <Package className="w-12 h-12 text-muted-foreground" />
-              </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Aucune commande</h2>
-              <p className="text-muted-foreground mb-8">
-                Vous n&apos;avez pas encore de commande dans cette categorie
-              </p>
-              <Link href="/marketplace">
-                <Button size="lg" className="rounded-xl">
-                  Decouvrir les produits
-                </Button>
-              </Link>
+                  {/* Delivery address */}
+                  {deliveryAddr(order.delivery_address) && (
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      {deliveryAddr(order.delivery_address)}
+                    </p>
+                  )}
+
+                  {/* Driver */}
+                  {order.driver && (
+                    <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-white font-bold text-sm shrink-0">
+                        {(order.driver.user?.full_name ?? "L").split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium">{order.driver.user?.full_name ?? "Livreur"}</p>
+                        {order.driver.rating != null && (
+                          <p className="text-xs text-yellow-400 flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-current" /> {order.driver.rating.toFixed(1)}
+                          </p>
+                        )}
+                      </div>
+                      {order.driver.user?.phone && (
+                        <a href={`tel:${order.driver.user.phone}`}
+                          className="p-2 rounded-xl bg-quickgo-blue/20 hover:bg-quickgo-blue/30 transition-colors"
+                        >
+                          <Phone className="w-4 h-4 text-quickgo-blue" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    {order.status === "delivered" && (
+                      <Button size="sm" variant="outline" className="flex-1 rounded-full gap-1">
+                        <RotateCcw className="w-3.5 h-3.5" /> Commander à nouveau
+                      </Button>
+                    )}
+                    {!["delivered", "cancelled"].includes(order.status) && (
+                      <Link href="/tracking" className="flex-1">
+                        <Button size="sm" className="w-full rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-1">
+                          <MapPin className="w-3.5 h-3.5" /> Suivre en direct
+                        </Button>
+                      </Link>
+                    )}
+                    <Button size="sm" variant="outline" className="rounded-full gap-1">
+                      <ChevronRight className="w-3.5 h-3.5" /> Détails
+                    </Button>
+                  </div>
+                </div>
+              )}
             </motion.div>
-          )}
-        </div>
+          )
+        })}
       </div>
-      
-      <Footer />
-    </main>
+    </div>
   )
 }
