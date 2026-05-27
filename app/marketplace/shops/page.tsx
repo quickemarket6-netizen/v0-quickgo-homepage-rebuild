@@ -18,10 +18,10 @@ const CATEGORY_ICONS: Record<string, typeof ShoppingBag> = {
 
 interface Category { id: string; name: string; slug: string; color: string | null }
 interface Vendor {
-  id: string; name: string; description: string | null; category: string | null
+  id: string; name: string; description: string | null
   city: string | null; rating: number | null; delivery_fee: number | null
   logo_url: string | null; is_verified: boolean; status: string
-  category_rel: { name: string; slug: string; color: string | null } | null
+  category: { id: string; name: string; slug: string; color: string | null } | null
 }
 
 function formatCFA(n: number) {
@@ -129,7 +129,7 @@ export default function MarketplaceShopsPage() {
         ) : (
           <div className="grid sm:grid-cols-2 gap-4">
             {vendors.map((vendor, i) => {
-              const catSlug = (vendor.category_rel as { slug?: string } | null)?.slug ?? vendor.category ?? ""
+              const catSlug = vendor.category?.slug ?? ""
               const CatIcon = CATEGORY_ICONS[catSlug] ?? ShoppingBag
               return (
                 <motion.div key={vendor.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
@@ -160,7 +160,7 @@ export default function MarketplaceShopsPage() {
                     <div className="p-3">
                       <h3 className="text-white font-semibold text-sm truncate">{vendor.name}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {(vendor.category_rel as { name?: string } | null)?.name ?? vendor.category ?? "—"}
+                        {vendor.category?.name ?? "—"}
                         {vendor.city ? ` · ${vendor.city}` : ""}
                       </p>
                       <div className="flex items-center gap-3 mt-2">
