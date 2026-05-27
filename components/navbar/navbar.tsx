@@ -78,7 +78,8 @@ export function Navbar() {
                 alt="QuickGo"
                 width={140}
                 height={40}
-                className="h-8 lg:h-10 w-auto object-contain"
+                className="h-8 lg:h-10 object-contain"
+                style={{ width: 'auto' }}
                 priority
               />
             </Link>
@@ -221,7 +222,8 @@ export function Navbar() {
                     alt="QuickGo"
                     width={120}
                     height={36}
-                    className="h-8 w-auto"
+                    className="h-8"
+                    style={{ width: 'auto' }}
                   />
                   <Button
                     variant="ghost"

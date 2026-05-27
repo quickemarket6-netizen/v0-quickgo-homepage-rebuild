@@ -126,7 +126,7 @@ export function HeroSection() {
                   <div className="w-full h-full rounded-[26px] overflow-hidden bg-background relative">
                     {/* Static Phone Screen Image */}
                     <Image
-                      src="/images/app-mockup.png"
+                      src="/images/premium/vendor-dashboard.jpg"
                       alt="QuickGo App"
                       fill
                       className="object-cover"
@@ -147,10 +147,10 @@ export function HeroSection() {
             <div className="absolute right-[-10px] lg:right-[-40px] bottom-[8%] z-30 hidden sm:block">
               <div className="relative w-[220px] lg:w-[280px] h-[160px] lg:h-[200px]">
                 <Image
-                  src="/images/delivery-scooter.png"
+                  src="/images/transport/moto-premium.jpg"
                   alt="QuickGo Livraison"
                   fill
-                  className="object-contain object-right-bottom drop-shadow-[0_0_20px_rgba(0,212,255,0.3)]"
+                  className="object-contain object-right-bottom drop-shadow-[0_0_20px_rgba(0,212,255,0.3)] rounded-xl"
                   loading="lazy"
                 />
               </div>
