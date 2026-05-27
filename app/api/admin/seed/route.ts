@@ -59,12 +59,12 @@ export async function GET(req: NextRequest) {
 
     // ── 2. Profils ─────────────────────────────────────────────────────────
     const { error: profErr } = await sb.from("profiles").upsert([
-      { id: adminId,   full_name: "Admin QuickGo",  email: "admin@quickgo.cm",  role: "admin",    city: "Yaoundé", phone: "+237 690 000 001", wallet_balance: 0,     points: 0,   rating: null },
-      { id: client1Id, full_name: "Marie Mballa",   email: "marie@quickgo.cm",  role: "customer", city: "Douala",  phone: "+237 691 234 567", wallet_balance: 15000, points: 850, rating: 4.8  },
-      { id: client2Id, full_name: "Paul Nkeng",     email: "paul@quickgo.cm",   role: "customer", city: "Yaoundé", phone: "+237 677 890 123", wallet_balance: 8500,  points: 420, rating: 4.5  },
-      { id: vendor1Id, full_name: "Samuel Bello",   email: "samuel@quickgo.cm", role: "vendor",   city: "Douala",  phone: "+237 699 111 222", wallet_balance: 0,     points: 0,   rating: 4.7  },
-      { id: vendor2Id, full_name: "Fatima Oumarou", email: "fatima@quickgo.cm", role: "vendor",   city: "Yaoundé", phone: "+237 655 333 444", wallet_balance: 0,     points: 0,   rating: 4.9  },
-      { id: driverId,  full_name: "Jean Mbarga",    email: "jean@quickgo.cm",   role: "driver",   city: "Douala",  phone: "+237 674 555 666", wallet_balance: 35000, points: 0,   rating: 4.6  },
+      { id: adminId,   full_name: "Admin QuickGo",  email: "admin@quickgo.cm",  role: "admin",    phone: "+237 690 000 001", wallet_balance: 0,     points: 0,   rating: null },
+      { id: client1Id, full_name: "Marie Mballa",   email: "marie@quickgo.cm",  role: "customer", phone: "+237 691 234 567", wallet_balance: 15000, points: 850, rating: 4.8  },
+      { id: client2Id, full_name: "Paul Nkeng",     email: "paul@quickgo.cm",   role: "customer", phone: "+237 677 890 123", wallet_balance: 8500,  points: 420, rating: 4.5  },
+      { id: vendor1Id, full_name: "Samuel Bello",   email: "samuel@quickgo.cm", role: "vendor",   phone: "+237 699 111 222", wallet_balance: 0,     points: 0,   rating: 4.7  },
+      { id: vendor2Id, full_name: "Fatima Oumarou", email: "fatima@quickgo.cm", role: "vendor",   phone: "+237 655 333 444", wallet_balance: 0,     points: 0,   rating: 4.9  },
+      { id: driverId,  full_name: "Jean Mbarga",    email: "jean@quickgo.cm",   role: "driver",   phone: "+237 674 555 666", wallet_balance: 35000, points: 0,   rating: 4.6  },
     ], { onConflict: "id" })
     if (profErr) fail("profiles", profErr.message); else ok("6 profils")
 
@@ -86,8 +86,8 @@ export async function GET(req: NextRequest) {
     // ── 4. Vendeurs ────────────────────────────────────────────────────────
     await sb.from("vendors").delete().in("owner_id", [vendor1Id, vendor2Id])
     const { data: vendors, error: vendErr } = await sb.from("vendors").insert([
-      { owner_id: vendor1Id, name: "TechShop Douala",   description: "Smartphones, laptops, accessoires high-tech importés.", category: "electronique", city: "Douala",  status: "active", is_verified: true, rating: 4.7, commission_rate: 5, delivery_fee: 1500 },
-      { owner_id: vendor2Id, name: "Chez Fatima Resto", description: "Cuisine camerounaise authentique. Ndolé, poulet DG.",   category: "restaurant",   city: "Yaoundé", status: "active", is_verified: true, rating: 4.9, commission_rate: 5, delivery_fee: 500  },
+      { owner_id: vendor1Id, name: "TechShop Douala",   description: "Smartphones, laptops, accessoires high-tech importés.", category_id: catMap["electronique"], city: "Douala",  status: "active", is_verified: true, rating: 4.7, commission_rate: 5, delivery_fee: 1500 },
+      { owner_id: vendor2Id, name: "Chez Fatima Resto", description: "Cuisine camerounaise authentique. Ndolé, poulet DG.",   category_id: catMap["restaurant"],   city: "Yaoundé", status: "active", is_verified: true, rating: 4.9, commission_rate: 5, delivery_fee: 500  },
     ]).select()
     if (vendErr || !vendors) throw new Error(`Échec vendeurs: ${vendErr?.message ?? "data null"}`)
     ok(`${vendors.length} vendeurs`)
