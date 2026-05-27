@@ -36,7 +36,7 @@ export default function DashboardSettingsPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       if (!data.user) { router.push("/auth/login"); return }
       setUser(data.user)
       setFullName(data.user.user_metadata?.full_name || "")

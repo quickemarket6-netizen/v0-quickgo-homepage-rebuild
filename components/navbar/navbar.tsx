@@ -62,10 +62,10 @@ export function Navbar() {
   useEffect(() => {
     setCurrentPath(window.location.pathname)
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       setUser(data.user)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event: unknown, session: import("@supabase/supabase-js").Session | null) => {
       setUser(session?.user ?? null)
     })
     return () => listener.subscription.unsubscribe()
