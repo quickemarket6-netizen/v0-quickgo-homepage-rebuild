@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, Search, ChevronDown, RefreshCw,
   TrendingDown, AlertTriangle, Clock, CheckCircle, XCircle, Truck,
-  ArrowUpRight, Zap, Info, Download,
+  ArrowUpRight, Zap, Info, Download, ChevronRight,
 } from "lucide-react"
 import {
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
@@ -38,29 +38,42 @@ interface DashboardData {
   low_stock: { id: string; name: string; stock_quantity: number; images: string[] | null }[]
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Sidebar structure ────────────────────────────────────────────────────────
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard", active: true },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
-  { icon: Package,         label: "Produits",        href: "/vendor/products" },
-  { icon: TrendingUp,      label: "Revenus",         href: "/vendor/analytics" },
-  { icon: Wallet,          label: "Portefeuille",    href: "/vendor/wallet" },
-  { icon: Users,           label: "Clients",         href: "/vendor/customers" },
-  { icon: BarChart3,       label: "Analyses",        href: "/vendor/analytics" },
-  { icon: Tag,             label: "Promotions",      href: "/vendor/promotions" },
-  { icon: Star,            label: "Avis",            href: "/vendor/reviews" },
-  { icon: Settings,        label: "Paramètres",      href: "/vendor/settings" },
-  { icon: HelpCircle,      label: "Aide",            href: "/vendor/help" },
+  {
+    icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
+    children: [
+      { label: "Tous les produits", href: "/vendor/products" },
+      { label: "Ajouter un produit", href: "/vendor/products/new" },
+      { label: "Catégories",         href: "/vendor/products/categories" },
+    ],
+  },
+  { icon: TrendingUp, label: "Revenus",    href: "/vendor/analytics" },
+  {
+    icon: Wallet, label: "Portefeuille", href: "/vendor/wallet", expandable: true,
+    children: [
+      { label: "Solde & Retrait",  href: "/vendor/wallet" },
+      { label: "Historique",       href: "/vendor/wallet/history" },
+    ],
+  },
+  { icon: Users,     label: "Clients",    href: "/vendor/customers" },
+  { icon: BarChart3, label: "Analyses",   href: "/vendor/analytics" },
+  { icon: Tag,       label: "Promotions", href: "/vendor/promotions" },
+  { icon: Star,      label: "Avis",       href: "/vendor/reviews" },
+  { icon: Settings,  label: "Paramètres", href: "/vendor/settings" },
+  { icon: HelpCircle,label: "Aide",       href: "/vendor/help" },
 ]
 
 const ORDER_STATUS: Record<string, { label: string; color: string; bg: string; icon: typeof Clock }> = {
-  pending:    { label: "En attente",     color: "text-yellow-400",  bg: "bg-yellow-500/20",  icon: Clock },
-  confirmed:  { label: "Confirmé",       color: "text-blue-400",    bg: "bg-blue-500/20",    icon: CheckCircle },
-  preparing:  { label: "Préparation",    color: "text-purple-400",  bg: "bg-purple-500/20",  icon: Package },
-  ready:      { label: "Prêt",           color: "text-cyan-400",    bg: "bg-cyan-500/20",    icon: CheckCircle },
-  delivering: { label: "En livraison",   color: "text-blue-400",    bg: "bg-blue-500/20",    icon: Truck },
-  delivered:  { label: "Livré",          color: "text-green-400",   bg: "bg-green-500/20",   icon: CheckCircle },
-  cancelled:  { label: "Annulé",         color: "text-red-400",     bg: "bg-red-500/20",     icon: XCircle },
+  pending:    { label: "En attente",   color: "text-[#eab308]", bg: "bg-[#eab308]/15", icon: Clock },
+  confirmed:  { label: "Confirmé",     color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: CheckCircle },
+  preparing:  { label: "Préparation",  color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/15", icon: Package },
+  ready:      { label: "Prêt",         color: "text-[#06b6d4]", bg: "bg-[#06b6d4]/15", icon: CheckCircle },
+  delivering: { label: "En livraison", color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: Truck },
+  delivered:  { label: "Livré",        color: "text-[#22c55e]", bg: "bg-[#22c55e]/15", icon: CheckCircle },
+  cancelled:  { label: "Annulé",       color: "text-[#ef4444]", bg: "bg-[#ef4444]/15", icon: XCircle },
 }
 
 const DONUT_COLORS = ["#3b82f6", "#22c55e", "#a3e635", "#8b5cf6", "#f97316"]
@@ -81,7 +94,23 @@ function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
 }
 
-// ─── Tooltip formatter ───────────────────────────────────────────────────────
+// ─── Count-up hook ────────────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 800) {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    let start: number | null = null
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const progress = Math.min((ts - start) / duration, 1)
+      setValue(Math.round(progress * target))
+      if (progress < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [target, duration])
+  return value
+}
+
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
 function SalesTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
   if (!active || !payload?.length) return null
   return (
@@ -98,31 +127,36 @@ function SalesTooltip({ active, payload, label }: { active?: boolean; payload?: 
   )
 }
 
-// ─── KPI Sparkline card ───────────────────────────────────────────────────────
+// ─── KPI Card ────────────────────────────────────────────────────────────────
 function KpiCard({
-  label, value, sub, color, icon: Icon, sparkData, delay,
+  label, rawValue, displayValue, sub, color, icon: Icon, sparkData, delay,
 }: {
-  label: string; value: string; sub?: string; color: string
+  label: string; rawValue: number; displayValue: string; sub?: string; color: string
   icon: typeof TrendingUp; sparkData: number[]; delay: number
 }) {
+  const counted = useCountUp(rawValue, 700)
+  const _ = counted // used to trigger re-render, actual display is pre-formatted
   const data = sparkData.map((v) => ({ v }))
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-      className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-4 flex flex-col gap-3 hover:border-white/10 transition-colors"
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+      whileHover={{ y: -2 }}
+      className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-4 flex flex-col gap-3
+        hover:border-[#3b82f6]/40 hover:shadow-[0_0_30px_rgba(59,130,246,0.08)] transition-all duration-300"
     >
       <div className="flex items-center justify-between">
         <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}20` }}>
           <Icon className="w-4.5 h-4.5" style={{ color }} />
         </div>
         {sub && (
-          <span className={`text-xs flex items-center gap-0.5 ${sub.startsWith("+") ? "text-green-400" : "text-red-400"}`}>
+          <span className={`text-xs flex items-center gap-0.5 ${sub.startsWith("+") ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
             {sub.startsWith("+") ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {sub}
           </span>
         )}
       </div>
       <div>
-        <p className="text-xl font-bold text-white leading-tight">{value}</p>
+        <p className="text-xl font-bold text-white leading-tight">{displayValue}</p>
         <p className="text-xs text-white/40 mt-0.5">{label}</p>
       </div>
       <div className="h-10">
@@ -136,11 +170,26 @@ function KpiCard({
   )
 }
 
+// ─── Glassmorphism card wrapper ───────────────────────────────────────────────
+function GlassCard({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+      whileHover={{ y: -1 }}
+      className={`bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
+        hover:border-[#3b82f6]/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.06)] transition-all duration-300 ${className}`}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VendorDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState(7)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ Produits: false, Portefeuille: false })
   const supabase = useRef(createClient())
 
   const fetchDashboard = useCallback(async (p: number) => {
@@ -155,7 +204,6 @@ export default function VendorDashboardPage() {
 
   useEffect(() => { fetchDashboard(7) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Realtime subscription: refresh on new orders
   useEffect(() => {
     if (!data?.vendor.id) return
     const sb = supabase.current
@@ -167,6 +215,7 @@ export default function VendorDashboardPage() {
   }, [data?.vendor.id, fetchDashboard, period])
 
   const handlePeriod = (p: number) => { setPeriod(p); fetchDashboard(p) }
+  const toggleSection = (label: string) => setExpandedSections((s) => ({ ...s, [label]: !s[label] }))
 
   const kpi = data?.kpi
   const chartData = data?.chart ?? []
@@ -177,12 +226,12 @@ export default function VendorDashboardPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
 
-      {/* ── Left Sidebar ──────────────────────────────────────────────────────── */}
+      {/* ── Left Sidebar ─────────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex w-60 shrink-0 flex-col bg-[#111118] border-r border-[#1e1e2e]">
         {/* Logo */}
         <div className="px-5 py-5 border-b border-[#1e1e2e]">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
               <span className="text-white font-black text-base">Q</span>
             </div>
             <div>
@@ -194,23 +243,66 @@ export default function VendorDashboardPage() {
 
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {SIDEBAR_ITEMS.map((item) => (
-            <Link key={item.label} href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                item.active
-                  ? "bg-blue-500/15 text-blue-400"
-                  : "text-white/40 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <item.icon className="w-4 h-4 shrink-0" />
-              {item.label}
-            </Link>
-          ))}
+          {SIDEBAR_ITEMS.map((item, idx) => {
+            const isExpanded = expandedSections[item.label]
+            return (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+              >
+                {item.expandable ? (
+                  <>
+                    <button
+                      onClick={() => toggleSection(item.label)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-white/40 hover:bg-white/5 hover:text-white"
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
+                    </button>
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden pl-7 mt-0.5 space-y-0.5"
+                        >
+                          {item.children?.map((child) => (
+                            <Link key={child.label} href={child.href}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/40 hover:bg-white/5 hover:text-white transition-all"
+                            >
+                              <span className="w-1 h-1 rounded-full bg-current opacity-50" />
+                              {child.label}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  <Link href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
+                      item.active
+                        ? "bg-[#a3e635]/10 border-l-2 border-[#a3e635] text-[#a3e635] rounded-r-xl ml-0 pl-[10px]"
+                        : "rounded-xl text-white/40 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                )}
+              </motion.div>
+            )
+          })}
         </nav>
 
         {/* Booster CTA */}
         <div className="p-3 border-t border-[#1e1e2e]">
-          <div className="bg-gradient-to-br from-[#a3e635]/15 to-blue-500/10 border border-[#a3e635]/20 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-[#a3e635]/15 to-[#3b82f6]/10 border border-[#a3e635]/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-4 h-4 text-[#a3e635]" />
               <span className="text-white text-sm font-semibold">Booster</span>
@@ -223,7 +315,7 @@ export default function VendorDashboardPage() {
         </div>
       </aside>
 
-      {/* ── Main Content ───────────────────────────────────────────────────────── */}
+      {/* ── Main Content ─────────────────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Sticky header */}
         <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-[#1e1e2e] px-6 py-3 flex items-center justify-between gap-4">
@@ -238,17 +330,17 @@ export default function VendorDashboardPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
               <Input placeholder="Rechercher…" className="pl-9 w-56 bg-[#16161f] border-[#1e1e2e] rounded-xl h-9 text-sm placeholder:text-white/20" />
             </div>
-            <button className="relative p-2 hover:bg-white/5 rounded-xl">
+            <button className="relative p-2 hover:bg-white/5 rounded-xl transition-colors">
               <Bell className="w-5 h-5 text-white/40" />
               {(data?.unread_notifications ?? 0) > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ef4444] rounded-full" />
               )}
             </button>
             <Button variant="ghost" size="icon" onClick={() => fetchDashboard(period)} className="h-9 w-9 rounded-xl">
               <RefreshCw className={`w-4 h-4 text-white/40 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <div className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e]">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
                 <span className="text-white font-bold text-xs">{data ? initials(data.vendor.name) : "?"}</span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-white/30" />
@@ -265,7 +357,7 @@ export default function VendorDashboardPage() {
               {[{ v: 7, l: "7j" }, { v: 30, l: "30j" }, { v: 90, l: "90j" }].map(({ v, l }) => (
                 <button key={v} onClick={() => handlePeriod(v)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    period === v ? "bg-blue-500 text-white" : "text-white/40 hover:text-white"
+                    period === v ? "bg-[#a3e635] text-black font-bold" : "text-white/40 hover:text-white"
                   }`}
                 >{l}</button>
               ))}
@@ -281,20 +373,18 @@ export default function VendorDashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
-              <KpiCard label="Ventes aujourd'hui" value={formatCFA(kpi?.today_sales ?? 0)} color="#22c55e" icon={TrendingUp} sparkData={sparkSales} delay={0} />
-              <KpiCard label="Commandes du jour" value={String(kpi?.today_orders ?? 0)} color="#3b82f6" icon={ShoppingBag} sparkData={sparkOrders} delay={0.05} />
-              <KpiCard label="Revenus du mois" value={formatCFA(kpi?.month_revenue ?? 0)} color="#a3e635" icon={BarChart3} sparkData={sparkSales} delay={0.1} />
-              <KpiCard label="Produits actifs" value={String(kpi?.active_products ?? 0)} color="#8b5cf6" icon={Package} sparkData={sparkOrders} delay={0.15} />
-              <KpiCard label="Note moyenne" value={`${(kpi?.rating ?? 0).toFixed(1)} ★`} color="#f97316" icon={Star} sparkData={sparkOrders} delay={0.2} />
+              <KpiCard label="Ventes aujourd'hui" rawValue={kpi?.today_sales ?? 0} displayValue={formatCFA(kpi?.today_sales ?? 0)} color="#22c55e" icon={TrendingUp} sparkData={sparkSales} delay={0} />
+              <KpiCard label="Commandes du jour" rawValue={kpi?.today_orders ?? 0} displayValue={String(kpi?.today_orders ?? 0)} color="#3b82f6" icon={ShoppingBag} sparkData={sparkOrders} delay={0.05} />
+              <KpiCard label="Revenus du mois" rawValue={kpi?.month_revenue ?? 0} displayValue={formatCFA(kpi?.month_revenue ?? 0)} color="#a3e635" icon={BarChart3} sparkData={sparkSales} delay={0.1} />
+              <KpiCard label="Produits actifs" rawValue={kpi?.active_products ?? 0} displayValue={String(kpi?.active_products ?? 0)} color="#8b5cf6" icon={Package} sparkData={sparkOrders} delay={0.15} />
+              <KpiCard label="Note moyenne" rawValue={kpi?.rating ?? 0} displayValue={`${(kpi?.rating ?? 0).toFixed(1)} ★`} color="#f97316" icon={Star} sparkData={sparkOrders} delay={0.2} />
             </div>
           )}
 
           {/* Charts row */}
           <div className="grid xl:grid-cols-3 gap-4">
             {/* Sales line chart */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-              className="xl:col-span-2 bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-5"
-            >
+            <GlassCard className="xl:col-span-2" delay={0.25}>
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h3 className="text-white font-semibold text-sm">Évolution des ventes</h3>
@@ -315,24 +405,21 @@ export default function VendorDashboardPage() {
                     <YAxis yAxisId="right" orientation="right" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
                     <Tooltip content={<SalesTooltip />} />
                     <Legend wrapperStyle={{ fontSize: 11, color: "#888", paddingTop: 8 }} />
-                    <Line yAxisId="left" type="monotone" dataKey="sales" name="Ventes" stroke="#22c55e" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-                    <Line yAxisId="right" type="monotone" dataKey="orders" name="Commandes" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    <Line yAxisId="left" type="monotone" dataKey="sales" name="Ventes" stroke="#22c55e" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#22c55e" }} />
+                    <Line yAxisId="right" type="monotone" dataKey="orders" name="Commandes" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#3b82f6" }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
-            </motion.div>
+            </GlassCard>
 
-            {/* Donut chart + top products */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-5"
-            >
+            {/* Donut + top products */}
+            <GlassCard delay={0.3}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold text-sm">Top Produits</h3>
-                <Link href="/vendor/products" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                <Link href="/vendor/products" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 flex items-center gap-1 transition-colors">
                   Voir tout <ArrowUpRight className="w-3 h-3" />
                 </Link>
               </div>
-
               {loading && !data ? (
                 <div className="h-40 rounded-xl bg-white/5 animate-pulse mb-3" />
               ) : donutData.length > 0 ? (
@@ -360,20 +447,17 @@ export default function VendorDashboardPage() {
               ) : (
                 <p className="text-white/30 text-xs text-center py-8">Pas encore de données</p>
               )}
-            </motion.div>
+            </GlassCard>
           </div>
 
           {/* Recent orders */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-            className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-5"
-          >
+          <GlassCard delay={0.35}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-white font-semibold text-sm">Commandes récentes</h3>
-              <Link href="/vendor/orders" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1">
+              <Link href="/vendor/orders" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 flex items-center gap-1 transition-colors">
                 Voir tout <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>
-
             {loading && !data ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)}
@@ -401,7 +485,7 @@ export default function VendorDashboardPage() {
                         <tr key={order.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-3.5">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
                                 <span className="text-white font-bold text-[10px]">{initials(customerName)}</span>
                               </div>
                               <div>
@@ -435,27 +519,27 @@ export default function VendorDashboardPage() {
                 </table>
               </div>
             )}
-          </motion.div>
+          </GlassCard>
 
           {/* Low stock */}
           {(data?.low_stock ?? []).length > 0 && (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-              className="bg-[#16161f] border border-orange-500/20 rounded-2xl p-5"
+              className="bg-[#16161f]/80 backdrop-blur-xl border border-[#f97316]/20 rounded-2xl p-5"
             >
               <div className="flex items-center gap-2 mb-4">
-                <AlertTriangle className="w-4 h-4 text-orange-400" />
+                <AlertTriangle className="w-4 h-4 text-[#f97316]" />
                 <h3 className="text-white font-semibold text-sm">Stock faible</h3>
-                <span className="ml-auto text-xs text-orange-400">{data?.low_stock.length} produit{(data?.low_stock.length ?? 0) > 1 ? "s" : ""}</span>
+                <span className="ml-auto text-xs text-[#f97316]">{data?.low_stock.length} produit{(data?.low_stock.length ?? 0) > 1 ? "s" : ""}</span>
               </div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {(data?.low_stock ?? []).map((p) => (
-                  <div key={p.id} className="flex items-center gap-3 p-3 bg-orange-500/5 border border-orange-500/10 rounded-xl">
-                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center shrink-0">
-                      <Package className="w-4 h-4 text-orange-400" />
+                  <div key={p.id} className="flex items-center gap-3 p-3 bg-[#f97316]/5 border border-[#f97316]/10 rounded-xl">
+                    <div className="w-10 h-10 rounded-xl bg-[#f97316]/10 flex items-center justify-center shrink-0">
+                      <Package className="w-4 h-4 text-[#f97316]" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-white text-xs font-medium truncate">{p.name}</p>
-                      <p className="text-orange-400 text-[11px]">{p.stock_quantity} restant{p.stock_quantity > 1 ? "s" : ""}</p>
+                      <p className="text-[#f97316] text-[11px]">{p.stock_quantity} restant{p.stock_quantity > 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 ))}
@@ -465,22 +549,20 @@ export default function VendorDashboardPage() {
 
           {/* Notifications */}
           {(data?.notifications ?? []).length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
-              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-5"
-            >
+            <GlassCard delay={0.45}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Bell className="w-4 h-4 text-white/40" />
                   <h3 className="text-white font-semibold text-sm">Notifications</h3>
                   {(data?.unread_notifications ?? 0) > 0 && (
-                    <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-bold">{data?.unread_notifications}</span>
+                    <span className="text-[10px] bg-[#ef4444] text-white px-1.5 py-0.5 rounded-full font-bold">{data?.unread_notifications}</span>
                   )}
                 </div>
               </div>
               <div className="space-y-3">
                 {(data?.notifications ?? []).map((n) => (
-                  <div key={n.id} className={`flex gap-3 p-3 rounded-xl transition-colors ${n.is_read ? "bg-white/[0.02]" : "bg-blue-500/5 border border-blue-500/10"}`}>
-                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.is_read ? "bg-white/20" : "bg-blue-400"}`} />
+                  <div key={n.id} className={`flex gap-3 p-3 rounded-xl transition-colors ${n.is_read ? "bg-white/[0.02]" : "bg-[#3b82f6]/5 border border-[#3b82f6]/10"}`}>
+                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.is_read ? "bg-white/20" : "bg-[#3b82f6]"}`} />
                     <div className="min-w-0">
                       <p className="text-white text-xs font-medium">{n.title}</p>
                       <p className="text-white/40 text-[11px] mt-0.5 truncate">{n.message}</p>
@@ -489,12 +571,12 @@ export default function VendorDashboardPage() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </GlassCard>
           )}
         </div>
       </main>
 
-      {/* ── Right Wallet Panel ────────────────────────────────────────────────── */}
+      {/* ── Right Wallet Panel ───────────────────────────────────────────────── */}
       <aside className="hidden xl:flex w-72 shrink-0 flex-col bg-[#111118] border-l border-[#1e1e2e] overflow-y-auto">
         <div className="p-5 space-y-4">
           {/* Wallet balance */}
@@ -503,13 +585,13 @@ export default function VendorDashboardPage() {
             {loading && !data ? (
               <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
             ) : (
-              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-400/10 border border-blue-500/20 rounded-2xl p-4">
+              <div className="bg-gradient-to-br from-[#3b82f6]/20 to-[#06b6d4]/10 border border-[#3b82f6]/20 rounded-2xl p-4">
                 <p className="text-white/40 text-xs mb-1">Solde disponible</p>
                 <p className="text-2xl font-black text-white">{formatCFA(data?.wallet?.available_balance ?? 0)}</p>
                 {(data?.wallet?.pending_balance ?? 0) > 0 && (
-                  <p className="text-yellow-400 text-xs mt-1">{formatCFA(data?.wallet?.pending_balance ?? 0)} en attente</p>
+                  <p className="text-[#eab308] text-xs mt-1">{formatCFA(data?.wallet?.pending_balance ?? 0)} en attente</p>
                 )}
-                <Button className="w-full mt-4 h-9 bg-green-500 hover:bg-green-500/90 text-white font-bold text-sm rounded-xl gap-2">
+                <Button className="w-full mt-4 h-9 bg-[#22c55e] hover:bg-[#22c55e]/90 text-white font-bold text-sm rounded-xl gap-2">
                   <Download className="w-3.5 h-3.5" /> Demander un retrait
                 </Button>
               </div>
@@ -519,7 +601,7 @@ export default function VendorDashboardPage() {
           {/* Wallet stats */}
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "Total gagné", value: formatCFA(data?.wallet?.total_earned ?? 0), color: "text-green-400" },
+              { label: "Total gagné",  value: formatCFA(data?.wallet?.total_earned ?? 0),    color: "text-[#22c55e]" },
               { label: "Total retiré", value: formatCFA(data?.wallet?.total_withdrawn ?? 0), color: "text-white/60" },
             ].map((s) => (
               <div key={s.label} className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3">
@@ -532,7 +614,7 @@ export default function VendorDashboardPage() {
           {/* Next payout */}
           {data?.wallet?.next_payout_date && (
             <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3 flex items-center gap-3">
-              <Clock className="w-4 h-4 text-blue-400 shrink-0" />
+              <Clock className="w-4 h-4 text-[#3b82f6] shrink-0" />
               <div>
                 <p className="text-white/40 text-[10px]">Prochain virement</p>
                 <p className="text-white text-xs font-medium">
@@ -543,16 +625,16 @@ export default function VendorDashboardPage() {
             </div>
           )}
 
-          <Link href="/vendor/wallet" className="flex items-center justify-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors py-1">
+          <Link href="/vendor/wallet" className="flex items-center justify-center gap-1.5 text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 transition-colors py-1">
             Historique des retraits <ArrowUpRight className="w-3 h-3" />
           </Link>
 
           {/* Commission notice */}
           <div>
             <h3 className="text-white/40 text-xs uppercase tracking-widest mb-3">Commission DL Solutions</h3>
-            <div className="bg-blue-500/5 border border-blue-500/30 rounded-2xl p-4 space-y-3">
+            <div className="bg-[#3b82f6]/5 border border-[#3b82f6]/30 rounded-2xl p-4 space-y-3">
               <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                <Info className="w-4 h-4 text-[#3b82f6] shrink-0 mt-0.5" />
                 <div>
                   <p className="text-white text-xs font-semibold">Taux : {data?.commission.rate ?? 5}%</p>
                   <p className="text-white/40 text-[11px] mt-0.5">Déduite automatiquement à 23h59 (heure Cameroun)</p>
@@ -567,12 +649,12 @@ export default function VendorDashboardPage() {
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-white/40">Commission ce mois</span>
-                  <span className="text-red-400 font-medium">{formatCFA(data?.commission.month_total ?? 0)}</span>
+                  <span className="text-[#ef4444] font-medium">{formatCFA(data?.commission.month_total ?? 0)}</span>
                 </div>
                 {data?.commission.yesterday && (
-                  <div className="flex justify-between text-xs border-t border-blue-500/20 pt-2">
+                  <div className="flex justify-between text-xs border-t border-[#3b82f6]/20 pt-2">
                     <span className="text-white/40">Net hier</span>
-                    <span className="text-green-400 font-medium">{formatCFA(data.commission.yesterday.vendor_net_amount)}</span>
+                    <span className="text-[#22c55e] font-medium">{formatCFA(data.commission.yesterday.vendor_net_amount)}</span>
                   </div>
                 )}
               </div>
@@ -584,15 +666,15 @@ export default function VendorDashboardPage() {
             <div className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-white text-sm font-semibold truncate">{data.vendor.name}</span>
-                <span className={`w-2 h-2 rounded-full ${data.vendor.status === "active" ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                <span className={`w-2 h-2 rounded-full ${data.vendor.status === "active" ? "bg-[#22c55e] animate-pulse" : "bg-[#ef4444]"}`} />
               </div>
               {data.vendor.is_verified && (
-                <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#3b82f6] bg-[#3b82f6]/10 px-2 py-0.5 rounded-full">
                   <CheckCircle className="w-2.5 h-2.5" /> Vérifié
                 </span>
               )}
               {data.vendor.rating != null && (
-                <p className="text-yellow-400 text-xs mt-2 flex items-center gap-1">
+                <p className="text-[#eab308] text-xs mt-2 flex items-center gap-1">
                   <Star className="w-3 h-3 fill-current" /> {data.vendor.rating.toFixed(1)} / 5
                 </p>
               )}
