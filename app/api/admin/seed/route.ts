@@ -89,26 +89,27 @@ export async function GET(req: NextRequest) {
 
     // ── 4. Vendeurs ────────────────────────────────────────────────────────
     await sb.from("vendors").delete().in("owner_id", [vendor1Id, vendor2Id])
-    const { data: vendors } = await sb.from("vendors").insert([
-      { owner_id: vendor1Id, name: "TechShop Douala",    description: "Smartphones, laptops, accessoires high-tech importés.", category_id: catMap["electronique"], city: "Douala",  status: "active", is_verified: true, rating: 4.7, commission_rate: 5, delivery_fee: 1500 },
-      { owner_id: vendor2Id, name: "Chez Fatima Resto",  description: "Cuisine camerounaise authentique. Ndolé, poulet DG.",   category_id: catMap["restaurant"],   city: "Yaoundé", status: "active", is_verified: true, rating: 4.9, commission_rate: 5, delivery_fee: 500  },
+    const { data: vendors, error: vendErr } = await sb.from("vendors").insert([
+      { owner_id: vendor1Id, name: "TechShop Douala",   description: "Smartphones, laptops, accessoires high-tech importés.", category: "electronique", city: "Douala",  status: "active", is_verified: true, rating: 4.7, commission_rate: 5, delivery_fee: 1500 },
+      { owner_id: vendor2Id, name: "Chez Fatima Resto", description: "Cuisine camerounaise authentique. Ndolé, poulet DG.",   category: "restaurant",   city: "Yaoundé", status: "active", is_verified: true, rating: 4.9, commission_rate: 5, delivery_fee: 500  },
     ]).select()
-    if (!vendors) throw new Error("Échec vendeurs")
+    if (vendErr || !vendors) throw new Error(`Échec vendeurs: ${vendErr?.message ?? "data null"}`)
     ok(`${vendors.length} vendeurs`)
     const v1 = vendors[0].id
     const v2 = vendors[1].id
 
     // ── 5. Wallets vendeurs ────────────────────────────────────────────────
     await sb.from("vendor_wallets").delete().in("vendor_id", [v1, v2])
-    await sb.from("vendor_wallets").insert([
-      { vendor_id: v1, available_balance: 285000, pending_balance: 45000, total_earned: 1250000, total_withdrawn: 920000, next_payout_date: new Date(Date.now() + 3 * 86400000).toISOString(), next_payout_amount: 285000 },
-      { vendor_id: v2, available_balance: 178500, pending_balance: 22000, total_earned: 680000,  total_withdrawn: 480000, next_payout_date: new Date(Date.now() + 5 * 86400000).toISOString(), next_payout_amount: 178500 },
+    const { error: w1Err } = await sb.from("vendor_wallets").insert([
+      { vendor_id: v1, available_balance: 285000, pending_balance: 45000, total_earned: 1250000, total_withdrawn: 920000 },
+      { vendor_id: v2, available_balance: 178500, pending_balance: 22000, total_earned: 680000,  total_withdrawn: 480000 },
     ])
-    ok("2 wallets vendeurs")
+    if (w1Err) err("vendor_wallets", w1Err.message)
+    else ok("2 wallets vendeurs")
 
     // ── 6. Produits ────────────────────────────────────────────────────────
     await sb.from("products").delete().in("vendor_id", [v1, v2])
-    const { data: products } = await sb.from("products").insert([
+    const { data: products, error: prodErr } = await sb.from("products").insert([
       { vendor_id: v1, category_id: catMap["electronique"], name: "iPhone 15 Pro 256Go",  description: "Apple iPhone 15 Pro, titane naturel, garantie 1 an.",   price: 650000, original_price: 720000, rating: 4.8, is_available: true, is_featured: true,  stock_quantity: 12 },
       { vendor_id: v1, category_id: catMap["electronique"], name: "Samsung Galaxy S24",   description: "Samsung S24 128Go, Phantom Black, AMOLED 6.2\".",        price: 450000, original_price: 500000, rating: 4.6, is_available: true, is_featured: true,  stock_quantity: 8  },
       { vendor_id: v1, category_id: catMap["electronique"], name: "AirPods Pro 2",        description: "Écouteurs Apple avec réduction active du bruit.",        price: 120000, original_price: 135000, rating: 4.9, is_available: true, is_featured: false, stock_quantity: 3  },
@@ -122,7 +123,7 @@ export async function GET(req: NextRequest) {
       { vendor_id: v2, category_id: catMap["restaurant"],   name: "Jus de bissap 1L",     description: "Jus d'hibiscus artisanal, sans conservateurs.",         price: 1500,   original_price: null,    rating: 4.6, is_available: true, is_featured: false, stock_quantity: 40 },
       { vendor_id: v2, category_id: catMap["restaurant"],   name: "Koki de maïs",         description: "Gâteau de maïs vapeur aux feuilles de bananier.",      price: 1000,   original_price: null,    rating: 4.5, is_available: true, is_featured: false, stock_quantity: 5  },
     ]).select()
-    if (!products) throw new Error("Échec produits")
+    if (prodErr || !products) throw new Error(`Échec produits: ${prodErr?.message ?? "data null"}`)
     ok(`${products.length} produits`)
     const pm: Record<string, { id: string; price: number; name: string }> = Object.fromEntries(products.map((p) => [p.name, p]))
 
