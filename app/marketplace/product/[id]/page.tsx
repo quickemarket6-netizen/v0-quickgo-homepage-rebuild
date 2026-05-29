@@ -111,12 +111,12 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     addItem({
-      productId: product.id,
+      id: String(product.id),
+      productId: String(product.id),
       name: product.name,
       brand: product.brand,
       price: currentPrice,
       originalPrice: product.originalPrice,
-      quantity,
       image: product.images[0],
       color: product.colors[selectedColor].name,
       vendor: product.vendor.name,
