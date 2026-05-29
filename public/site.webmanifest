@@ -1,53 +1,115 @@
 {
-  "name": "QuickGo - Livraison Express Cameroun",
+  "name": "QuickGo - Livraison Rapide Cameroun",
   "short_name": "QuickGo",
-  "description": "La super application de livraison au Cameroun. Marketplace, livraison express, paiements sécurisés.",
+  "description": "Everything Local. Delivered Fast. La super application de livraison au Cameroun.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0f1a",
-  "theme_color": "#0a0f1a",
+  "background_color": "#050505",
+  "theme_color": "#0A0F1C",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["shopping", "food", "lifestyle", "productivity"],
   "icons": [
     {
-      "src": "/icon-light-32x32.png",
-      "sizes": "32x32",
-      "type": "image/png"
+      "src": "/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
     },
     {
-      "src": "/apple-icon.png",
-      "sizes": "180x180",
-      "type": "image/png"
+      "src": "/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
     },
     {
-      "src": "/apple-icon.png",
+      "src": "/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable any"
     },
     {
-      "src": "/apple-icon.png",
+      "src": "/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable any"
     }
   ],
-  "categories": ["shopping", "food", "lifestyle"],
-  "lang": "fr",
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Page d'accueil QuickGo"
+    },
+    {
+      "src": "/screenshots/marketplace.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Marketplace QuickGo"
+    }
+  ],
   "shortcuts": [
     {
-      "name": "Marketplace",
+      "name": "Commander",
+      "short_name": "Commander",
+      "description": "Passer une commande rapidement",
       "url": "/marketplace",
-      "description": "Explorer la marketplace"
+      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
     },
     {
-      "name": "Livraison Express",
-      "url": "/delivery",
-      "description": "Créer une livraison"
-    },
-    {
-      "name": "Suivi",
+      "name": "Suivre ma livraison",
+      "short_name": "Tracking",
+      "description": "Suivre votre commande en temps réel",
       "url": "/tracking",
-      "description": "Suivre une commande"
+      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Mon Portefeuille",
+      "short_name": "Wallet",
+      "description": "Gérer votre portefeuille QuickGo",
+      "url": "/wallet",
+      "icons": [{ "src": "/icon-96x96.png", "sizes": "96x96" }]
     }
-  ]
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=cm.quickgo.app",
+      "id": "cm.quickgo.app"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/quickgo/id123456789"
+    }
+  ],
+  "prefer_related_applications": false
 }

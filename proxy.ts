@@ -14,33 +14,16 @@ export async function proxy(request: NextRequest) {
   const isDriverRoute = DRIVER_ROUTES.some((r) => pathname.startsWith(r))
   const isProtectedRoute = PROTECTED_ROUTES.some((r) => pathname.startsWith(r))
 
-  const response = await updateSession(request)
+  // updateSession refreshes the token and returns the verified user in one shot.
+  // Reusing the same client avoids reading stale cookies in a second client.
+  const { response, user } = await updateSession(request)
 
   if (isAdminRoute || isVendorRoute || isDriverRoute || isProtectedRoute) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (supabaseUrl && supabaseAnonKey) {
-      const { createServerClient } = await import("@supabase/ssr")
-      const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll() {},
-        },
-      })
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        const loginUrl = request.nextUrl.clone()
-        loginUrl.pathname = "/auth/login"
-        loginUrl.searchParams.set("redirectTo", pathname)
-        return NextResponse.redirect(loginUrl)
-      }
+    if (!user) {
+      const loginUrl = request.nextUrl.clone()
+      loginUrl.pathname = "/auth/login"
+      loginUrl.searchParams.set("redirectTo", pathname)
+      return NextResponse.redirect(loginUrl)
     }
   }
 

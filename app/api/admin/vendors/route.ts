@@ -17,8 +17,9 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from("vendors")
     .select(`
-      id, name, description, category, city, status, is_verified, created_at,
+      id, name, description, city, status, is_verified, created_at,
       logo_url, commission_rate,
+      category:categories(name, slug),
       owner:profiles(full_name, phone, email),
       wallet:vendor_wallets(available_balance, total_earned)
     `, { count: "exact" })

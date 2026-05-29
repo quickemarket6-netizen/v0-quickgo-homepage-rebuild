@@ -100,15 +100,17 @@ export default function CartPage() {
                         className="p-4 lg:p-6 rounded-2xl bg-card border border-border/50"
                       >
                         <div className="flex gap-4">
-                          <Link href={`/marketplace/product/${item.productId}`} className="shrink-0">
+                          <Link href={`/marketplace/product/${item.id}`} className="shrink-0">
                             <div className="relative w-24 h-24 lg:w-32 lg:h-32 rounded-xl overflow-hidden bg-muted/30">
-                              <Image
-                                src={item.image}
-                                alt={item.name}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 96px, 128px"
-                              />
+                              {item.image && (
+                                <Image
+                                  src={item.image}
+                                  alt={item.name}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 96px, 128px"
+                                />
+                              )}
                             </div>
                           </Link>
 
@@ -116,7 +118,7 @@ export default function CartPage() {
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <p className="text-xs text-muted-foreground">{item.brand}</p>
-                                <Link href={`/marketplace/product/${item.productId}`}>
+                                <Link href={`/marketplace/product/${item.id}`}>
                                   <h3 className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-2">
                                     {item.name}
                                   </h3>
@@ -129,7 +131,7 @@ export default function CartPage() {
                                 )}
                               </div>
                               <button
-                                onClick={() => removeItem(item.productId)}
+                                onClick={() => removeItem(item.id)}
                                 className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -139,14 +141,14 @@ export default function CartPage() {
                             <div className="flex items-end justify-between mt-4">
                               <div className="flex items-center border border-border rounded-xl">
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                   className="p-2 hover:bg-muted transition-colors rounded-l-xl"
                                 >
                                   <Minus className="w-4 h-4" />
                                 </button>
                                 <span className="w-10 text-center font-medium text-sm">{item.quantity}</span>
                                 <button
-                                  onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                   className="p-2 hover:bg-muted transition-colors rounded-r-xl"
                                 >
                                   <Plus className="w-4 h-4" />
