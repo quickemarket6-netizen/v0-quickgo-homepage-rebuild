@@ -6,7 +6,7 @@ import Link from "next/link"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
-  RefreshCw, Search, Phone, Award, Crown, Zap, LogOut, User,
+  RefreshCw, Search, Phone, Award, Crown, Zap, LogOut, User, Truck,
   Boxes, ShoppingCart, TrendingDown, UserPlus, Activity,
 } from "lucide-react"
 import {
@@ -47,6 +47,7 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
   { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
     children: [

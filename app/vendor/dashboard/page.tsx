@@ -50,6 +50,7 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard", active: true },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
   { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
     children: [

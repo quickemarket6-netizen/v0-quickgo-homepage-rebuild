@@ -7,7 +7,7 @@ import Image from "next/image"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
-  RefreshCw, Zap, LogOut, User, Boxes, Plus, ArrowRight,
+  RefreshCw, Zap, LogOut, User, Boxes, Plus, ArrowRight, Truck,
 } from "lucide-react"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -33,6 +33,7 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
   { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true, defaultOpen: true,
     children: [

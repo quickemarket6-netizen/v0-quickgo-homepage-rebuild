@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
-  ArrowLeft, Plus, X, Check, ImagePlus, Zap, LogOut, User, Boxes,
+  ArrowLeft, Plus, X, Check, ImagePlus, Zap, LogOut, User, Boxes, Truck,
   AlertCircle, Loader2,
 } from "lucide-react"
 import {
@@ -29,6 +29,7 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
   { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true, defaultOpen: true,
     children: [

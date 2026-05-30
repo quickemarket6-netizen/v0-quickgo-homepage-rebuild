@@ -84,6 +84,7 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders", active: true },
   { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
     children: [
