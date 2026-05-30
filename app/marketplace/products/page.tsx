@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -129,21 +129,40 @@ export default function ProductsPage() {
           </Button>
         </div>
 
-        {/* Categories */}
+        {/* Categories — with animated active indicator using layoutId */}
         <div className="max-w-6xl mx-auto mt-3 flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-          <button onClick={() => { setCatFilter(""); setPage(0) }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
-              catFilter === "" ? "bg-[#3b82f6] text-white" : "bg-[#16161f] text-white/40 hover:text-white border border-[#1e1e2e]"
-            }`}>
-            Tous
+          <button
+            onClick={() => { setCatFilter(""); setPage(0) }}
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
+              catFilter === "" ? "text-white" : "bg-[#16161f] text-white/40 hover:text-white border border-[#1e1e2e]"
+            }`}
+          >
+            {catFilter === "" && (
+              <motion.span
+                layoutId="catIndicator"
+                className="absolute inset-0 rounded-full bg-[#3b82f6]"
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10">Tous</span>
           </button>
           {categories.map((cat) => (
-            <button key={cat.id} onClick={() => { setCatFilter(cat.slug); setPage(0) }}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
+            <button
+              key={cat.id}
+              onClick={() => { setCatFilter(cat.slug); setPage(0) }}
+              className={`relative px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
                 catFilter === cat.slug ? "text-white" : "bg-[#16161f] text-white/40 hover:text-white border border-[#1e1e2e]"
               }`}
-              style={catFilter === cat.slug ? { background: cat.color ?? "#3b82f6" } : {}}>
-              {cat.name}
+            >
+              {catFilter === cat.slug && (
+                <motion.span
+                  layoutId="catIndicator"
+                  className="absolute inset-0 rounded-full"
+                  style={{ background: cat.color ?? "#3b82f6" }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10">{cat.name}</span>
             </button>
           ))}
         </div>
@@ -152,9 +171,15 @@ export default function ProductsPage() {
       <div className="max-w-6xl mx-auto p-4">
         {/* Sort + count bar */}
         <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-white/40">
+          {/* Count display — fade in */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-sm text-white/40"
+          >
             {loading ? "Chargement…" : `${total} produit${total > 1 ? "s" : ""}`}
-          </p>
+          </motion.p>
           <div className="relative">
             <select value={sort} onChange={(e) => setSort(e.target.value)}
               className="appearance-none bg-[#16161f] border border-[#1e1e2e] text-white/60 text-xs rounded-xl px-3 pr-8 py-2 focus:outline-none focus:border-[#3b82f6]/50 cursor-pointer">
@@ -166,14 +191,27 @@ export default function ProductsPage() {
 
         {/* Grid */}
         {loading && products.length === 0 ? (
+          /* Skeleton loading — animated opacity pulse */
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-64 rounded-2xl bg-[#16161f] animate-pulse" />
+              <motion.div
+                key={i}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: i * 0.1 }}
+                className="h-64 rounded-2xl bg-[#16161f]"
+              />
             ))}
           </div>
         ) : sorted.length === 0 ? (
+          /* Empty state — floating search emoji */
           <div className="text-center py-20">
-            <p className="text-4xl mb-4">🔍</p>
+            <motion.p
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="text-4xl mb-4"
+            >
+              🔍
+            </motion.p>
             <p className="text-white/40">Aucun produit trouvé</p>
             {(search || catFilter) && (
               <Button size="sm" variant="outline" className="mt-4 rounded-xl border-[#1e1e2e] text-white/40"
@@ -193,9 +231,15 @@ export default function ProductsPage() {
                 const isFav = favorites.has(p.id)
 
                 return (
-                  <motion.div key={p.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03, type: "spring", stiffness: 120, damping: 18 }}
+                    whileHover={{ y: -6, scale: 1.02 }}
+                  >
                     <Link href={`/marketplace/product/${p.id}`}
-                      className="block bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden hover:border-[#3b82f6]/30 transition-all group">
+                      className="block bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden hover:border-[#3b82f6]/30 hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] transition-all group">
                       <div className="relative h-44 bg-[#1c1c28]">
                         {img ? (
                           <Image src={img} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="300px" />
@@ -242,7 +286,7 @@ export default function ProductsPage() {
                               disabled={!inStock}
                               onClick={(e) => {
                                 e.preventDefault()
-                                addItem({ id: p.id, name: p.name, price: p.price, image: img ?? undefined, vendorId: p.vendor?.id, vendorName: p.vendor?.name })
+                                addItem({ id: p.id, name: p.name, price: p.price, image: img ?? undefined, vendorId: p.vendor?.id ?? undefined, vendorName: p.vendor?.name ?? undefined })
                               }}>
                               <ShoppingCart className="w-3.5 h-3.5 text-[#3b82f6]" />
                             </button>
@@ -255,14 +299,24 @@ export default function ProductsPage() {
               })}
             </div>
 
-            {/* Load more */}
+            {/* Load more button */}
             {products.length < total && (
               <div className="text-center mt-8">
-                <Button variant="outline" className="rounded-xl border-[#1e1e2e] text-white/60 hover:text-white"
-                  onClick={() => { const np = page + 1; setPage(np); fetchProducts(search, catFilter, np) }}
-                  disabled={loading}>
-                  {loading ? "Chargement…" : "Charger plus de produits"}
-                </Button>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <Button
+                    variant="outline"
+                    className={`rounded-xl border-[#1e1e2e] text-white/60 hover:text-white transition-all ${
+                      loading ? "animate-pulse border-[#3b82f6]/50 text-[#3b82f6]/60" : ""
+                    }`}
+                    onClick={() => { const np = page + 1; setPage(np); fetchProducts(search, catFilter, np) }}
+                    disabled={loading}
+                  >
+                    {loading ? "Chargement…" : "Charger plus de produits"}
+                  </Button>
+                </motion.div>
               </div>
             )}
           </>

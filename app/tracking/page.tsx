@@ -1,267 +1,558 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
-import { motion } from "framer-motion"
-import {
-  ArrowLeft, Package, Truck, CheckCircle, Clock,
-  MapPin, Phone, Star, MessageSquare, RefreshCw,
-  ShoppingBag, Bike,
-} from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Search,
+  Package,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  User,
+  Phone,
+  MessageSquare,
+  Star,
+  RefreshCw,
+  PackageOpen,
+} from "lucide-react"
 
-interface OrderItem { product_name: string; quantity: number; unit_price: number }
-interface ActiveOrder {
-  id: string; order_number: string; status: string; total_amount: number
-  created_at: string; estimated_delivery_time: string | null
+type Order = {
+  id: string
+  order_number: string
+  status: string
+  total: number
+  created_at: string
+  estimated_delivery_time: string | null
   delivery_address: string | null
-  vendor: { name: string; phone: string | null; logo_url: string | null } | null
-  driver: {
-    rating: number | null
-    user: { full_name: string; phone: string | null; avatar_url: string | null } | null
-  } | null
-  items: OrderItem[]
+  vendor: { id: string; name: string; phone: string | null } | null
+  driver: { id: string; rating: number; user: { full_name: string | null; phone: string | null } | null } | null
+  items: { id: string; product_name: string; quantity: number; unit_price: number }[]
 }
 
 const STATUS_STEPS = [
-  { key: "pending",    label: "Commande reçue" },
-  { key: "confirmed",  label: "Commande confirmée" },
-  { key: "preparing",  label: "Préparation" },
-  { key: "ready",      label: "Prêt pour livraison" },
-  { key: "delivering", label: "En route" },
-  { key: "delivered",  label: "Livré" },
+  { keys: ["pending", "confirmed"],    label: "Commande reçue",           emoji: "📋" },
+  { keys: ["preparing", "ready"],      label: "En préparation",            emoji: "👨‍🍳" },
+  { keys: ["picked_up"],              label: "Récupérée par le livreur",  emoji: "🛵" },
+  { keys: ["in_transit"],             label: "En route vers vous",        emoji: "🚀" },
+  { keys: ["delivered"],             label: "Livrée",                    emoji: "✅" },
 ]
-const STEP_ORDER = ["pending","confirmed","preparing","ready","delivering","delivered"]
 
-function getStepIndex(status: string) {
-  const idx = STEP_ORDER.indexOf(status)
-  return idx === -1 ? 0 : idx
+const ACTIVE_STATUSES = ["pending", "confirmed", "preparing", "ready", "picked_up", "in_transit"]
+
+const STATUS_LABELS: Record<string, string> = {
+  pending:    "En attente",
+  confirmed:  "Confirmée",
+  preparing:  "En préparation",
+  ready:      "Prête",
+  picked_up:  "Récupérée",
+  in_transit: "En route",
+  delivered:  "Livrée",
+  cancelled:  "Annulée",
 }
 
-const formatCFA = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA"
+function getCurrentStep(status: string) {
+  return STATUS_STEPS.findIndex(s => s.keys.includes(status))
+}
+
+function isStepCompleted(stepIdx: number, currentStep: number) {
+  return stepIdx < currentStep
+}
+
+function etaLabel(order: Order) {
+  if (!order.estimated_delivery_time) return "~30 min"
+  const diff = new Date(order.estimated_delivery_time).getTime() - Date.now()
+  if (diff <= 0) return "Imminent"
+  const mins = Math.ceil(diff / 60000)
+  return mins < 60 ? `${mins} min` : `${Math.ceil(mins / 60)}h`
+}
+
+function initials(name: string | null | undefined) {
+  if (!name) return "??"
+  return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
+}
 
 export default function TrackingPage() {
-  const [orders, setOrders] = useState<ActiveOrder[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [orders, setOrders]               = useState<Order[]>([])
+  const [selected, setSelected]           = useState<Order | null>(null)
+  const [loading, setLoading]             = useState(true)
+  const [refreshing, setRefreshing]       = useState(false)
+  const [search, setSearch]               = useState("")
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true)
-    try {
-      const r = await fetch("/api/orders")
-      if (r.ok) {
-        const data: ActiveOrder[] = await r.json()
-        const active = data.filter((o) => !["delivered","cancelled"].includes(o.status))
-        setOrders(active)
-        if (active.length > 0) setSelectedId((prev) => prev ?? active[0].id)
+  const loadOrders = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
+    else setRefreshing(true)
+    const res = await fetch("/api/orders")
+    if (res.ok) {
+      const data: Order[] = await res.json()
+      const active = data.filter(o => ACTIVE_STATUSES.includes(o.status))
+      setOrders(active)
+      if (!selected && active.length > 0) setSelected(active[0])
+      else if (selected) {
+        const updated = active.find(o => o.id === selected.id)
+        if (updated) setSelected(updated)
       }
-    } finally {
-      setLoading(false)
     }
-  }, [])
+    setLoading(false)
+    setRefreshing(false)
+  }, [selected])
 
   useEffect(() => {
-    fetchOrders()
-    const id = setInterval(fetchOrders, 30_000)
-    return () => clearInterval(id)
-  }, [fetchOrders])
+    loadOrders()
+    const iv = setInterval(() => loadOrders(true), 30000)
+    return () => clearInterval(iv)
+  }, [])
 
-  const order = orders.find((o) => o.id === selectedId) ?? orders[0] ?? null
-  const stepIdx = order ? getStepIndex(order.status) : 0
-  const eta = order?.estimated_delivery_time
-    ? Math.max(0, Math.round((new Date(order.estimated_delivery_time).getTime() - Date.now()) / 60_000))
-    : null
+  const displayOrder = search
+    ? orders.find(o => o.order_number.toLowerCase().includes(search.toLowerCase()))
+    : selected
+
+  const currentStep = displayOrder ? getCurrentStep(displayOrder.status) : -1
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
-      <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-[#1e1e2e] px-4 py-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5 text-white/40" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-lg">Suivi en direct</h1>
-            {order && <p className="text-xs text-white/30">Commande #{order.order_number}</p>}
-          </div>
-          <button onClick={fetchOrders} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <RefreshCw className={`w-4 h-4 text-white/30 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
-      </header>
+    <main className="min-h-screen bg-background">
+      <Navbar />
 
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <div className="pt-20 lg:pt-24">
+        {/* ── Search / header ──────────────────────────────────── */}
+        <section className="py-12 lg:py-16 bg-gradient-to-b from-primary/10 to-background relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none">
+            <motion.div
+              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute w-[400px] h-[400px] rounded-full bg-blue-500/15 blur-[100px] -left-[100px] top-0"
+            />
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              className="absolute w-[300px] h-[300px] rounded-full bg-purple-500/10 blur-[80px] right-0 bottom-0"
+            />
+          </div>
 
-        {orders.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {orders.map((o) => (
-              <button key={o.id} onClick={() => setSelectedId(o.id)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
-                  selectedId === o.id ? "bg-[#3b82f6] text-white" : "bg-[#16161f] text-white/40 border border-[#1e1e2e]"
-                }`}>
-                <Package className="w-3.5 h-3.5" /> #{o.order_number}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {loading && orders.length === 0 ? (
-          <div className="space-y-4">
-            {Array.from({length:3}).map((_,i)=><div key={i} className="h-32 rounded-2xl bg-[#16161f] animate-pulse" />)}
-          </div>
-        ) : !order ? (
-          <div className="text-center py-20">
-            <Truck className="w-16 h-16 mx-auto text-white/10 mb-4" />
-            <h2 className="text-white font-bold text-xl mb-2">Aucune livraison en cours</h2>
-            <p className="text-white/30 text-sm mb-6">Vos commandes actives apparaîtront ici.</p>
-            <Link href="/marketplace">
-              <Button className="rounded-xl bg-[#3b82f6] hover:bg-[#3b82f6]/90">Commander maintenant</Button>
-            </Link>
-          </div>
-        ) : (
-          <>
-            {/* Map */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="relative h-52 rounded-3xl overflow-hidden border border-[#1e1e2e]"
-              style={{ background: "linear-gradient(135deg, #0d1117, #161b22)" }}>
-              <svg viewBox="0 0 400 200" className="w-full h-full">
-                <defs>
-                  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2030" strokeWidth="0.5" />
-                  </pattern>
-                </defs>
-                <rect width="400" height="200" fill="url(#grid)" />
-                <path d="M50,170 Q120,80 200,120 Q280,160 360,60" stroke="#3b82f6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
-                <circle cx="50" cy="170" r="8" fill="#8b5cf6" stroke="#fff" strokeWidth="2" />
-                <text x="58" y="185" fontSize="9" fill="#8b5cf6">📦 Vendeur</text>
-                <circle cx="360" cy="60" r="8" fill="#22c55e" stroke="#fff" strokeWidth="2" />
-                <text x="308" y="48" fontSize="9" fill="#22c55e">🏠 Destination</text>
-                <circle cx="220" cy="118" r="13" fill="#3b82f6" stroke="#fff" strokeWidth="2.5" />
-                <text x="213" y="123" fontSize="12">🛵</text>
-              </svg>
-              {order.status === "delivering" && (
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-[#22c55e]/20 border border-[#22c55e]/30 rounded-full px-3 py-1">
-                  <span className="w-2 h-2 bg-[#22c55e] rounded-full animate-pulse" />
-                  <span className="text-[#22c55e] text-xs font-semibold">En direct</span>
-                </div>
-              )}
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 100, damping: 18 }}
+              className="text-center mb-8"
+            >
+              <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+                Suivi de livraison en{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                  temps réel
+                </span>
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                {orders.length > 0
+                  ? `${orders.length} commande${orders.length > 1 ? "s" : ""} en cours`
+                  : "Entrez un numéro de commande pour suivre votre colis"}
+              </p>
             </motion.div>
 
-            {/* ETA */}
-            {["delivering","ready"].includes(order.status) && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="bg-gradient-to-r from-[#3b82f6]/20 to-[#06b6d4]/10 border border-[#3b82f6]/25 rounded-2xl p-4 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#3b82f6]/20 flex items-center justify-center shrink-0">
-                  <Clock className="w-6 h-6 text-[#3b82f6]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-white/50 text-xs">Arrivée estimée</p>
-                  <p className="text-white font-black text-2xl">{eta != null ? `${eta} – ${eta + 5} min` : "En route"}</p>
-                </div>
-                {order.delivery_address && (
-                  <div className="text-right">
-                    <MapPin className="w-4 h-4 text-[#3b82f6] ml-auto mb-1" />
-                    <p className="text-white/30 text-xs max-w-[120px] text-right truncate">{order.delivery_address}</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-
-            {/* Steps */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5">
-              <h3 className="text-white font-semibold text-sm mb-5">Suivi de la commande</h3>
-              <div className="relative">
-                <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-[#1e1e2e]" />
-                <div className="absolute left-5 top-5 w-0.5 bg-[#3b82f6] transition-all duration-1000"
-                  style={{ height: `calc(${(stepIdx / (STATUS_STEPS.length - 1)) * 100}% - 10px)` }} />
-                <div className="space-y-5 relative">
-                  {STATUS_STEPS.map((step, i) => {
-                    const done = i < stepIdx; const current = i === stepIdx
-                    return (
-                      <div key={step.key} className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
-                          done ? "bg-[#22c55e] border-[#22c55e]" :
-                          current ? "bg-[#3b82f6] border-[#3b82f6] animate-pulse" :
-                                    "bg-[#0a0a0f] border-[#1e1e2e]"}`}>
-                          {done ? <CheckCircle className="w-5 h-5 text-white" /> :
-                           current ? <Truck className="w-4 h-4 text-white" /> :
-                                     <span className="w-2 h-2 rounded-full bg-[#1e1e2e]" />}
-                        </div>
-                        <div className="flex-1">
-                          <p className={`text-sm font-medium ${done || current ? "text-white" : "text-white/25"}`}>{step.label}</p>
-                          {current && <p className="text-[#3b82f6] text-xs font-medium mt-0.5">En cours…</p>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, type: "spring", stiffness: 120 }}
+              className="flex gap-3"
+            >
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Ex: QG-ABC123"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-card border-border/50 text-base"
+                />
               </div>
+              <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Button
+                  className="h-14 px-6 bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
+                  onClick={() => loadOrders(true)}
+                  disabled={refreshing}
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                  Actualiser
+                </Button>
+              </motion.div>
             </motion.div>
 
-            {/* Driver */}
-            {order.driver && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0 border-2 border-[#a3e635]/30">
-                  <Bike className="w-7 h-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-white font-semibold">{order.driver.user?.full_name ?? "Livreur"}</p>
-                  {order.driver.rating != null && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Star className="w-3.5 h-3.5 text-[#eab308] fill-current" />
-                      <span className="text-white/50 text-sm">{order.driver.rating.toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {order.driver.user?.phone && (
-                    <a href={`tel:${order.driver.user.phone}`}>
-                      <Button size="icon" className="h-10 w-10 rounded-xl bg-[#22c55e]/20 text-[#22c55e] border-0 hover:bg-[#22c55e]/30">
-                        <Phone className="w-4 h-4" />
-                      </Button>
-                    </a>
-                  )}
-                  <Link href="/dashboard/messages">
-                    <Button size="icon" className="h-10 w-10 rounded-xl bg-[#3b82f6]/20 text-[#3b82f6] border-0 hover:bg-[#3b82f6]/30">
-                      <MessageSquare className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Order items */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-semibold text-sm">Votre commande</h3>
-                <span className="text-white/30 text-xs">{order.vendor?.name}</span>
-              </div>
-              <div className="space-y-3">
-                {order.items.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/20 flex items-center justify-center">
-                        <ShoppingBag className="w-4 h-4 text-[#3b82f6]" />
-                      </div>
-                      <div>
-                        <p className="text-white text-sm">{item.product_name}</p>
-                        <p className="text-white/30 text-xs">×{item.quantity}</p>
-                      </div>
-                    </div>
-                    <p className="text-white text-sm font-medium">{formatCFA(item.unit_price * item.quantity)}</p>
-                  </div>
+            {/* Order selector chips */}
+            {orders.length > 1 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex gap-2 flex-wrap mt-4"
+              >
+                {orders.map(o => (
+                  <button
+                    key={o.id}
+                    onClick={() => { setSelected(o); setSearch("") }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      selected?.id === o.id
+                        ? "bg-primary/20 border-primary/50 text-primary"
+                        : "bg-card border-border/30 text-muted-foreground hover:border-primary/30"
+                    }`}
+                  >
+                    {o.order_number}
+                  </button>
                 ))}
-                <div className="border-t border-[#1e1e2e] pt-3 flex justify-between">
-                  <span className="text-white font-semibold">Total</span>
-                  <span className="text-[#a3e635] font-bold">{formatCFA(order.total_amount)}</span>
+              </motion.div>
+            )}
+          </div>
+        </section>
+
+        {/* ── Main content ─────────────────────────────────────── */}
+        <section className="py-12 lg:py-16">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+            {/* Loading skeleton */}
+            {loading && (
+              <div className="grid lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 h-[460px] rounded-2xl bg-card animate-pulse" />
+                <div className="space-y-4">
+                  <div className="h-32 rounded-2xl bg-card animate-pulse" />
+                  <div className="h-64 rounded-2xl bg-card animate-pulse" />
                 </div>
               </div>
-            </motion.div>
-          </>
-        )}
+            )}
+
+            {/* Empty state */}
+            {!loading && orders.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-24"
+              >
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-block mb-6"
+                >
+                  <PackageOpen className="h-20 w-20 text-muted-foreground/30 mx-auto" />
+                </motion.div>
+                <h2 className="text-xl font-bold text-foreground mb-2">Aucune commande en cours</h2>
+                <p className="text-muted-foreground mb-6">Vos livraisons actives apparaîtront ici</p>
+                <Button variant="outline" onClick={() => window.location.href = "/marketplace"}>
+                  <Package className="mr-2 h-4 w-4" />
+                  Passer une commande
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Order not found from search */}
+            {!loading && search && !displayOrder && orders.length > 0 && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center text-muted-foreground py-12"
+              >
+                Commande &quot;{search}&quot; introuvable parmi vos commandes actives.
+              </motion.p>
+            )}
+
+            {/* Tracking view */}
+            <AnimatePresence mode="wait">
+              {!loading && displayOrder && (
+                <motion.div
+                  key={displayOrder.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="grid lg:grid-cols-3 gap-8"
+                >
+                  {/* Map panel */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 100, damping: 18 }}
+                    className="lg:col-span-2"
+                  >
+                    <div
+                      className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden border border-border/50"
+                      style={{ background: "linear-gradient(135deg, #0d1117, #161b22)" }}
+                    >
+                      {/* SVG mini-map */}
+                      <svg viewBox="0 0 800 500" className="absolute inset-0 w-full h-full">
+                        <defs>
+                          <pattern id="tgrid" width="30" height="30" patternUnits="userSpaceOnUse">
+                            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e2030" strokeWidth="0.6" />
+                          </pattern>
+                        </defs>
+                        <rect width="800" height="500" fill="url(#tgrid)" />
+                        {/* Animated route path */}
+                        <motion.path
+                          d="M100,420 Q200,200 380,300 Q520,380 680,140"
+                          stroke="#3b82f6"
+                          strokeWidth="3"
+                          fill="none"
+                          strokeDasharray="12 6"
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 2.5, ease: "easeInOut", delay: 0.3 }}
+                        />
+                        {/* Origin pin */}
+                        <circle cx="100" cy="420" r="10" fill="#8b5cf6" stroke="#fff" strokeWidth="2.5" />
+                        <text x="112" y="435" fontSize="11" fill="#8b5cf6" fontWeight="600">
+                          📦 {displayOrder.vendor?.name ?? "Vendeur"}
+                        </text>
+                        {/* Destination pin */}
+                        <circle cx="680" cy="140" r="10" fill="#22c55e" stroke="#fff" strokeWidth="2.5" />
+                        <text x="585" y="128" fontSize="11" fill="#22c55e" fontWeight="600">🏠 Destination</text>
+                        {/* Rider position */}
+                        <circle cx="380" cy="295" r="18" fill="#3b82f6" stroke="#fff" strokeWidth="3" />
+                        <text x="371" y="302" fontSize="16">🛵</text>
+                      </svg>
+
+                      {/* Rider glow pulse */}
+                      <motion.div
+                        animate={{ boxShadow: ["0 0 0px #3b82f6", "0 0 30px #3b82f6", "0 0 0px #3b82f6"] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute rounded-full w-10 h-10 pointer-events-none"
+                        style={{ left: "calc(47% - 20px)", top: "calc(59% - 20px)" }}
+                      />
+
+                      {/* Status overlay – top */}
+                      <div className="absolute top-4 left-4 right-4">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ type: "spring", stiffness: 120, delay: 0.4 }}
+                          className="backdrop-blur-md bg-black/50 border border-white/10 rounded-xl p-4"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-xs text-white/50">Statut</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="relative flex h-2.5 w-2.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                                </span>
+                                <p className="text-lg font-bold text-green-400">
+                                  {STATUS_LABELS[displayOrder.status] ?? displayOrder.status}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-white/50">Arrivée estimée</p>
+                              <p className="text-lg font-bold text-white">{etaLabel(displayOrder)}</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
+
+                      {/* Driver overlay – bottom */}
+                      {displayOrder.driver && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 30 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ type: "spring", stiffness: 100, damping: 18, delay: 0.6 }}
+                          className="absolute bottom-4 left-4 right-4"
+                        >
+                          <div className="backdrop-blur-md bg-black/50 border border-white/10 rounded-xl p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center text-white font-bold text-sm">
+                                  {initials(displayOrder.driver.user?.full_name)}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-white">
+                                    {displayOrder.driver.user?.full_name ?? "Livreur"}
+                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                    <span className="text-sm text-white/60">
+                                      {displayOrder.driver.rating?.toFixed(1) ?? "—"}
+                                    </span>
+                                    <span className="text-sm text-white/40">• Livreur</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {displayOrder.driver.user?.phone && (
+                                  <motion.a
+                                    href={`tel:${displayOrder.driver.user.phone}`}
+                                    whileHover={{ scale: 1.1 }}
+                                  >
+                                    <Button
+                                      size="icon"
+                                      variant="outline"
+                                      className="rounded-full border-white/20 hover:bg-white/10"
+                                    >
+                                      <Phone className="h-4 w-4" />
+                                    </Button>
+                                  </motion.a>
+                                )}
+                                <motion.div whileHover={{ scale: 1.1 }}>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="rounded-full border-white/20 hover:bg-white/10"
+                                  >
+                                    <MessageSquare className="h-4 w-4" />
+                                  </Button>
+                                </motion.div>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  </motion.div>
+
+                  {/* Details sidebar */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ type: "spring", stiffness: 100, damping: 18, delay: 0.1 }}
+                    className="space-y-6"
+                  >
+                    {/* ETA block */}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 120, damping: 16, delay: 0.25 }}
+                      className="p-6 rounded-2xl bg-gradient-to-r from-[#3b82f6]/20 to-[#06b6d4]/10 border border-[#3b82f6]/25"
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-[#3b82f6]/20 flex items-center justify-center">
+                          <Clock className="h-5 w-5 text-[#3b82f6]" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/50">Arrivée estimée</p>
+                          <p className="text-2xl font-black text-white">{etaLabel(displayOrder)}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="text-xs text-white/40">{displayOrder.order_number}</span>
+                        <div className="flex items-center gap-1.5 bg-green-500/20 border border-green-500/30 rounded-full px-2.5 py-1">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                          </span>
+                          <span className="text-green-400 text-[10px] font-semibold">En direct</span>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Progress steps */}
+                    <div className="p-6 rounded-2xl bg-card border border-border/50">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold text-foreground">{displayOrder.order_number}</h3>
+                        <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                          {STATUS_LABELS[displayOrder.status] ?? displayOrder.status}
+                        </span>
+                      </div>
+
+                      <div className="space-y-4">
+                        {STATUS_STEPS.map((step, i) => {
+                          const done    = isStepCompleted(i, currentStep)
+                          const current = i === currentStep
+                          return (
+                            <motion.div
+                              key={step.keys[0]}
+                              initial={{ opacity: 0, x: -16 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.3 + i * 0.12, type: "spring", stiffness: 120, damping: 16 }}
+                              className="flex items-start gap-3"
+                            >
+                              <div className="flex flex-col items-center">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                                  current ? "bg-primary text-primary-foreground" :
+                                  done    ? "bg-primary/20 text-primary" :
+                                            "bg-muted text-muted-foreground"
+                                }`}>
+                                  {done ? (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                                    >
+                                      <CheckCircle2 className="h-4 w-4" />
+                                    </motion.div>
+                                  ) : (
+                                    <span>{step.emoji}</span>
+                                  )}
+                                </div>
+                                {i < STATUS_STEPS.length - 1 && (
+                                  <div className={`w-0.5 h-8 ${done ? "bg-primary/30" : "bg-muted"}`} />
+                                )}
+                              </div>
+                              <div className="flex-1 pb-4">
+                                <p className={`font-medium ${
+                                  current ? "text-primary" : done ? "text-foreground" : "text-muted-foreground"
+                                }`}>
+                                  {step.label}
+                                </p>
+                              </div>
+                            </motion.div>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Delivery details */}
+                    <div className="p-6 rounded-2xl bg-card border border-border/50">
+                      <h3 className="font-semibold text-foreground mb-4">Détails</h3>
+                      <div className="space-y-4">
+                        {[
+                          displayOrder.vendor && {
+                            icon: <User className="h-4 w-4 text-primary" />,
+                            bg: "bg-primary/10",
+                            label: "Vendeur",
+                            value: displayOrder.vendor.name,
+                          },
+                          displayOrder.delivery_address && {
+                            icon: <MapPin className="h-4 w-4 text-secondary" />,
+                            bg: "bg-secondary/10",
+                            label: "Destination",
+                            value: displayOrder.delivery_address,
+                          },
+                          displayOrder.items?.length > 0 && {
+                            icon: <Package className="h-4 w-4 text-muted-foreground" />,
+                            bg: "bg-muted",
+                            label: "Articles",
+                            value: displayOrder.items.map(it => `${it.quantity}× ${it.product_name}`).join(", "),
+                          },
+                        ].filter(Boolean).map((item: any, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5 + i * 0.06, type: "spring", stiffness: 120, damping: 18 }}
+                            className="flex items-start gap-3"
+                          >
+                            <div className={`p-2 rounded-lg ${item.bg} shrink-0`}>{item.icon}</div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">{item.label}</p>
+                              <p className="font-medium text-foreground text-sm leading-snug">{item.value}</p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Help */}
+                    <div className="p-4 rounded-xl bg-muted/50 text-center">
+                      <p className="text-sm text-muted-foreground mb-2">Besoin d&apos;aide ?</p>
+                      <motion.div whileHover={{ x: 4 }} transition={{ type: "spring", stiffness: 300 }}>
+                        <Button variant="link" className="text-primary" asChild>
+                          <a href="/support">Contacter le support →</a>
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </section>
       </div>
-    </div>
+
+      <Footer />
+    </main>
   )
 }

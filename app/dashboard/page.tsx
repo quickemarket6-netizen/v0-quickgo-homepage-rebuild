@@ -11,9 +11,17 @@ import {
   CheckCircle, ArrowUpRight, Zap, Plus, ShoppingCart,
   ChevronLeft, ChevronRight, Moon, Sun, Crown, Flame,
   MessageCircle, Phone, Bike, Car, Pill, UtensilsCrossed,
-  Smartphone, CreditCard, Tag, MoreHorizontal,
+  Smartphone, CreditCard, Tag, MoreHorizontal, LogOut, User,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { createClient } from "@/lib/supabase/client"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Profile {
@@ -147,6 +155,12 @@ export default function ClientDashboardPage() {
     startHeroTimer()
     return () => { if (heroTimer.current) clearInterval(heroTimer.current) }
   }, [startHeroTimer])
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = "/"
+  }
 
   const profile    = data?.profile
   const orders     = data?.recentOrders ?? []
@@ -300,20 +314,47 @@ export default function ClientDashboardPage() {
                   </span>
                 )}
               </Link>
-              <div className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e] cursor-pointer hover:opacity-80 transition-opacity">
-                {loading ? (
-                  <div className="w-9 h-9 rounded-xl bg-[#16161f] animate-pulse" />
-                ) : (
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center border-2 border-[#a3e635]/30 shrink-0">
-                    <span className="text-white font-bold text-xs">{profile ? initials(profile.full_name) : "?"}</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e] hover:opacity-90 transition-opacity focus:outline-none">
+                    {loading ? (
+                      <div className="w-9 h-9 rounded-xl bg-[#16161f] animate-pulse" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center border-2 border-[#a3e635]/60 shrink-0 shadow-[0_0_12px_rgba(163,230,53,0.25)]">
+                        <span className="text-white font-bold text-xs">{profile ? initials(profile.full_name) : "?"}</span>
+                      </div>
+                    )}
+                    <div className="hidden md:block text-left">
+                      <p className="text-white text-sm font-medium leading-tight">{profile?.full_name?.split(" ")[0] ?? "…"}</p>
+                      <p className="text-[10px] text-[#a3e635]">{lvl.name} · Niv. {lvl.level}</p>
+                    </div>
+                    <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 bg-[#16161f] border-[#1e1e2e]">
+                  <div className="px-3 py-2 border-b border-[#1e1e2e]">
+                    <p className="text-white text-sm font-semibold truncate">{profile?.full_name ?? "Mon compte"}</p>
+                    <p className="text-[#a3e635] text-xs">{lvl.name} · Niveau {lvl.level}</p>
                   </div>
-                )}
-                <div className="hidden md:block">
-                  <p className="text-white text-sm font-medium leading-tight">{profile?.full_name?.split(" ")[0] ?? "…"}</p>
-                  <p className="text-[10px] text-[#a3e635]">{lvl.name} · Niv. {lvl.level}</p>
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-white/30" />
-              </div>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                      <User className="h-4 w-4" /> Mon profil
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                      <Settings className="h-4 w-4" /> Paramètres
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-[#1e1e2e]" />
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="flex items-center gap-2 text-red-400 hover:text-red-300 cursor-pointer focus:text-red-300"
+                  >
+                    <LogOut className="h-4 w-4" /> Se déconnecter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
@@ -398,7 +439,7 @@ export default function ClientDashboardPage() {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-white font-semibold">Recommandé pour vous</h3>
-                  <Link href="/marketplace" className="text-[#3b82f6] text-xs flex items-center gap-1 hover:opacity-80 transition-opacity">
+                  <Link href="/marketplace/products" className="text-[#3b82f6] text-xs flex items-center gap-1 hover:opacity-80 transition-opacity">
                     Tout voir <ArrowUpRight className="w-3 h-3" />
                   </Link>
                 </div>

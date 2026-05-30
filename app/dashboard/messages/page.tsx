@@ -3,215 +3,205 @@
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import {
-  ArrowLeft, MessageSquare, Search, Send, Bell,
-  Package, Truck, Store, Headphones, RefreshCw, Check, CheckCheck,
-} from "lucide-react"
+import { ArrowLeft, Search, Send, Headphones, Bell, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-interface Notification {
+type Notif = {
   id: string
-  type: string
   title: string
-  body: string | null
+  message: string
+  type: string
   is_read: boolean
+  data: Record<string, string> | null
   created_at: string
-  data: Record<string, unknown> | null
 }
 
-interface Thread {
+type Thread = {
   key: string
-  label: string
-  icon: string
-  type: "order" | "vendor" | "driver" | "system"
-  notifications: Notification[]
+  name: string
+  avatar: string
+  type: string
+  notifications: Notif[]
   unread: number
-  last_at: string
+  lastTime: string
 }
 
-const TYPE_ICON: Record<string, string> = {
-  order_confirmed: "📦",
-  order_preparing: "🍳",
-  order_ready: "✅",
-  order_delivering: "🛵",
-  order_delivered: "🎉",
-  order_cancelled: "❌",
-  payment_success: "💰",
-  promo: "🎁",
-  system: "🔔",
+type LocalMsg = {
+  id: string
+  from: "user" | "system"
+  text: string
+  time: string
 }
 
-function getThreadIcon(n: Notification): string {
-  return TYPE_ICON[n.type] ?? "💬"
+const THREAD_META: Record<string, { name: string; avatar: string }> = {
+  promo:   { name: "Promotions & Offres",  avatar: "🎁" },
+  system:  { name: "Support QuickGo",      avatar: "💬" },
+  default: { name: "Notifications",        avatar: "🔔" },
 }
 
-function groupIntoThreads(notifs: Notification[]): Thread[] {
-  const map = new Map<string, { label: string; icon: string; type: Thread["type"]; notifs: Notification[] }>()
+function groupThreads(notifications: Notif[]): Thread[] {
+  const map = new Map<string, Thread>()
 
-  for (const n of notifs) {
-    const orderId = n.data?.order_id as string | undefined
+  for (const n of notifications) {
+    const orderId = n.data?.order_id ?? n.data?.order_number
     let key: string
-    let label: string
-    let icon: string
-    let type: Thread["type"]
+    let name: string
+    let avatar: string
 
-    if (orderId) {
-      key = `order:${orderId}`
-      const num = (n.data?.order_number as string | undefined) ?? orderId.slice(0, 8)
-      label = `Commande #${num}`
-      icon = "📦"
-      type = "order"
+    if (n.type === "order" && orderId) {
+      key    = `order:${orderId}`
+      name   = `Commande ${n.data?.order_number ?? "#" + orderId.slice(0, 8)}`
+      avatar = "📦"
     } else if (n.type === "promo") {
-      key = "promo"
-      label = "Offres & Promos"
-      icon = "🎁"
-      type = "vendor"
+      key    = "promo"
+      name   = THREAD_META.promo.name
+      avatar = THREAD_META.promo.avatar
     } else {
-      key = "system"
-      label = "Support QuickGo"
-      icon = "💬"
-      type = "system"
+      key    = "system"
+      name   = THREAD_META.system.name
+      avatar = THREAD_META.system.avatar
     }
 
-    if (!map.has(key)) map.set(key, { label, icon, type, notifs: [] })
-    map.get(key)!.notifs.push(n)
+    if (!map.has(key)) {
+      map.set(key, { key, name, avatar, type: n.type, notifications: [], unread: 0, lastTime: n.created_at })
+    }
+    const thread = map.get(key)!
+    thread.notifications.push(n)
+    if (!n.is_read) thread.unread++
+    if (n.created_at > thread.lastTime) thread.lastTime = n.created_at
   }
 
-  return Array.from(map.entries())
-    .map(([key, v]) => {
-      const sorted = [...v.notifs].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      return {
-        key,
-        label: v.label,
-        icon: v.icon,
-        type: v.type,
-        notifications: sorted,
-        unread: sorted.filter((n) => !n.is_read).length,
-        last_at: sorted[0]?.created_at ?? "",
-      }
-    })
-    .sort((a, b) => new Date(b.last_at).getTime() - new Date(a.last_at).getTime())
+  return Array.from(map.values()).sort((a, b) => b.lastTime.localeCompare(a.lastTime))
 }
 
-function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60_000)
-  if (m < 1) return "À l'instant"
-  if (m < 60) return `Il y a ${m} min`
-  const h = Math.floor(m / 60)
+function relTime(d: string) {
+  const mins = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
+  if (mins < 1) return "À l'instant"
+  if (mins < 60) return `Il y a ${mins} min`
+  const h = Math.floor(mins / 60)
   if (h < 24) return `Il y a ${h}h`
-  const d = Math.floor(h / 24)
-  if (d === 1) return "Hier"
-  return `Il y a ${d} jours`
-}
-
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+  const days = Math.floor(h / 24)
+  return days === 1 ? "Hier" : `Il y a ${days}j`
 }
 
 export default function MessagesPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedKey, setSelectedKey] = useState<string | null>(null)
-  const [search, setSearch] = useState("")
-  const [newMessage, setNewMessage] = useState("")
-  const [localMessages, setLocalMessages] = useState<{ id: string; text: string; time: string; from: "user" }[]>([])
-  const chatEndRef = useRef<HTMLDivElement>(null)
+  const [threads, setThreads]       = useState<Thread[]>([])
+  const [selected, setSelected]     = useState<Thread | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [search, setSearch]         = useState("")
+  const [localMsgs, setLocalMsgs]   = useState<Map<string, LocalMsg[]>>(new Map())
+  const [input, setInput]           = useState("")
+  const bottomRef                   = useRef<HTMLDivElement>(null)
 
-  const fetchNotifications = async () => {
-    try {
-      const r = await fetch("/api/notifications")
-      if (r.ok) {
-        const data: Notification[] = await r.json()
-        setNotifications(data)
-      }
-    } finally {
-      setLoading(false)
-    }
+  async function loadNotifs() {
+    const res = await fetch("/api/notifications")
+    if (!res.ok) return
+    const data: Notif[] = await res.json()
+    const grouped = groupThreads(data)
+    setThreads(grouped)
+    if (!selected && grouped.length > 0) setSelected(grouped[0])
+    setLoading(false)
   }
 
-  useEffect(() => {
-    fetchNotifications()
-  }, [])
+  useEffect(() => { loadNotifs() }, [])
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [selectedKey, localMessages])
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [selected, localMsgs])
 
-  const threads = groupIntoThreads(notifications)
-  const filtered = threads.filter((t) =>
-    t.label.toLowerCase().includes(search.toLowerCase())
+  async function markRead(thread: Thread) {
+    const unreadIds = thread.notifications.filter(n => !n.is_read).map(n => n.id)
+    if (unreadIds.length === 0) return
+    for (const id of unreadIds) {
+      await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, is_read: true }),
+      })
+    }
+    setThreads(prev => prev.map(t =>
+      t.key === thread.key
+        ? { ...t, unread: 0, notifications: t.notifications.map(n => ({ ...n, is_read: true })) }
+        : t
+    ))
+  }
+
+  function selectThread(thread: Thread) {
+    setSelected(thread)
+    markRead(thread)
+  }
+
+  function handleSend(e: React.FormEvent) {
+    e.preventDefault()
+    if (!input.trim() || !selected) return
+    const msg: LocalMsg = {
+      id: Date.now().toString(),
+      from: "user",
+      text: input.trim(),
+      time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+    }
+    setLocalMsgs(prev => {
+      const next = new Map(prev)
+      next.set(selected.key, [...(next.get(selected.key) ?? []), msg])
+      return next
+    })
+    setInput("")
+  }
+
+  const filtered = threads.filter(t =>
+    t.name.toLowerCase().includes(search.toLowerCase())
   )
+
   const totalUnread = threads.reduce((s, t) => s + t.unread, 0)
 
-  const selectedThread = threads.find((t) => t.key === selectedKey) ?? null
-
-  const markRead = async (threadKey: string) => {
-    const thread = threads.find((t) => t.key === threadKey)
-    if (!thread) return
-    const ids = thread.notifications.filter((n) => !n.is_read).map((n) => n.id)
-    if (ids.length === 0) return
-    await Promise.all(
-      ids.map((id) =>
-        fetch(`/api/notifications/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ is_read: true }) }).catch(() => {})
-      )
-    )
-    setNotifications((prev) =>
-      prev.map((n) => (ids.includes(n.id) ? { ...n, is_read: true } : n))
-    )
-  }
-
-  const handleSelectThread = (key: string) => {
-    setSelectedKey(key)
-    setLocalMessages([])
-    markRead(key)
-  }
-
-  const handleSend = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newMessage.trim()) return
-    setLocalMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), text: newMessage, time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), from: "user" },
-    ])
-    setNewMessage("")
-  }
-
-  const THREAD_ICON_COMPONENT: Record<Thread["type"], typeof MessageSquare> = {
-    order:  Package,
-    vendor: Store,
-    driver: Truck,
-    system: Headphones,
-  }
+  const threadMsgs: Array<{ id: string; from: string; text: string; time: string }> = selected
+    ? [
+        ...selected.notifications.map(n => ({
+          id: n.id,
+          from: "system",
+          text: n.message,
+          time: relTime(n.created_at),
+        })),
+        ...(localMsgs.get(selected.key) ?? []),
+      ]
+    : []
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex flex-col">
-      <div className="flex flex-1 overflow-hidden max-h-screen">
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 flex overflow-hidden pt-16 max-h-screen">
 
-        {/* Left: thread list */}
-        <div className={`w-full sm:w-80 flex flex-col border-r border-[#1e1e2e] ${selectedKey ? "hidden sm:flex" : "flex"}`}>
+        {/* ── Sidebar ──────────────────────────────────────────── */}
+        <div className="w-full sm:w-80 border-r border-border/30 flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-[#1e1e2e] bg-[#0a0a0f]">
-            <div className="flex items-center gap-3 mb-3">
-              <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                <ArrowLeft className="w-4 h-4 text-white/40" />
+          <div className="p-4 border-b border-border/30">
+            <div className="flex items-center gap-3 mb-4">
+              <Link href="/dashboard" className="text-muted-foreground hover:text-white transition-colors">
+                <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-white font-bold text-lg flex-1">Messages</h1>
-              <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-white">Messages</h1>
+              <AnimatePresence>
                 {totalUnread > 0 && (
-                  <span className="bg-[#3b82f6] text-white text-xs px-2 py-0.5 rounded-full font-semibold">{totalUnread}</span>
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 14 }}
+                    className="ml-auto bg-[#3b82f6] text-white text-xs px-2 py-0.5 rounded-full"
+                  >
+                    {totalUnread}
+                  </motion.span>
                 )}
-                <button onClick={fetchNotifications} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-                  <RefreshCw className={`w-4 h-4 text-white/30 ${loading ? "animate-spin" : ""}`} />
-                </button>
-              </div>
+              </AnimatePresence>
             </div>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)}
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Rechercher..."
-                className="pl-10 h-10 bg-[#16161f] border-[#1e1e2e] text-white placeholder:text-white/20 rounded-xl" />
+                className="pl-10 h-10 bg-card/50 border-border/30"
+              />
             </div>
           </div>
 
@@ -219,150 +209,165 @@ export default function MessagesPage() {
           <div className="flex-1 overflow-y-auto">
             {loading ? (
               <div className="p-4 space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#16161f] animate-pulse shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 w-32 bg-[#16161f] animate-pulse rounded" />
-                      <div className="h-2.5 w-48 bg-[#16161f] animate-pulse rounded" />
-                    </div>
-                  </div>
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-16 rounded-xl bg-card animate-pulse" style={{ opacity: 1 - i * 0.2 }} />
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="text-center py-16">
-                <MessageSquare className="w-10 h-10 mx-auto text-white/10 mb-3" />
-                <p className="text-white/30 text-sm">Aucun message</p>
+              <div className="flex items-center justify-center h-40">
+                <p className="text-sm text-muted-foreground">Aucune conversation</p>
               </div>
             ) : (
-              filtered.map((thread) => {
-                const IconComp = THREAD_ICON_COMPONENT[thread.type]
-                const latest = thread.notifications[0]
-                return (
-                  <button key={thread.key} onClick={() => handleSelectThread(thread.key)}
-                    className={`w-full flex items-center gap-3 p-4 border-b border-[#1e1e2e]/60 text-left transition-colors ${
-                      selectedKey === thread.key ? "bg-[#3b82f6]/10 border-l-2 border-l-[#3b82f6]" : "hover:bg-[#16161f]/50"
-                    }`}>
-                    <div className="relative shrink-0">
-                      <div className="w-12 h-12 rounded-2xl bg-[#16161f] flex items-center justify-center text-xl border border-[#1e1e2e]">
-                        {thread.icon}
-                      </div>
-                      {thread.unread > 0 && (
-                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#3b82f6] rounded-full flex items-center justify-center text-[9px] text-white font-bold">
-                          {thread.unread > 9 ? "9+" : thread.unread}
-                        </span>
-                      )}
+              filtered.map((thread, i) => (
+                <motion.button
+                  key={thread.key}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05, type: "spring", stiffness: 120, damping: 18 }}
+                  whileHover={{ x: 4 }}
+                  onClick={() => selectThread(thread)}
+                  className={`w-full flex items-center gap-3 p-4 border-b border-border/20 text-left transition-colors ${
+                    selected?.key === thread.key ? "bg-[#3b82f6]/10" : "hover:bg-card/50"
+                  }`}
+                >
+                  <div className="relative shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-card flex items-center justify-center text-2xl">
+                      {thread.avatar}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className={`text-sm truncate font-medium ${thread.unread > 0 ? "text-white" : "text-white/70"}`}>{thread.label}</span>
-                        <span className="text-white/30 text-[10px] shrink-0 ml-2">{formatRelative(thread.last_at)}</span>
-                      </div>
-                      <p className={`text-xs truncate ${thread.unread > 0 ? "text-white/60" : "text-white/30"}`}>
-                        {latest?.title ?? "Aucun message"}
-                      </p>
+                    {/* Ping dot for unread */}
+                    {thread.unread > 0 && (
+                      <span className="absolute -bottom-0.5 -right-0.5 flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3b82f6] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-[#3b82f6] border-2 border-background" />
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-white font-medium text-sm truncate">{thread.name}</span>
+                      <span className="text-muted-foreground text-xs shrink-0">{relTime(thread.lastTime)}</span>
                     </div>
-                  </button>
-                )
-              })
+                    <p className="text-muted-foreground text-xs truncate">
+                      {thread.notifications[0]?.message ?? ""}
+                    </p>
+                  </div>
+
+                  {thread.unread > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 14, delay: i * 0.05 + 0.1 }}
+                      className="bg-[#3b82f6] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                    >
+                      {thread.unread}
+                    </motion.span>
+                  )}
+                </motion.button>
+              ))
             )}
           </div>
 
-          {/* Support button */}
-          <div className="p-4 border-t border-[#1e1e2e]">
-            <Link href="/support"
-              className="flex items-center gap-3 p-3 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 hover:bg-[#3b82f6]/15 transition-colors">
-              <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/20 flex items-center justify-center shrink-0">
-                <Headphones className="w-4 h-4 text-[#3b82f6]" />
-              </div>
-              <div>
-                <p className="text-white text-xs font-semibold">Contacter le support</p>
-                <p className="text-white/30 text-[10px]">Disponible 24h/24</p>
-              </div>
+          {/* Support link */}
+          <div className="p-4 border-t border-border/30">
+            <Link href="/support">
+              <motion.div
+                whileHover={{ x: 4 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-[#3b82f6]/10 border border-[#3b82f6]/20 hover:bg-[#3b82f6]/15 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/20 flex items-center justify-center shrink-0">
+                  <Headphones className="w-4 h-4 text-[#3b82f6]" />
+                </div>
+                <div>
+                  <p className="text-white text-xs font-semibold">Contacter le support</p>
+                  <p className="text-muted-foreground text-[10px]">Disponible 24h/24</p>
+                </div>
+              </motion.div>
             </Link>
           </div>
         </div>
 
-        {/* Right: chat pane */}
-        <div className={`flex-1 flex flex-col ${selectedKey ? "flex" : "hidden sm:flex"}`}>
-          {!selectedThread ? (
+        {/* ── Chat area ────────────────────────────────────────── */}
+        <div className="hidden sm:flex flex-1 flex-col">
+          {!selected ? (
+            /* Empty state */
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <Bell className="w-16 h-16 mx-auto text-white/10 mb-4" />
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-block mb-4"
+                >
+                  <Bell className="w-16 h-16 text-white/10 mx-auto" />
+                </motion.div>
                 <p className="text-white/40 font-semibold">Sélectionnez une conversation</p>
-                <p className="text-white/20 text-sm mt-1">Vos notifications et messages apparaissent ici</p>
+                <p className="text-white/20 text-sm mt-1">Vos messages apparaissent ici</p>
               </div>
             </div>
           ) : (
             <>
               {/* Chat header */}
-              <div className="p-4 border-b border-[#1e1e2e] bg-[#0a0a0f] flex items-center gap-3">
-                <button onClick={() => setSelectedKey(null)} className="sm:hidden p-2 hover:bg-white/5 rounded-full transition-colors">
-                  <ArrowLeft className="w-4 h-4 text-white/40" />
-                </button>
-                <div className="w-10 h-10 rounded-xl bg-[#16161f] flex items-center justify-center text-lg border border-[#1e1e2e]">
-                  {selectedThread.icon}
+              <div className="p-4 border-b border-border/30 flex items-center gap-3 bg-card/20">
+                <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center text-xl">
+                  {selected.avatar}
                 </div>
-                <div className="flex-1">
-                  <p className="text-white font-semibold text-sm">{selectedThread.label}</p>
-                  <p className="text-[#22c55e] text-xs">En ligne</p>
+                <div>
+                  <p className="text-white font-medium">{selected.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                    </span>
+                    <p className="text-xs text-green-400">En ligne</p>
+                  </div>
                 </div>
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#0a0a0f]">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 <AnimatePresence initial={false}>
-                  {selectedThread.notifications.slice().reverse().map((n) => (
-                    <motion.div key={n.id}
-                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                      className="flex justify-start">
-                      <div className="max-w-xs lg:max-w-md">
-                        <div className="flex items-start gap-2">
-                          <div className="w-7 h-7 rounded-lg bg-[#16161f] border border-[#1e1e2e] flex items-center justify-center text-sm shrink-0 mt-0.5">
-                            {getThreadIcon(n)}
-                          </div>
-                          <div className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl rounded-tl-sm px-4 py-2.5">
-                            <p className="text-white text-xs font-semibold mb-0.5">{n.title}</p>
-                            {n.body && <p className="text-white/60 text-xs">{n.body}</p>}
-                            <div className="flex items-center gap-1 mt-1.5">
-                              <p className="text-white/25 text-[10px]">{formatTime(n.created_at)}</p>
-                              {n.is_read
-                                ? <CheckCheck className="w-3 h-3 text-[#3b82f6]" />
-                                : <Check className="w-3 h-3 text-white/20" />}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-
-                  {localMessages.map((msg) => (
-                    <motion.div key={msg.id}
-                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                      className="flex justify-end">
-                      <div className="max-w-xs lg:max-w-md bg-[#3b82f6] rounded-2xl rounded-br-sm px-4 py-2.5">
-                        <p className="text-white text-xs">{msg.text}</p>
-                        <div className="flex items-center justify-end gap-1 mt-1">
-                          <p className="text-white/60 text-[10px]">{msg.time}</p>
-                          <CheckCheck className="w-3 h-3 text-white/60" />
-                        </div>
+                  {threadMsgs.map((msg) => (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                      className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}
+                    >
+                      <div className={`max-w-xs lg:max-w-md px-4 py-2.5 rounded-2xl text-sm ${
+                        msg.from === "user"
+                          ? "bg-[#3b82f6] text-white rounded-br-sm"
+                          : "bg-card border border-border/30 text-white rounded-bl-sm"
+                      }`}>
+                        <p>{msg.text}</p>
+                        <p className={`text-xs mt-1 ${msg.from === "user" ? "text-white/60" : "text-muted-foreground"}`}>
+                          {msg.time}
+                        </p>
                       </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
-                <div ref={chatEndRef} />
+                <div ref={bottomRef} />
               </div>
 
               {/* Input */}
-              <form onSubmit={handleSend}
-                className="p-4 border-t border-[#1e1e2e] flex gap-3 bg-[#0a0a0f]">
-                <Input value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
+              <form onSubmit={handleSend} className="p-4 border-t border-border/30 flex gap-3">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
                   placeholder="Écrivez un message..."
-                  className="flex-1 h-12 bg-[#16161f] border-[#1e1e2e] text-white placeholder:text-white/20 rounded-xl focus:border-[#3b82f6]/50" />
-                <Button type="submit" disabled={!newMessage.trim()}
-                  className="h-12 w-12 p-0 rounded-xl bg-[#3b82f6] hover:bg-[#3b82f6]/90 shrink-0">
-                  <Send className="w-5 h-5" />
-                </Button>
+                  className="flex-1 h-12 bg-card/50 border-border/30"
+                />
+                <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <Button
+                    type="submit"
+                    disabled={!input.trim()}
+                    className="h-12 w-12 p-0 rounded-xl bg-[#3b82f6] hover:bg-[#3b82f6]/90"
+                  >
+                    <Send className="w-5 h-5" />
+                  </Button>
+                </motion.div>
               </form>
             </>
           )}
