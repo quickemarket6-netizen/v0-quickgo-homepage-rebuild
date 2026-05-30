@@ -6,7 +6,7 @@ import Link from "next/link"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, Search, ChevronDown, RefreshCw,
-  ArrowUpRight, Zap, ChevronRight, LogOut, User, Download,
+  ArrowUpRight, Zap, ChevronRight, LogOut, User, Download, Boxes,
 } from "lucide-react"
 import {
   AreaChart, Area, BarChart, Bar,
@@ -35,6 +35,7 @@ interface AnalyticsData {
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
+  { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
     children: [
