@@ -57,7 +57,7 @@ const SIDEBAR_ITEMS = [
       { label: "Historique",       href: "/vendor/wallet/history" },
     ],
   },
-  { icon: Users,      label: "Clients",    href: "/vendor/customers" },
+  { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
   { icon: BarChart3,  label: "Analyses",   href: "/vendor/analytics" },
   { icon: Tag,        label: "Promotions", href: "/vendor/promotions" },
   { icon: Star,       label: "Avis",       href: "/vendor/reviews" },
