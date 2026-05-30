@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, Search, ChevronDown, RefreshCw,
   TrendingDown, AlertTriangle, Clock, CheckCircle, XCircle, Truck,
-  ArrowUpRight, Zap, Info, Download, ChevronRight, LogOut, User,
+  ArrowUpRight, Zap, Info, Download, ChevronRight, LogOut, User, Boxes,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -49,6 +49,7 @@ interface DashboardData {
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard", active: true },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
+  { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
     children: [
