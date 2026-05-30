@@ -1,317 +1,295 @@
 "use client"
 
-import { motion } from "framer-motion"
-import Image from "next/image"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Navbar } from "@/components/navbar"
-import { Footer } from "@/components/footer"
-import { Button } from "@/components/ui/button"
+import { motion } from "framer-motion"
 import {
-  Wallet,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Send,
-  QrCode,
-  Gift,
-  ArrowRight,
+  ArrowLeft, ArrowUpRight, ArrowDownLeft, Plus, Send,
+  Clock, CheckCircle, Wallet, QrCode,
+  CreditCard, RefreshCw, Shield,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
-const features = [
-  {
-    image: "/images/premium/paiement-instantane.jpg",
-    title: "Paiements instantanes",
-    description: "Payez en un instant sur QuickGo et chez nos partenaires",
-    href: "/marketplace/checkout",
-  },
-  {
-    image: "/images/premium/securise.jpg",
-    title: "100% Securise",
-    description: "Vos transactions sont protegees par cryptage avance",
-    href: "/wallet/security",
-  },
-  {
-    image: "/images/premium/cashback-recompenses.jpg",
-    title: "Cashback & Recompenses",
-    description: "Gagnez jusqu a 5% de cashback sur vos achats",
-    href: "/wallet/rewards",
-  },
-  {
-    image: "/images/premium/transfert-intelligent.jpg",
-    title: "Transferts gratuits",
-    description: "Envoyez de l argent gratuitement a vos proches",
-    href: "/wallet/transfer",
-  },
-]
+interface WalletData {
+  balance: number
+  points: number
+  transactions: Transaction[]
+}
 
-const paymentMethods = [
-  { name: "Orange Money", color: "bg-orange-500" },
-  { name: "MTN Mobile Money", color: "bg-yellow-500" },
-  { name: "Carte bancaire", color: "bg-blue-500" },
-  { name: "Visa", color: "bg-indigo-500" },
-  { name: "Mastercard", color: "bg-red-500" },
-]
+interface Transaction {
+  id: string
+  type: "credit" | "debit" | "cashback" | "refund" | "withdrawal"
+  amount: number
+  balance_after: number
+  description: string | null
+  created_at: string
+}
 
-const transactions = [
-  { type: "received", name: "Commande #QG12345", amount: "+12 500 CFA", time: "Il y a 2 min" },
-  { type: "sent", name: "Orange Money", amount: "-50 000 CFA", time: "Il y a 1h" },
-  { type: "cashback", name: "Cashback recu", amount: "+500 CFA", time: "Il y a 3h" },
+const formatCFA = (n: number) => new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA"
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+
+const TX_CONFIG: Record<string, { label: string; icon: typeof ArrowUpRight; color: string; bg: string; sign: string }> = {
+  credit:     { label: "Crédit",           icon: ArrowDownLeft, color: "text-[#22c55e]", bg: "bg-[#22c55e]/15", sign: "+" },
+  cashback:   { label: "Cashback",         icon: ArrowDownLeft, color: "text-[#22c55e]", bg: "bg-[#22c55e]/15", sign: "+" },
+  refund:     { label: "Remboursement",    icon: ArrowDownLeft, color: "text-[#06b6d4]", bg: "bg-[#06b6d4]/15", sign: "+" },
+  debit:      { label: "Paiement",         icon: ArrowUpRight,  color: "text-[#f97316]", bg: "bg-[#f97316]/15", sign: "-" },
+  withdrawal: { label: "Retrait",          icon: ArrowUpRight,  color: "text-[#ef4444]", bg: "bg-[#ef4444]/15", sign: "-" },
+}
+
+const PAYMENT_METHODS = [
+  { id: "orange", label: "Orange Money", emoji: "🟠", desc: "+237 6XX XX XX XX" },
+  { id: "mtn",    label: "MTN MoMo",     emoji: "🟡", desc: "+237 6XX XX XX XX" },
 ]
 
 export default function WalletPage() {
+  const [data, setData] = useState<WalletData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState<"all" | "in" | "out">("all")
+  const [rechargeModal, setRechargeModal] = useState(false)
+  const [rechargeAmount, setRechargeAmount] = useState("")
+  const [rechargeMethod, setRechargeMethod] = useState("orange")
+  const [recharging, setRecharging] = useState(false)
+  const [rechargeSuccess, setRechargeSuccess] = useState(false)
+
+  const fetchWallet = async () => {
+    setLoading(true)
+    try {
+      const r = await fetch("/api/wallet")
+      if (r.ok) setData(await r.json())
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchWallet() }, [])
+
+  const handleRecharge = async () => {
+    const amount = parseInt(rechargeAmount)
+    if (!amount || amount < 100) return
+    setRecharging(true)
+    try {
+      const r = await fetch("/api/wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "credit", amount, description: `Recharge ${rechargeMethod === "orange" ? "Orange Money" : "MTN MoMo"}` }),
+      })
+      if (r.ok) {
+        setRechargeSuccess(true)
+        setTimeout(() => {
+          setRechargeModal(false)
+          setRechargeSuccess(false)
+          setRechargeAmount("")
+          fetchWallet()
+        }, 1500)
+      }
+    } finally {
+      setRecharging(false)
+    }
+  }
+
+  const transactions = data?.transactions ?? []
+  const filtered = transactions.filter((t) => {
+    if (tab === "in")  return ["credit","cashback","refund"].includes(t.type)
+    if (tab === "out") return ["debit","withdrawal"].includes(t.type)
+    return true
+  })
+
   return (
-    <main className="min-h-screen bg-black">
-      <Navbar />
-      
-      <div className="pt-20 lg:pt-24">
-        {/* Hero Section */}
-        <section className="relative py-16 lg:py-24 overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-lime-500/5 via-black to-lime-500/5" />
+    <div className="min-h-screen bg-[#0a0a0f]">
+      <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-[#1e1e2e] px-4 py-4">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full transition-colors">
+            <ArrowLeft className="w-5 h-5 text-white/40" />
+          </Link>
+          <div className="flex-1">
+            <h1 className="text-white font-bold text-lg">Mon Wallet</h1>
+            <p className="text-xs text-white/30">QuickGo Pay — Paiements sécurisés</p>
           </div>
-          
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Left Content */}
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-              >
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-lime-500/10 border border-lime-500/30 mb-6">
-                  <Wallet className="h-4 w-4 text-lime-500" />
-                  <span className="text-sm font-medium text-lime-500">
-                    QUICKGO PAY
-                  </span>
-                </div>
-                
-                <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-6">
-                  Votre portefeuille{" "}
-                  <span className="text-lime-500">intelligent</span>
-                </h1>
-                
-                <p className="text-lg text-zinc-400 mb-8 max-w-lg">
-                  Payez, recevez et gerez votre argent en toute simplicite.
-                  Profitez du cashback et des recompenses exclusives.
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                  <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
-                    Activer QuickGo Pay
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                  <Button size="lg" variant="outline" className="h-14 px-8 border-lime-500/30 text-lime-500 hover:bg-lime-500/10">
-                    En savoir plus
-                  </Button>
-                </div>
-                
-                {/* Payment Methods */}
-                <div>
-                  <p className="text-sm text-zinc-500 mb-3">
-                    Ajoutez vos moyens de paiement
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {paymentMethods.map((method) => (
-                      <div
-                        key={method.name}
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-900 border border-lime-500/20"
-                      >
-                        <div className={`w-3 h-3 rounded-full ${method.color}`} />
-                        <span className="text-sm font-medium text-white">
-                          {method.name}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-              
-              {/* Right - Wallet Card Preview */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="relative"
-              >
-                <div className="relative max-w-md mx-auto">
-                  {/* Wallet Card */}
-                  <div className="relative p-6 rounded-3xl bg-gradient-to-br from-lime-500 via-lime-600 to-lime-700 overflow-hidden border border-lime-400/30">
-                    {/* Pattern */}
-                    <div className="absolute inset-0 opacity-20">
-                      <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl" />
-                      <div className="absolute bottom-0 left-0 w-32 h-32 bg-lime-300 rounded-full blur-2xl" />
-                    </div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-2">
-                          <Wallet className="h-6 w-6 text-black" />
-                          <span className="font-bold text-black">QuickGo Wallet</span>
-                        </div>
-                        <span className="text-xs text-black/70 px-2 py-1 bg-black/10 rounded-full">Premium</span>
-                      </div>
-                      
-                      <div className="mb-8">
-                        <p className="text-sm text-black/70 mb-1">Solde actuel</p>
-                        <p className="text-4xl font-bold text-black">125 500 CFA</p>
-                      </div>
-                      
-                      {/* Quick Actions */}
-                      <div className="grid grid-cols-4 gap-4">
-                        {[
-                          { icon: ArrowUpRight, label: "Ajouter" },
-                          { icon: Send, label: "Envoyer" },
-                          { icon: ArrowDownLeft, label: "Retirer" },
-                          { icon: QrCode, label: "Scanner" },
-                        ].map((action) => (
-                          <button
-                            key={action.label}
-                            className="flex flex-col items-center gap-2 p-3 rounded-xl bg-black/10 hover:bg-black/20 transition-colors"
-                          >
-                            <action.icon className="h-5 w-5 text-black" />
-                            <span className="text-xs text-black font-medium">{action.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Transaction History Preview */}
-                  <div className="mt-6 p-4 rounded-2xl bg-zinc-900 border border-lime-500/20">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-white">Historique</h3>
-                      <span className="text-xs text-lime-500">Voir tout</span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {transactions.map((tx, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${
-                              tx.type === "received" ? "bg-lime-500/20" :
-                              tx.type === "cashback" ? "bg-lime-500/20" : "bg-zinc-700"
-                            }`}>
-                              {tx.type === "received" ? (
-                                <ArrowDownLeft className="h-4 w-4 text-lime-500" />
-                              ) : tx.type === "cashback" ? (
-                                <Gift className="h-4 w-4 text-lime-500" />
-                              ) : (
-                                <ArrowUpRight className="h-4 w-4 text-zinc-400" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-white">{tx.name}</p>
-                              <p className="text-xs text-zinc-500">{tx.time}</p>
-                            </div>
-                          </div>
-                          <span className={`text-sm font-semibold ${
-                            tx.amount.startsWith("+") ? "text-lime-500" : "text-white"
-                          }`}>
-                            {tx.amount}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
+          <button onClick={fetchWallet} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+            <RefreshCw className={`w-4 h-4 text-white/30 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </header>
+
+      <div className="max-w-2xl mx-auto p-4 space-y-5">
+
+        {/* Balance card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="relative rounded-3xl overflow-hidden p-6"
+          style={{ background: "linear-gradient(135deg, #1a237e, #0d47a1, #01579b)" }}
+        >
+          <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10 -translate-y-1/2 translate-x-1/4"
+            style={{ background: "#3b82f6" }} />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <Wallet className="w-5 h-5 text-white/60" />
+              <span className="text-white/60 text-sm">Solde disponible</span>
+            </div>
+            {loading ? (
+              <div className="h-10 w-48 bg-white/10 rounded animate-pulse mb-2" />
+            ) : (
+              <p className="text-4xl font-black text-white mb-2">{formatCFA(data?.balance ?? 0)}</p>
+            )}
+            <div className="flex items-center gap-3 mt-4">
+              <div className="flex items-center gap-1.5 text-sm">
+                <span className="text-yellow-300">⭐</span>
+                <span className="text-white font-semibold">{(data?.points ?? 0).toLocaleString("fr-FR")}</span>
+                <span className="text-white/50">points</span>
+              </div>
+              <Shield className="w-4 h-4 text-white/30 ml-auto" />
+              <span className="text-white/30 text-xs">Sécurisé</span>
             </div>
           </div>
-        </section>
+        </motion.div>
 
-        {/* Premium Features with Images */}
-        <section className="py-16 lg:py-24 bg-zinc-950">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                Pourquoi choisir <span className="text-lime-500">QuickGo Pay</span> ?
-              </h2>
-              <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-                Une solution de paiement complete concue pour simplifier votre quotidien
-              </p>
+        {/* Quick actions */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: "Recharger",  icon: Plus,       action: () => setRechargeModal(true), color: "#22c55e" },
+            { label: "Transférer", icon: Send,        href: "/wallet/transfer",             color: "#3b82f6" },
+            { label: "QR Code",    icon: QrCode,      href: "/wallet",                      color: "#8b5cf6" },
+            { label: "Coupons",    icon: CreditCard,  href: "/wallet/rewards",              color: "#eab308" },
+          ].map(({ label, icon: Icon, action, href, color }) => (
+            <motion.div key={label} whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
+              {action ? (
+                <button onClick={action} className="w-full flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center border border-[#1e1e2e]"
+                    style={{ background: `${color}20` }}>
+                    <Icon className="w-5 h-5" style={{ color }} />
+                  </div>
+                  <span className="text-[11px] text-white/40 font-medium">{label}</span>
+                </button>
+              ) : (
+                <Link href={href!} className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center border border-[#1e1e2e]"
+                    style={{ background: `${color}20` }}>
+                    <Icon className="w-5 h-5" style={{ color }} />
+                  </div>
+                  <span className="text-[11px] text-white/40 font-medium">{label}</span>
+                </Link>
+              )}
             </motion.div>
-            
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link href={feature.href} className="block group">
-                    <div className="relative h-72 lg:h-80 rounded-2xl overflow-hidden border border-lime-500/20 hover:border-lime-500/60 transition-all duration-500 hover:shadow-[0_0_40px_rgba(132,204,22,0.2)] hover:scale-[1.02]">
-                      <Image
-                        src={feature.image}
-                        alt={feature.title}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                      />
-                      
-                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent opacity-70 group-hover:opacity-50 transition-opacity duration-500" />
-                      
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                        <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-lime-500 to-transparent" />
-                      </div>
+          ))}
+        </div>
 
-                      <div className="absolute bottom-0 left-0 right-0 p-5">
-                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-lime-400 transition-colors duration-300">
-                          {feature.title}
-                        </h3>
-                        <p className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 mb-3">
-                          {feature.description}
-                        </p>
-                        
-                        <span className="inline-flex items-center gap-2 text-sm font-medium text-lime-500 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                          Decouvrir
-                          <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                        </span>
-                      </div>
+        {/* Payment methods */}
+        <div className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5">
+          <h3 className="text-white font-semibold mb-4 text-sm">Méthodes de paiement liées</h3>
+          <div className="space-y-3">
+            {PAYMENT_METHODS.map((m) => (
+              <div key={m.id} className="flex items-center gap-3 p-3 bg-[#1c1c28] rounded-xl">
+                <span className="text-2xl">{m.emoji}</span>
+                <div className="flex-1">
+                  <p className="text-white text-sm font-medium">{m.label}</p>
+                  <p className="text-white/30 text-xs">{m.desc}</p>
+                </div>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#22c55e]/15 text-[#22c55e] font-medium">Lié</span>
+              </div>
+            ))}
+            <button className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-[#1e1e2e] text-white/30 hover:text-white/60 hover:border-[#3b82f6]/30 transition-colors">
+              <Plus className="w-4 h-4" />
+              <span className="text-sm">Ajouter une méthode</span>
+            </button>
+          </div>
+        </div>
 
-                      <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-lime-500/30 to-transparent transform rotate-45 translate-x-12 -translate-y-12 group-hover:from-lime-500/50 transition-colors duration-500" />
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
+        {/* Transactions */}
+        <div className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-semibold text-sm">Historique</h3>
+            <div className="flex gap-1 bg-[#0a0a0f] rounded-xl p-1">
+              {(["all","in","out"] as const).map((t) => (
+                <button key={t} onClick={() => setTab(t)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${tab === t ? "bg-[#1e1e2e] text-white" : "text-white/30 hover:text-white/60"}`}>
+                  {t === "all" ? "Tout" : t === "in" ? "Entrants" : "Sortants"}
+                </button>
               ))}
             </div>
           </div>
-        </section>
 
-        {/* CTA */}
-        <section className="py-16 lg:py-24 bg-gradient-to-r from-lime-500/10 via-black to-lime-500/10 border-t border-lime-500/20">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-                Activez votre portefeuille <span className="text-lime-500">maintenant</span>
-              </h2>
-              <p className="text-lg text-zinc-400 mb-8">
-                Rejoignez des milliers d&apos;utilisateurs qui font confiance a QuickGo Pay
-              </p>
-              <Button size="lg" className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold">
-                Commencer gratuitement
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </motion.div>
-          </div>
-        </section>
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({length:4}).map((_,i)=><div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-8">
+              <Clock className="w-8 h-8 mx-auto text-white/10 mb-2" />
+              <p className="text-white/30 text-sm">Aucune transaction</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((tx) => {
+                const cfg = TX_CONFIG[tx.type] ?? TX_CONFIG["debit"]
+                const Icon = cfg.icon
+                return (
+                  <div key={tx.id} className="flex items-center gap-3 p-3 hover:bg-white/3 rounded-xl transition-colors">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cfg.bg}`}>
+                      <Icon className={`w-4 h-4 ${cfg.color}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{tx.description ?? cfg.label}</p>
+                      <p className="text-white/30 text-xs">{formatDate(tx.created_at)}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className={`font-bold text-sm ${cfg.color}`}>{cfg.sign}{formatCFA(tx.amount)}</p>
+                      <p className="text-white/20 text-[10px]">Solde: {formatCFA(tx.balance_after)}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
-      
-      <Footer />
-    </main>
+
+      {/* Recharge modal */}
+      {rechargeModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+          onClick={() => setRechargeModal(false)}>
+          <motion.div initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-sm bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-6"
+            onClick={(e) => e.stopPropagation()}>
+            {rechargeSuccess ? (
+              <div className="text-center py-4">
+                <CheckCircle className="w-12 h-12 text-[#22c55e] mx-auto mb-3" />
+                <p className="text-white font-bold text-lg">Rechargé avec succès !</p>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-white font-bold text-lg mb-4">Recharger mon wallet</h2>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {PAYMENT_METHODS.map((m) => (
+                    <button key={m.id} onClick={() => setRechargeMethod(m.id)}
+                      className={`p-3 rounded-xl border-2 transition-colors text-left ${rechargeMethod === m.id ? "border-[#3b82f6] bg-[#3b82f6]/10" : "border-[#1e1e2e]"}`}>
+                      <span className="text-xl block mb-1">{m.emoji}</span>
+                      <p className="text-white text-xs font-medium">{m.label}</p>
+                    </button>
+                  ))}
+                </div>
+                <div className="mb-4">
+                  <p className="text-white/40 text-xs mb-2">Montant (FCFA)</p>
+                  <input value={rechargeAmount} onChange={(e) => setRechargeAmount(e.target.value.replace(/\D/g,""))}
+                    placeholder="Ex: 5000"
+                    className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-[#3b82f6]/50 placeholder:text-white/10" />
+                  <div className="flex gap-2 mt-2">
+                    {[1000,2000,5000,10000].map((v) => (
+                      <button key={v} onClick={() => setRechargeAmount(String(v))}
+                        className="flex-1 py-1.5 rounded-lg bg-[#1c1c28] text-white/50 hover:text-white text-xs font-medium transition-colors">
+                        {v >= 1000 ? `${v/1000}k` : v}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Button className="w-full h-12 rounded-xl bg-[#22c55e] hover:bg-[#22c55e]/90 text-black font-bold"
+                  disabled={recharging || !rechargeAmount} onClick={handleRecharge}>
+                  {recharging ? "Traitement…" : `Recharger ${rechargeAmount ? formatCFA(parseInt(rechargeAmount)||0) : ""}`}
+                </Button>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
+    </div>
   )
 }

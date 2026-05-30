@@ -56,6 +56,8 @@ export function Navbar() {
   const [selectedCity, setSelectedCity] = useState("Yaoundé")
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; role: string | null } | null>(null)
+  const [cartCount, setCartCount] = useState(0)
+  const [notifCount, setNotifCount] = useState(0)
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
@@ -78,15 +80,24 @@ export function Navbar() {
     supabase.auth.getUser().then((res: AuthResponse) => {
       const u = res.data.user
       setUser(u)
-      if (u) loadProfile(u.id)
+      if (u) {
+        loadProfile(u.id)
+        fetch("/api/cart").then((r) => r.ok ? r.json() : []).then((items: unknown[]) => setCartCount(Array.isArray(items) ? items.length : 0)).catch(() => {})
+        fetch("/api/notifications").then((r) => r.ok ? r.json() : []).then((ns: { is_read?: boolean }[]) => setNotifCount(Array.isArray(ns) ? ns.filter((n) => !n.is_read).length : 0)).catch(() => {})
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         loadProfile(session.user.id)
+        // fetch counts on login
+        fetch("/api/cart").then((r) => r.ok ? r.json() : []).then((items: unknown[]) => setCartCount(Array.isArray(items) ? items.length : 0)).catch(() => {})
+        fetch("/api/notifications").then((r) => r.ok ? r.json() : []).then((ns: { is_read?: boolean }[]) => setNotifCount(Array.isArray(ns) ? ns.filter((n) => !n.is_read).length : 0)).catch(() => {})
       } else {
         setProfile(null)
+        setCartCount(0)
+        setNotifCount(0)
       }
     })
 
@@ -195,19 +206,31 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               {/* Icons - Desktop */}
               <div className="hidden md:flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <Heart className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
-                  <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-secondary text-secondary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-                    3
-                  </span>
-                </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full" />
-                </Button>
+                <Link href="/marketplace/favorites">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <Heart className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/marketplace/cart" className="relative">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
+                    <ShoppingCart className="h-5 w-5" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-secondary text-secondary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                        {cartCount > 9 ? "9+" : cartCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+                <Link href="/notifications" className="relative">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
+                    <Bell className="h-5 w-5" />
+                    {notifCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                        {notifCount > 9 ? "9+" : notifCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
               </div>
 
               {/* Help & Support */}

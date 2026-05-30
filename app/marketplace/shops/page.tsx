@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -29,12 +30,16 @@ function formatCFA(n: number) {
 }
 
 export default function MarketplaceShopsPage() {
+  const searchParams = useSearchParams()
+  const initialCat = searchParams.get("cat") ?? "all"
+
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [catFilter, setCatFilter] = useState("all")
+  const [catFilter, setCatFilter] = useState(initialCat)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const categoriesRef = useRef<Category[]>([])
 
   const fetchVendors = useCallback(async (q: string, cat: string) => {
     setLoading(true)
@@ -42,19 +47,23 @@ export default function MarketplaceShopsPage() {
       const params = new URLSearchParams()
       if (q) params.set("search", q)
       if (cat !== "all") params.set("category", cat)
-      params.set("featured", "true")
       const [vendorsRes, catsRes] = await Promise.all([
         fetch(`/api/vendors?${params}`).then((r) => r.ok ? r.json() : []),
-        categories.length ? Promise.resolve(categories) : fetch("/api/categories").then((r) => r.ok ? r.json() : []),
+        categoriesRef.current.length
+          ? Promise.resolve(categoriesRef.current)
+          : fetch("/api/categories").then((r) => r.ok ? r.json() : []),
       ])
       setVendors(vendorsRes)
-      if (!categories.length) setCategories(catsRes)
+      if (!categoriesRef.current.length) {
+        categoriesRef.current = catsRes
+        setCategories(catsRes)
+      }
     } finally {
       setLoading(false)
     }
-  }, [categories])
+  }, [])
 
-  useEffect(() => { fetchVendors("", "all") }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchVendors("", initialCat) }, [fetchVendors, initialCat])
 
   const handleSearch = (val: string) => {
     setSearch(val)
