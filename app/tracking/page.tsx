@@ -1,267 +1,381 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
-import { motion } from "framer-motion"
-import {
-  ArrowLeft, Package, Truck, CheckCircle, Clock,
-  MapPin, Phone, Star, MessageSquare, RefreshCw,
-  ShoppingBag, Bike,
-} from "lucide-react"
+import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Navbar } from "@/components/navbar"
+import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Search,
+  Package,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  Truck,
+  User,
+  Phone,
+  MessageSquare,
+  Star,
+} from "lucide-react"
 
-interface OrderItem { product_name: string; quantity: number; unit_price: number }
-interface ActiveOrder {
-  id: string; order_number: string; status: string; total_amount: number
-  created_at: string; estimated_delivery_time: string | null
-  delivery_address: string | null
-  vendor: { name: string; phone: string | null; logo_url: string | null } | null
-  driver: {
-    rating: number | null
-    user: { full_name: string; phone: string | null; avatar_url: string | null } | null
-  } | null
-  items: OrderItem[]
-}
-
-const STATUS_STEPS = [
-  { key: "pending",    label: "Commande reçue" },
-  { key: "confirmed",  label: "Commande confirmée" },
-  { key: "preparing",  label: "Préparation" },
-  { key: "ready",      label: "Prêt pour livraison" },
-  { key: "delivering", label: "En route" },
-  { key: "delivered",  label: "Livré" },
+const trackingSteps = [
+  { id: 1, label: "Commande confirmée", time: "12:45", completed: true },
+  { id: 2, label: "Préparation", time: "12:48", completed: true },
+  { id: 3, label: "En route", time: "13:01", completed: true, current: true },
+  { id: 4, label: "Arrivée", time: "~13:11", completed: false },
+  { id: 5, label: "Livré", time: "~13:15", completed: false },
 ]
-const STEP_ORDER = ["pending","confirmed","preparing","ready","delivering","delivered"]
 
-function getStepIndex(status: string) {
-  const idx = STEP_ORDER.indexOf(status)
-  return idx === -1 ? 0 : idx
+const deliveryInfo = {
+  orderId: "#QG12345",
+  status: "En route",
+  eta: "10 - 15 min",
+  driver: {
+    name: "Jean Paul N.",
+    rating: 4.9,
+    phone: "+237 6 XX XX XX XX",
+    vehicle: "Honda PCX 125",
+    photo: "/driver.jpg",
+  },
+  pickup: {
+    name: "Restaurant Le Gourmet",
+    address: "Rue des Saveurs, Bastos",
+  },
+  dropoff: {
+    address: "Immeuble SOPECAM, Yaoundé",
+  },
+  items: [
+    { name: "1 colis", weight: "2.3 kg" },
+  ],
 }
-
-const formatCFA = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA"
 
 export default function TrackingPage() {
-  const [orders, setOrders] = useState<ActiveOrder[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-
-  const fetchOrders = useCallback(async () => {
-    setLoading(true)
-    try {
-      const r = await fetch("/api/orders")
-      if (r.ok) {
-        const data: ActiveOrder[] = await r.json()
-        const active = data.filter((o) => !["delivered","cancelled"].includes(o.status))
-        setOrders(active)
-        if (active.length > 0) setSelectedId((prev) => prev ?? active[0].id)
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchOrders()
-    const id = setInterval(fetchOrders, 30_000)
-    return () => clearInterval(id)
-  }, [fetchOrders])
-
-  const order = orders.find((o) => o.id === selectedId) ?? orders[0] ?? null
-  const stepIdx = order ? getStepIndex(order.status) : 0
-  const eta = order?.estimated_delivery_time
-    ? Math.max(0, Math.round((new Date(order.estimated_delivery_time).getTime() - Date.now()) / 60_000))
-    : null
+  const [trackingNumber, setTrackingNumber] = useState("")
+  const [isTracking, setIsTracking] = useState(true)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
-      <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-[#1e1e2e] px-4 py-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5 text-white/40" />
-          </Link>
-          <div className="flex-1">
-            <h1 className="text-white font-bold text-lg">Suivi en direct</h1>
-            {order && <p className="text-xs text-white/30">Commande #{order.order_number}</p>}
-          </div>
-          <button onClick={fetchOrders} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <RefreshCw className={`w-4 h-4 text-white/30 ${loading ? "animate-spin" : ""}`} />
-          </button>
-        </div>
-      </header>
+    <main className="min-h-screen bg-background">
+      <Navbar />
 
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
-
-        {orders.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {orders.map((o) => (
-              <button key={o.id} onClick={() => setSelectedId(o.id)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
-                  selectedId === o.id ? "bg-[#3b82f6] text-white" : "bg-[#16161f] text-white/40 border border-[#1e1e2e]"
-                }`}>
-                <Package className="w-3.5 h-3.5" /> #{o.order_number}
-              </button>
-            ))}
+      <div className="pt-20 lg:pt-24">
+        {/* Search Section */}
+        <section className="py-12 lg:py-16 bg-gradient-to-b from-primary/10 to-background relative overflow-hidden">
+          {/* Animated background glow orbs */}
+          <div className="absolute inset-0 pointer-events-none">
+            <motion.div
+              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute w-[400px] h-[400px] rounded-full bg-blue-500/15 blur-[100px] -left-[100px] top-0"
+            />
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              className="absolute w-[300px] h-[300px] rounded-full bg-purple-500/10 blur-[80px] right-0 bottom-0"
+            />
           </div>
-        )}
-
-        {loading && orders.length === 0 ? (
-          <div className="space-y-4">
-            {Array.from({length:3}).map((_,i)=><div key={i} className="h-32 rounded-2xl bg-[#16161f] animate-pulse" />)}
-          </div>
-        ) : !order ? (
-          <div className="text-center py-20">
-            <Truck className="w-16 h-16 mx-auto text-white/10 mb-4" />
-            <h2 className="text-white font-bold text-xl mb-2">Aucune livraison en cours</h2>
-            <p className="text-white/30 text-sm mb-6">Vos commandes actives apparaîtront ici.</p>
-            <Link href="/marketplace">
-              <Button className="rounded-xl bg-[#3b82f6] hover:bg-[#3b82f6]/90">Commander maintenant</Button>
-            </Link>
-          </div>
-        ) : (
-          <>
-            {/* Map */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="relative h-52 rounded-3xl overflow-hidden border border-[#1e1e2e]"
-              style={{ background: "linear-gradient(135deg, #0d1117, #161b22)" }}>
-              <svg viewBox="0 0 400 200" className="w-full h-full">
-                <defs>
-                  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1e2030" strokeWidth="0.5" />
-                  </pattern>
-                </defs>
-                <rect width="400" height="200" fill="url(#grid)" />
-                <path d="M50,170 Q120,80 200,120 Q280,160 360,60" stroke="#3b82f6" strokeWidth="2.5" fill="none" strokeDasharray="6 3" />
-                <circle cx="50" cy="170" r="8" fill="#8b5cf6" stroke="#fff" strokeWidth="2" />
-                <text x="58" y="185" fontSize="9" fill="#8b5cf6">📦 Vendeur</text>
-                <circle cx="360" cy="60" r="8" fill="#22c55e" stroke="#fff" strokeWidth="2" />
-                <text x="308" y="48" fontSize="9" fill="#22c55e">🏠 Destination</text>
-                <circle cx="220" cy="118" r="13" fill="#3b82f6" stroke="#fff" strokeWidth="2.5" />
-                <text x="213" y="123" fontSize="12">🛵</text>
-              </svg>
-              {order.status === "delivering" && (
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-[#22c55e]/20 border border-[#22c55e]/30 rounded-full px-3 py-1">
-                  <span className="w-2 h-2 bg-[#22c55e] rounded-full animate-pulse" />
-                  <span className="text-[#22c55e] text-xs font-semibold">En direct</span>
-                </div>
-              )}
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 100, damping: 18 }}
+              className="text-center mb-8"
+            >
+              <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
+                Suivi de livraison en{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                  temps réel
+                </span>
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                Entrez votre numéro de commande pour suivre votre colis
+              </p>
             </motion.div>
 
-            {/* ETA */}
-            {["delivering","ready"].includes(order.status) && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="bg-gradient-to-r from-[#3b82f6]/20 to-[#06b6d4]/10 border border-[#3b82f6]/25 rounded-2xl p-4 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-[#3b82f6]/20 flex items-center justify-center shrink-0">
-                  <Clock className="w-6 h-6 text-[#3b82f6]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-white/50 text-xs">Arrivée estimée</p>
-                  <p className="text-white font-black text-2xl">{eta != null ? `${eta} – ${eta + 5} min` : "En route"}</p>
-                </div>
-                {order.delivery_address && (
-                  <div className="text-right">
-                    <MapPin className="w-4 h-4 text-[#3b82f6] ml-auto mb-1" />
-                    <p className="text-white/30 text-xs max-w-[120px] text-right truncate">{order.delivery_address}</p>
-                  </div>
-                )}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, type: "spring", stiffness: 120 }}
+              className="flex gap-3"
+            >
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Ex: #QG12345"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  className="w-full h-14 pl-12 pr-4 rounded-xl bg-card border-border/50 text-base"
+                />
+              </div>
+              <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300 }}>
+                <Button className="h-14 px-6 bg-primary text-primary-foreground hover:bg-primary/90">
+                  Suivre
+                </Button>
               </motion.div>
-            )}
+            </motion.div>
+          </div>
+        </section>
 
-            {/* Steps */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5">
-              <h3 className="text-white font-semibold text-sm mb-5">Suivi de la commande</h3>
-              <div className="relative">
-                <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-[#1e1e2e]" />
-                <div className="absolute left-5 top-5 w-0.5 bg-[#3b82f6] transition-all duration-1000"
-                  style={{ height: `calc(${(stepIdx / (STATUS_STEPS.length - 1)) * 100}% - 10px)` }} />
-                <div className="space-y-5 relative">
-                  {STATUS_STEPS.map((step, i) => {
-                    const done = i < stepIdx; const current = i === stepIdx
-                    return (
-                      <div key={step.key} className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
-                          done ? "bg-[#22c55e] border-[#22c55e]" :
-                          current ? "bg-[#3b82f6] border-[#3b82f6] animate-pulse" :
-                                    "bg-[#0a0a0f] border-[#1e1e2e]"}`}>
-                          {done ? <CheckCircle className="w-5 h-5 text-white" /> :
-                           current ? <Truck className="w-4 h-4 text-white" /> :
-                                     <span className="w-2 h-2 rounded-full bg-[#1e1e2e]" />}
+        {/* Tracking Result */}
+        <AnimatePresence>
+        {isTracking && (
+          <section className="py-12 lg:py-16">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="grid lg:grid-cols-3 gap-8">
+                {/* Map — SVG path draw + rider glow */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ type: "spring", stiffness: 100, damping: 18 }}
+                  className="lg:col-span-2"
+                >
+                  <div className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-card border border-border/50"
+                    style={{ background: "linear-gradient(135deg, #0d1117, #161b22)" }}>
+                    {/* SVG map with animated dashed path */}
+                    <svg viewBox="0 0 800 500" className="absolute inset-0 w-full h-full">
+                      <defs>
+                        <pattern id="trackgrid" width="30" height="30" patternUnits="userSpaceOnUse">
+                          <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e2030" strokeWidth="0.6" />
+                        </pattern>
+                      </defs>
+                      <rect width="800" height="500" fill="url(#trackgrid)" />
+                      {/* Animated path draw */}
+                      <motion.path
+                        d="M100,420 Q200,200 380,300 Q520,380 680,140"
+                        stroke="#3b82f6"
+                        strokeWidth="3"
+                        fill="none"
+                        strokeDasharray="12 6"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{ duration: 2.5, ease: "easeInOut", delay: 0.3 }}
+                      />
+                      {/* Vendor pin */}
+                      <circle cx="100" cy="420" r="10" fill="#8b5cf6" stroke="#fff" strokeWidth="2.5" />
+                      <text x="112" y="435" fontSize="11" fill="#8b5cf6" fontWeight="600">📦 Vendeur</text>
+                      {/* Destination pin */}
+                      <circle cx="680" cy="140" r="10" fill="#22c55e" stroke="#fff" strokeWidth="2.5" />
+                      <text x="580" y="128" fontSize="11" fill="#22c55e" fontWeight="600">🏠 Destination</text>
+                      {/* Rider emoji circle — animated glow */}
+                      <circle cx="380" cy="295" r="18" fill="#3b82f6" stroke="#fff" strokeWidth="3" />
+                      <text x="371" y="302" fontSize="16">🛵</text>
+                    </svg>
+
+                    {/* Rider glow — pulsing box shadow via motion */}
+                    <motion.div
+                      animate={{ boxShadow: ["0 0 0px #3b82f6", "0 0 30px #3b82f6", "0 0 0px #3b82f6"] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute rounded-full w-10 h-10 pointer-events-none"
+                      style={{ left: "calc(47% - 20px)", top: "calc(59% - 20px)" }}
+                    />
+
+                    {/* Status Overlay */}
+                    <div className="absolute top-4 left-4 right-4">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 120, delay: 0.4 }}
+                        className="backdrop-blur-md bg-black/50 border border-white/10 rounded-xl p-4"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-white/50">Statut</p>
+                            {/* "En direct" badge with ping dot */}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                              </span>
+                              <p className="text-lg font-bold text-green-400">{deliveryInfo.status}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-white/50">Arrivée estimée</p>
+                            <p className="text-lg font-bold text-white">{deliveryInfo.eta}</p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <p className={`text-sm font-medium ${done || current ? "text-white" : "text-white/25"}`}>{step.label}</p>
-                          {current && <p className="text-[#3b82f6] text-xs font-medium mt-0.5">En cours…</p>}
+                      </motion.div>
+                    </div>
+
+                    {/* Driver Info Overlay — spring entrance */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ type: "spring", stiffness: 100, damping: 18, delay: 0.6 }}
+                      className="absolute bottom-4 left-4 right-4"
+                    >
+                      <div className="backdrop-blur-md bg-black/50 border border-white/10 rounded-xl p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center text-white font-bold">
+                              JP
+                            </div>
+                            <div>
+                              <p className="font-semibold text-white">{deliveryInfo.driver.name}</p>
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                <span className="text-sm text-white/60">{deliveryInfo.driver.rating}</span>
+                                <span className="text-sm text-white/40">• Livreur</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <motion.div whileHover={{ scale: 1.1 }}>
+                              <Button size="icon" variant="outline" className="rounded-full border-white/20 hover:bg-white/10">
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                            </motion.div>
+                            <motion.div whileHover={{ scale: 1.1 }}>
+                              <Button size="icon" variant="outline" className="rounded-full border-white/20 hover:bg-white/10">
+                                <Phone className="h-4 w-4" />
+                              </Button>
+                            </motion.div>
+                          </div>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </motion.div>
+                    </motion.div>
+                  </div>
+                </motion.div>
 
-            {/* Driver */}
-            {order.driver && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-                className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0 border-2 border-[#a3e635]/30">
-                  <Bike className="w-7 h-7 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-white font-semibold">{order.driver.user?.full_name ?? "Livreur"}</p>
-                  {order.driver.rating != null && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Star className="w-3.5 h-3.5 text-[#eab308] fill-current" />
-                      <span className="text-white/50 text-sm">{order.driver.rating.toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {order.driver.user?.phone && (
-                    <a href={`tel:${order.driver.user.phone}`}>
-                      <Button size="icon" className="h-10 w-10 rounded-xl bg-[#22c55e]/20 text-[#22c55e] border-0 hover:bg-[#22c55e]/30">
-                        <Phone className="w-4 h-4" />
-                      </Button>
-                    </a>
-                  )}
-                  <Link href="/dashboard/messages">
-                    <Button size="icon" className="h-10 w-10 rounded-xl bg-[#3b82f6]/20 text-[#3b82f6] border-0 hover:bg-[#3b82f6]/30">
-                      <MessageSquare className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Order items */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-semibold text-sm">Votre commande</h3>
-                <span className="text-white/30 text-xs">{order.vendor?.name}</span>
-              </div>
-              <div className="space-y-3">
-                {order.items.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#3b82f6]/20 flex items-center justify-center">
-                        <ShoppingBag className="w-4 h-4 text-[#3b82f6]" />
+                {/* Tracking Details */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ type: "spring", stiffness: 100, damping: 18, delay: 0.1 }}
+                  className="space-y-6"
+                >
+                  {/* ETA block — spring entrance */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 120, damping: 16, delay: 0.25 }}
+                    className="p-6 rounded-2xl bg-gradient-to-r from-[#3b82f6]/20 to-[#06b6d4]/10 border border-[#3b82f6]/25"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-xl bg-[#3b82f6]/20 flex items-center justify-center">
+                        <Clock className="h-5 w-5 text-[#3b82f6]" />
                       </div>
                       <div>
-                        <p className="text-white text-sm">{item.product_name}</p>
-                        <p className="text-white/30 text-xs">×{item.quantity}</p>
+                        <p className="text-xs text-white/50">Arrivée estimée</p>
+                        <p className="text-2xl font-black text-white">{deliveryInfo.eta}</p>
                       </div>
                     </div>
-                    <p className="text-white text-sm font-medium">{formatCFA(item.unit_price * item.quantity)}</p>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-xs text-white/40">Commande {deliveryInfo.orderId}</span>
+                      {/* "En direct" badge with ping dot */}
+                      <div className="flex items-center gap-1.5 bg-green-500/20 border border-green-500/30 rounded-full px-2.5 py-1">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                        </span>
+                        <span className="text-green-400 text-[10px] font-semibold">En direct</span>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Order Info — staggered steps */}
+                  <div className="p-6 rounded-2xl bg-card border border-border/50">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-foreground">Commande {deliveryInfo.orderId}</h3>
+                      <span className="px-3 py-1 rounded-full bg-secondary/20 text-secondary text-sm font-medium">
+                        {deliveryInfo.status}
+                      </span>
+                    </div>
+
+                    {/* Progress Steps — staggered entrance */}
+                    <div className="space-y-4">
+                      {trackingSteps.map((step, index) => (
+                        <motion.div
+                          key={step.id}
+                          initial={{ opacity: 0, x: -16 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + index * 0.12, type: "spring", stiffness: 120, damping: 16 }}
+                          className="flex items-start gap-3"
+                        >
+                          <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              step.completed
+                                ? step.current
+                                  ? "bg-secondary text-secondary-foreground"
+                                  : "bg-primary/20 text-primary"
+                                : "bg-muted text-muted-foreground"
+                            }`}>
+                              {step.completed ? (
+                                /* Checkmark springs in for done steps */
+                                <motion.div
+                                  initial={step.current ? {} : { scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: "spring", stiffness: 200, damping: 14, delay: 0.4 + index * 0.12 }}
+                                >
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </motion.div>
+                              ) : (
+                                <span className="text-sm">{step.id}</span>
+                              )}
+                            </div>
+                            {index < trackingSteps.length - 1 && (
+                              <div className={`w-0.5 h-8 ${step.completed ? "bg-primary/30" : "bg-muted"}`} />
+                            )}
+                          </div>
+                          <div className="flex-1 pb-4">
+                            <p className={`font-medium ${
+                              step.current ? "text-secondary" : step.completed ? "text-foreground" : "text-muted-foreground"
+                            }`}>
+                              {step.label}
+                            </p>
+                            <p className="text-sm text-muted-foreground">{step.time}</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-                <div className="border-t border-[#1e1e2e] pt-3 flex justify-between">
-                  <span className="text-white font-semibold">Total</span>
-                  <span className="text-[#a3e635] font-bold">{formatCFA(order.total_amount)}</span>
-                </div>
+
+                  {/* Delivery Details */}
+                  <div className="p-6 rounded-2xl bg-card border border-border/50">
+                    <h3 className="font-semibold text-foreground mb-4">Détails de la livraison</h3>
+                    <div className="space-y-4">
+                      {[
+                        { icon: <MapPin className="h-4 w-4 text-primary" />, bg: "bg-primary/10", label: "Point de collecte", value: deliveryInfo.pickup.name, sub: deliveryInfo.pickup.address },
+                        { icon: <MapPin className="h-4 w-4 text-secondary" />, bg: "bg-secondary/10", label: "Destination", value: deliveryInfo.dropoff.address },
+                        { icon: <Package className="h-4 w-4 text-muted-foreground" />, bg: "bg-muted", label: "Détails du colis", value: `${deliveryInfo.items[0].name} • ${deliveryInfo.items[0].weight}` },
+                      ].map((item, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.5 + i * 0.06, type: "spring", stiffness: 120, damping: 18 }}
+                          className="flex items-start gap-3"
+                        >
+                          <div className={`p-2 rounded-lg ${item.bg} shrink-0`}>{item.icon}</div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">{item.label}</p>
+                            <p className="font-medium text-foreground">{item.value}</p>
+                            {item.sub && <p className="text-sm text-muted-foreground">{item.sub}</p>}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Help */}
+                  <div className="p-4 rounded-xl bg-muted/50 text-center">
+                    <p className="text-sm text-muted-foreground mb-2">Besoin d&apos;aide ?</p>
+                    <motion.div whileHover={{ x: 4 }} transition={{ type: "spring", stiffness: 300 }}>
+                      <Button variant="link" className="text-primary">
+                        Contacter le support →
+                      </Button>
+                    </motion.div>
+                  </div>
+                </motion.div>
               </div>
-            </motion.div>
-          </>
+            </div>
+          </section>
         )}
+        </AnimatePresence>
       </div>
-    </div>
+      
+      <Footer />
+    </main>
   )
 }
