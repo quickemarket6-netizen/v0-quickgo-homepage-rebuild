@@ -7,8 +7,15 @@ import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, Search, ChevronDown, RefreshCw,
   TrendingDown, AlertTriangle, Clock, CheckCircle, XCircle, Truck,
-  ArrowUpRight, Zap, Info, Download, ChevronRight,
+  ArrowUpRight, Zap, Info, Download, ChevronRight, LogOut, User,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
@@ -339,12 +346,41 @@ export default function VendorDashboardPage() {
             <Button variant="ghost" size="icon" onClick={() => fetchDashboard(period)} className="h-9 w-9 rounded-xl">
               <RefreshCw className={`w-4 h-4 text-white/40 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            <div className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e]">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-xs">{data ? initials(data.vendor.name) : "?"}</span>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-white/30" />
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e] hover:opacity-90 transition-opacity focus:outline-none">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center border-2 border-[#a3e635]/60 shrink-0 shadow-[0_0_12px_rgba(163,230,53,0.25)]">
+                    <span className="text-white font-bold text-xs">{data ? initials(data.vendor.name) : "?"}</span>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 bg-[#16161f] border-[#1e1e2e]">
+                <div className="px-3 py-2 border-b border-[#1e1e2e]">
+                  <p className="text-white text-sm font-semibold truncate">{data?.vendor.name ?? "Vendeur"}</p>
+                  <span className={`text-xs ${data?.vendor.status === "active" ? "text-[#22c55e]" : "text-[#f97316]"}`}>
+                    {data?.vendor.status === "active" ? "● Actif" : "● Inactif"}
+                  </span>
+                </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                    <User className="h-4 w-4" /> Mon profil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/vendor/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                    <Settings className="h-4 w-4" /> Paramètres
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[#1e1e2e]" />
+                <DropdownMenuItem
+                  onClick={async () => { await supabase.current.auth.signOut(); window.location.href = "/" }}
+                  className="flex items-center gap-2 text-red-400 hover:text-red-300 cursor-pointer focus:text-red-300"
+                >
+                  <LogOut className="h-4 w-4" /> Se déconnecter
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
