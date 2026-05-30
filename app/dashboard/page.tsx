@@ -44,13 +44,14 @@ interface HomeData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SIDEBAR_ITEMS = [
-  { icon: LayoutDashboard, label: "Accueil",         href: "/dashboard",              active: true },
+  { icon: LayoutDashboard, label: "Accueil",         href: "/dashboard",               active: true },
   { icon: ShoppingBag,     label: "Explorer",         href: "/marketplace" },
-  { icon: Package,         label: "Commandes",        href: "/marketplace/orders",     badge: "orders" },
+  { icon: Smartphone,      label: "Produits",         href: "/marketplace/products" },
+  { icon: Package,         label: "Commandes",        href: "/marketplace/orders",      badge: "orders" },
   { icon: Clock,           label: "Live Tracking",    href: "/tracking" },
   { icon: Heart,           label: "Favoris",          href: "/marketplace/favorites" },
   { icon: Wallet,          label: "Wallet",           href: "/wallet" },
-  { icon: MessageSquare,   label: "Messages",         href: "/dashboard/messages",     badge: "unread" },
+  { icon: MessageSquare,   label: "Messages",         href: "/dashboard/messages",      badge: "unread" },
   { icon: Tag,             label: "Promotions",       href: "/marketplace/offers" },
   { icon: HelpCircle,      label: "Support",          href: "/support" },
   { icon: Settings,        label: "Paramètres",       href: "/dashboard/settings" },
