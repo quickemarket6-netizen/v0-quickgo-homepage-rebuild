@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  LayoutDashboard, Package, ShoppingBag, TrendingUp, Wallet, Users, BarChart3,
+  LayoutDashboard, Package, ShoppingBag, TrendingUp, Wallet, Users, UserCog, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, BellRing, ChevronDown, ChevronRight,
   LogOut, User, Truck, Boxes, Ticket, MessageSquare, RefreshCw,
   CheckCircle, Trash2, Clock, ExternalLink, AlertTriangle, Info,
@@ -74,6 +74,7 @@ const SIDEBAR_ITEMS = [
     ],
   },
   { icon: Users,        label: "Clients CRM",  href: "/vendor/crm" },
+  { icon: UserCog,          label: "Employés",         href: "/vendor/employees"     },
   { icon: BarChart3,    label: "Analyses",     href: "/vendor/analytics" },
   { icon: Tag,          label: "Promotions",   href: "/vendor/promotions" },
   { icon: Ticket,       label: "Coupons",      href: "/vendor/coupons" },

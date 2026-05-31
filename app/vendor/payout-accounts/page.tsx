@@ -7,7 +7,7 @@ import {
   ArrowLeft, Plus, Trash2, Star, CheckCircle2, AlertTriangle,
   RefreshCw, CreditCard, Smartphone, Banknote, Shield,
   X, Phone, User, Wallet, LayoutDashboard, Package,
-  ShoppingBag, Users, Settings,
+  ShoppingBag, Users, UserCog, Settings,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"

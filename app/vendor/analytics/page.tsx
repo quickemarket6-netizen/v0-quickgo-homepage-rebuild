@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import {
-  LayoutDashboard, ShoppingBag, Package, TrendingUp, TrendingDown, Wallet, Users,
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, TrendingDown, Wallet, Users, UserCog,
   BarChart3, Tag, Star, Settings, HelpCircle, Bell, ChevronDown, RefreshCw,
   Zap, ChevronRight, LogOut, User, Download, Boxes, Truck, Crown, Percent, Ticket, MessageSquare,
 } from "lucide-react"
@@ -63,6 +63,7 @@ const SIDEBAR_ITEMS = [
     ],
   },
   { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
+  { icon: UserCog,          label: "Employés",         href: "/vendor/employees"     },
   { icon: Tag,        label: "Promotions",  href: "/vendor/promotions" },
   { icon: Ticket,     label: "Coupons",     href: "/vendor/coupons" },
   { icon: Star,         label: "Avis",     href: "/vendor/reviews" },

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import {
-  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, UserCog, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
   RefreshCw, Search, Phone, Award, Crown, Zap, LogOut, User, Truck,
   Boxes, ShoppingCart, TrendingDown, UserPlus, Activity, Ticket, MessageSquare,

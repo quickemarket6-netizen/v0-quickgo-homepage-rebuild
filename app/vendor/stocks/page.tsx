@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import {
-  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, UserCog, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
   AlertTriangle, CheckCircle, XCircle, RefreshCw, Edit3, Check, X,
   Zap, LogOut, User, Boxes, TrendingDown, Archive, Truck, Ticket, MessageSquare,
@@ -71,6 +71,7 @@ const SIDEBAR_ITEMS = [
     ],
   },
   { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
+  { icon: UserCog,          label: "Employés",         href: "/vendor/employees"     },
   { icon: BarChart3,  label: "Analyses",   href: "/vendor/analytics" },
   { icon: Tag,        label: "Promotions", href: "/vendor/promotions" },
   { icon: Ticket,     label: "Coupons",    href: "/vendor/coupons" },
