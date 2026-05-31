@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight, ChevronLeft,
   RefreshCw, Clock, CheckCircle, XCircle, Truck, Phone, Printer,
-  AlertTriangle, Zap, LogOut, User, Boxes, Search,
+  AlertTriangle, Zap, LogOut, User, Boxes, Search, Ticket,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -105,6 +105,7 @@ const SIDEBAR_ITEMS = [
   { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
   { icon: BarChart3,  label: "Analyses",   href: "/vendor/analytics" },
   { icon: Tag,        label: "Promotions", href: "/vendor/promotions" },
+  { icon: Ticket,     label: "Coupons",    href: "/vendor/coupons" },
   { icon: Star,       label: "Avis",       href: "/vendor/reviews" },
   { icon: Settings,   label: "Paramètres", href: "/vendor/settings" },
   { icon: HelpCircle, label: "Aide",       href: "/vendor/help" },

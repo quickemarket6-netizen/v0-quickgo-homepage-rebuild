@@ -6,7 +6,7 @@ import Link from "next/link"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, TrendingDown, Wallet, Users,
   BarChart3, Tag, Star, Settings, HelpCircle, Bell, ChevronDown, RefreshCw,
-  Zap, ChevronRight, LogOut, User, Download, Boxes, Truck, Crown, Percent,
+  Zap, ChevronRight, LogOut, User, Download, Boxes, Truck, Crown, Percent, Ticket,
 } from "lucide-react"
 import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -64,6 +64,7 @@ const SIDEBAR_ITEMS = [
   },
   { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
   { icon: Tag,        label: "Promotions",  href: "/vendor/promotions" },
+  { icon: Ticket,     label: "Coupons",     href: "/vendor/coupons" },
   { icon: Star,       label: "Avis",        href: "/vendor/reviews" },
   { icon: Settings,   label: "Paramètres",  href: "/vendor/settings" },
   { icon: HelpCircle, label: "Aide",        href: "/vendor/help" },

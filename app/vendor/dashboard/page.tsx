@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, Search, ChevronDown, RefreshCw,
   TrendingDown, AlertTriangle, Clock, CheckCircle, XCircle, Truck,
-  ArrowUpRight, Zap, Info, Download, ChevronRight, LogOut, User, Boxes,
+  ArrowUpRight, Zap, Info, Download, ChevronRight, LogOut, User, Boxes, Ticket,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -71,6 +71,7 @@ const SIDEBAR_ITEMS = [
   { icon: Users,     label: "Clients CRM", href: "/vendor/crm" },
   { icon: BarChart3, label: "Analyses",   href: "/vendor/analytics" },
   { icon: Tag,       label: "Promotions", href: "/vendor/promotions" },
+  { icon: Ticket,    label: "Coupons",    href: "/vendor/coupons" },
   { icon: Star,      label: "Avis",       href: "/vendor/reviews" },
   { icon: Settings,  label: "Paramètres", href: "/vendor/settings" },
   { icon: HelpCircle,label: "Aide",       href: "/vendor/help" },
