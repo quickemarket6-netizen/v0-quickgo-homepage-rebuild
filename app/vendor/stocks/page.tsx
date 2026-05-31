@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
   AlertTriangle, CheckCircle, XCircle, RefreshCw, Edit3, Check, X,
-  Zap, LogOut, User, Boxes, TrendingDown, Archive,
+  Zap, LogOut, User, Boxes, TrendingDown, Archive, Truck,
 } from "lucide-react"
 import {
   BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
@@ -60,6 +60,7 @@ const SIDEBAR_ITEMS = [
     ],
   },
   { icon: Boxes,      label: "Stocks",      href: "/vendor/stocks", active: true },
+  { icon: Truck,      label: "Livraisons",  href: "/vendor/deliveries" },
   { icon: TrendingUp, label: "Revenus",     href: "/vendor/analytics" },
   {
     icon: Wallet, label: "Portefeuille", href: "/vendor/wallet", expandable: true,
@@ -68,7 +69,7 @@ const SIDEBAR_ITEMS = [
       { label: "Historique",       href: "/vendor/wallet/history" },
     ],
   },
-  { icon: Users,      label: "Clients",    href: "/vendor/customers" },
+  { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
   { icon: BarChart3,  label: "Analyses",   href: "/vendor/analytics" },
   { icon: Tag,        label: "Promotions", href: "/vendor/promotions" },
   { icon: Star,       label: "Avis",       href: "/vendor/reviews" },

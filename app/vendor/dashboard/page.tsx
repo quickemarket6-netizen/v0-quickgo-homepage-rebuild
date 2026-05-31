@@ -50,6 +50,7 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard", active: true },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
   { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
     children: [
@@ -66,7 +67,7 @@ const SIDEBAR_ITEMS = [
       { label: "Historique",       href: "/vendor/wallet/history" },
     ],
   },
-  { icon: Users,     label: "Clients",    href: "/vendor/customers" },
+  { icon: Users,     label: "Clients CRM", href: "/vendor/crm" },
   { icon: BarChart3, label: "Analyses",   href: "/vendor/analytics" },
   { icon: Tag,       label: "Promotions", href: "/vendor/promotions" },
   { icon: Star,      label: "Avis",       href: "/vendor/reviews" },

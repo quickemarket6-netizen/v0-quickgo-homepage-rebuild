@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Plus, Search, Edit2, Trash2, Eye,
-  ChevronDown, ChevronRight, Zap, Boxes,
+  ChevronDown, ChevronRight, Zap, Boxes, Truck,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -41,6 +41,7 @@ const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
   { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
   {
     icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
     children: [
@@ -57,7 +58,7 @@ const SIDEBAR_ITEMS = [
       { label: "Historique",       href: "/vendor/wallet/history" },
     ],
   },
-  { icon: Users,      label: "Clients",    href: "/vendor/customers" },
+  { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
   { icon: BarChart3,  label: "Analyses",   href: "/vendor/analytics" },
   { icon: Tag,        label: "Promotions", href: "/vendor/promotions" },
   { icon: Star,       label: "Avis",       href: "/vendor/reviews" },
