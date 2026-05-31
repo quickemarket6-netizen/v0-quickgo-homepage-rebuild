@@ -98,6 +98,7 @@ const SIDEBAR_ITEMS = [
     icon: Wallet, label: "Portefeuille", href: "/vendor/wallet", expandable: true,
     children: [
       { label: "Solde & Retrait",  href: "/vendor/wallet" },
+      { label: "Retraits",         href: "/vendor/payouts" },
       { label: "Historique",       href: "/vendor/wallet/history" },
     ],
   },
