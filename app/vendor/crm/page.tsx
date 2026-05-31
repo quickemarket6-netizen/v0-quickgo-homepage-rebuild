@@ -71,6 +71,7 @@ const SIDEBAR_ITEMS = [
   { icon: Ticket,     label: "Coupons",     href: "/vendor/coupons" },
   { icon: Star,         label: "Avis",     href: "/vendor/reviews" },
   { icon: MessageSquare,label: "Messages", href: "/vendor/messages" },
+  { icon: Bell,         label: "Notifications",href: "/vendor/notifications" },
   { icon: Settings,   label: "Paramètres",  href: "/vendor/settings" },
   { icon: HelpCircle, label: "Aide",        href: "/vendor/help" },
 ]

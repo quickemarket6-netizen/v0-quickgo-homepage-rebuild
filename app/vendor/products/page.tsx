@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
   Tag, Star, Settings, HelpCircle, Plus, Search, Edit2, Trash2, Eye,
-  ChevronDown, ChevronRight, Zap, Boxes, Truck, Ticket, MessageSquare,
+  ChevronDown, ChevronRight, Zap, Boxes, Truck, Ticket, MessageSquare, Bell,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
@@ -65,6 +65,7 @@ const SIDEBAR_ITEMS = [
   { icon: Ticket,     label: "Coupons",    href: "/vendor/coupons" },
   { icon: Star,         label: "Avis",     href: "/vendor/reviews" },
   { icon: MessageSquare,label: "Messages", href: "/vendor/messages" },
+  { icon: Bell,         label: "Notifications",href: "/vendor/notifications" },
   { icon: Settings,   label: "Paramètres", href: "/vendor/settings" },
   { icon: HelpCircle, label: "Aide",       href: "/vendor/help" },
 ]
