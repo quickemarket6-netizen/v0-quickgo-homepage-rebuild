@@ -1,0 +1,5 @@
+- [Next.js 16 proxy](nextjs16-proxy.md) — Next.js 16 renamed middleware.ts → proxy.ts; export must be named `proxy`, not `middleware`
+- [Supabase client null-safe](supabase-nullsafe.md) — createClient() must guard against missing env vars or it throws and crashes the app
+- [QuickGo stack](quickgo-stack.md) — Project overview, key files, and what has been fixed/pending
+- [QuickGo auth flows](quickgo-auth.md) — All 3 auth pages now use real Supabase calls; verify page reads email from ?email= query param
+- [QuickGo fintech system](quickgo-fintech.md) — Escrow payout system: 7 tables, atomic RPCs, CinetPay integration, rates, API routes, dashboards

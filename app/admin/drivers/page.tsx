@@ -1,364 +1,259 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { Navbar } from "@/components/navbar"
+import {
+  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
+  Settings, Search, Star, Phone, CheckCircle, Clock, Ban,
+  Eye, ChevronLeft, ChevronRight, Download, UserPlus, Bike, Car, Wallet,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  LayoutDashboard,
-  Package,
-  Users,
-  Truck,
-  BarChart3,
-  Settings,
-  Search,
-  Star,
-  MapPin,
-  Phone,
-  Mail,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Eye,
-  Edit,
-  Ban,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  UserPlus,
-  Bike,
-  Car,
-  Zap,
-} from "lucide-react"
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Vue d'ensemble", href: "/admin" },
-  { icon: Package, label: "Commandes", href: "/admin/orders" },
-  { icon: Truck, label: "Livreurs", href: "/admin/drivers", active: true },
-  { icon: Users, label: "Clients", href: "/admin/users" },
-  { icon: BarChart3, label: "Analyses", href: "/admin/analytics" },
-  { icon: Settings, label: "Paramètres", href: "/admin/settings" },
+  { icon: Package,         label: "Commandes",       href: "/admin/orders" },
+  { icon: Truck,           label: "Livreurs",         href: "/admin/drivers", active: true },
+  { icon: Users,           label: "Clients",          href: "/admin/users" },
+  { icon: Store,           label: "Vendeurs",         href: "/admin/vendors" },
+  { icon: BarChart3,       label: "Analyses",         href: "/admin/analytics" },
+  { icon: Wallet,          label: "Finances",         href: "/admin/finances" },
+  { icon: Settings,        label: "Paramètres",       href: "/admin/settings" },
 ]
 
-const drivers = [
-  {
-    id: 1,
-    name: "Emmanuel Kamga",
-    email: "emmanuel.k@quickgo.cm",
-    phone: "+237 677 234 567",
-    location: "Yaoundé Centre",
-    deliveries: 1247,
-    rating: 4.9,
-    earnings: "485 000 CFA",
-    status: "online",
-    vehicle: "moto",
-    level: "Gold",
-    joined: "15 Mar 2023"
-  },
-  {
-    id: 2,
-    name: "Jean Paul Nkodo",
-    email: "jp.nkodo@quickgo.cm",
-    phone: "+237 690 345 678",
-    location: "Yaoundé Nord",
-    deliveries: 892,
-    rating: 4.8,
-    earnings: "356 000 CFA",
-    status: "online",
-    vehicle: "moto",
-    level: "Silver",
-    joined: "22 Jun 2023"
-  },
-  {
-    id: 3,
-    name: "Christian Bella",
-    email: "c.bella@quickgo.cm",
-    phone: "+237 655 456 789",
-    location: "Douala Akwa",
-    deliveries: 2156,
-    rating: 4.95,
-    earnings: "892 000 CFA",
-    status: "delivering",
-    vehicle: "voiture",
-    level: "Platinum",
-    joined: "08 Jan 2023"
-  },
-  {
-    id: 4,
-    name: "Steve Mbarga",
-    email: "s.mbarga@quickgo.cm",
-    phone: "+237 699 567 890",
-    location: "Yaoundé Est",
-    deliveries: 456,
-    rating: 4.6,
-    earnings: "178 000 CFA",
-    status: "offline",
-    vehicle: "moto",
-    level: "Bronze",
-    joined: "10 Dec 2023"
-  },
-  {
-    id: 5,
-    name: "Samuel Ekwe",
-    email: "s.ekwe@quickgo.cm",
-    phone: "+237 670 678 901",
-    location: "Douala Bonaberi",
-    deliveries: 78,
-    rating: 4.2,
-    earnings: "34 000 CFA",
-    status: "suspended",
-    vehicle: "velo",
-    level: "Bronze",
-    joined: "01 Feb 2024"
-  },
-]
-
-const vehicleIcons = {
-  moto: Bike,
-  voiture: Car,
-  velo: Zap,
+const STATUS_CONFIG: Record<string, { label: string; dot: string }> = {
+  online:     { label: "En ligne",   dot: "bg-green-500" },
+  delivering: { label: "En course",  dot: "bg-blue-500" },
+  offline:    { label: "Hors ligne", dot: "bg-gray-500" },
+  suspended:  { label: "Suspendu",   dot: "bg-red-500" },
 }
 
-export default function AdminDriversPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedStatus, setSelectedStatus] = useState("all")
+function formatCFA(n: number) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M F"
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + "K F"
+  return n + " F"
+}
 
-  const filteredDrivers = drivers.filter(driver => {
-    const matchesSearch = driver.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         driver.email.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = selectedStatus === "all" || driver.status === selectedStatus
-    return matchesSearch && matchesStatus
-  })
+interface DriverRow {
+  id: string
+  status: string
+  vehicle_type: string | null
+  rating: number | null
+  total_deliveries: number
+  total_earnings: number
+  city: string | null
+  created_at: string
+  user: { id: string; full_name: string; phone: string; email: string; avatar_url: string | null } | null
+}
+
+const PAGE_SIZE = 20
+
+export default function AdminDriversPage() {
+  const [drivers, setDrivers] = useState<DriverRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [summary, setSummary] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [page, setPage] = useState(1)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const fetchDrivers = useCallback(async (q: string, status: string, p: number) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({ search: q, status, page: String(p), limit: String(PAGE_SIZE) })
+      const res = await fetch(`/api/admin/drivers?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setDrivers(data.drivers)
+        setTotal(data.total)
+        setSummary(data.summary ?? {})
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchDrivers(search, statusFilter, page) }, [statusFilter, page, fetchDrivers])
+
+  const handleSearch = (val: string) => {
+    setSearch(val)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => { setPage(1); fetchDrivers(val, statusFilter, 1) }, 350)
+  }
+
+  const initials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+
+  const summaryCards = [
+    { key: "online",     label: "En ligne",   icon: CheckCircle, color: "text-green-400", bg: "bg-green-500/20" },
+    { key: "delivering", label: "En course",  icon: Truck,       color: "text-blue-400",  bg: "bg-blue-500/20" },
+    { key: "offline",    label: "Hors ligne", icon: Clock,       color: "text-gray-400",  bg: "bg-gray-500/20" },
+    { key: "suspended",  label: "Suspendus",  icon: Ban,         color: "text-red-400",   bg: "bg-red-500/20" },
+  ]
 
   return (
-    <main className="min-h-screen bg-background">
-      <Navbar />
-      
-      <div className="pt-20 lg:pt-24">
-        <div className="flex">
-          {/* Sidebar */}
-          <aside className="hidden lg:block w-64 min-h-[calc(100vh-6rem)] border-r border-border/50 p-6">
-            <div className="mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <LayoutDashboard className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">Admin Panel</p>
-                  <p className="text-xs text-muted-foreground">QuickGo</p>
-                </div>
-              </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 bg-card/30">
+        <div className="p-6 border-b border-border/30">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center">
+              <span className="text-white font-bold text-lg">Q</span>
             </div>
-            
-            <nav className="space-y-1">
-              {sidebarItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                    item.active
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
+            <div>
+              <span className="text-xl font-bold text-white">QUICK</span>
+              <span className="text-xl font-bold text-quickgo-lime">GO</span>
+              <p className="text-[10px] text-red-400 uppercase tracking-wider font-semibold">Admin</p>
+            </div>
+          </Link>
+        </div>
+        <nav className="flex-1 p-4 space-y-1">
+          {sidebarItems.map((item) => (
+            <Link key={item.label} href={item.href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                item.active ? "bg-quickgo-blue/20 text-quickgo-blue" : "text-muted-foreground hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+      </aside>
+
+      <main className="flex-1 overflow-auto">
+        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-white">Gestion des Livreurs</h1>
+              <p className="text-sm text-muted-foreground">{total.toLocaleString()} livreurs enregistrés</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" className="rounded-full gap-2">
+                <Download className="w-4 h-4" /> Exporter
+              </Button>
+              <Button size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-2">
+                <UserPlus className="w-4 h-4" /> Ajouter
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="p-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {summaryCards.map(({ key, label, icon: Icon, color, bg }) => (
+              <button key={key} onClick={() => { setStatusFilter(key); setPage(1) }}
+                className={`p-4 rounded-2xl border transition-all text-left ${
+                  statusFilter === key ? "border-quickgo-blue bg-quickgo-blue/10" : "bg-card/50 border-border/30 hover:border-border/60"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl ${bg}`}>
+                    <Icon className={`h-5 w-5 ${color}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{loading ? "—" : (summary[key] ?? 0)}</p>
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Rechercher un livreur..." value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 bg-card/50 border-border/30" />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {["all", ...Object.keys(STATUS_CONFIG)].map((s) => (
+                <Button key={s} size="sm" variant={statusFilter === s ? "default" : "outline"}
+                  onClick={() => { setStatusFilter(s); setPage(1) }} className="rounded-full">
+                  {s === "all" ? "Tous" : STATUS_CONFIG[s]?.label ?? s}
+                </Button>
               ))}
-            </nav>
-          </aside>
-          
-          {/* Main Content */}
-          <div className="flex-1 p-6 lg:p-8">
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"
-            >
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
-                  Gestion des Livreurs
-                </h1>
-                <p className="text-muted-foreground">
-                  {drivers.length} livreurs enregistres
-                </p>
-              </div>
-              <div className="flex items-center gap-3 mt-4 sm:mt-0">
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Exporter
-                </Button>
-                <Button className="gap-2 bg-primary hover:bg-primary/90">
-                  <UserPlus className="h-4 w-4" />
-                  Ajouter
-                </Button>
-              </div>
-            </motion.div>
+            </div>
+          </div>
 
-            {/* Stats Cards */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
-            >
-              <div className="p-4 rounded-2xl bg-card border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-green-500/20">
-                    <CheckCircle className="h-5 w-5 text-green-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">356</p>
-                    <p className="text-xs text-muted-foreground">En ligne</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 rounded-2xl bg-card border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-500/20">
-                    <Truck className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">124</p>
-                    <p className="text-xs text-muted-foreground">En course</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 rounded-2xl bg-card border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-gray-500/20">
-                    <Clock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">892</p>
-                    <p className="text-xs text-muted-foreground">Hors ligne</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4 rounded-2xl bg-card border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-red-500/20">
-                    <Ban className="h-5 w-5 text-red-400" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">12</p>
-                    <p className="text-xs text-muted-foreground">Suspendus</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Filters */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="flex flex-col sm:flex-row gap-4 mb-6"
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un livreur..."
-                  className="pl-10 bg-card border-border/50"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                {["all", "online", "delivering", "offline", "suspended"].map((status) => (
-                  <Button
-                    key={status}
-                    variant={selectedStatus === status ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedStatus(status)}
-                  >
-                    {status === "all" ? "Tous" : 
-                     status === "online" ? "En ligne" :
-                     status === "delivering" ? "En course" :
-                     status === "offline" ? "Hors ligne" : "Suspendus"}
-                  </Button>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Drivers Grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+          {/* Drivers Grid */}
+          {loading ? (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-64 rounded-2xl bg-card/30 animate-pulse" />
+              ))}
+            </div>
+          ) : drivers.length === 0 ? (
+            <div className="text-center py-16">
+              <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">Aucun livreur trouvé</p>
+            </div>
+          ) : (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="grid md:grid-cols-2 xl:grid-cols-3 gap-4"
             >
-              {filteredDrivers.map((driver) => {
-                const VehicleIcon = vehicleIcons[driver.vehicle as keyof typeof vehicleIcons] || Bike
+              {drivers.map((driver) => {
+                const name = (driver.user as { full_name?: string } | null)?.full_name ?? "—"
+                const phone = (driver.user as { phone?: string } | null)?.phone ?? "—"
+                const email = (driver.user as { email?: string } | null)?.email ?? "—"
+                const statusDot = STATUS_CONFIG[driver.status]?.dot ?? "bg-gray-500"
+                const VehicleIcon = driver.vehicle_type === "voiture" ? Car : Bike
                 return (
-                  <div
-                    key={driver.id}
-                    className="p-6 rounded-2xl bg-card border border-border/50 hover:border-primary/30 transition-all"
+                  <div key={driver.id}
+                    className="p-6 rounded-2xl bg-card/50 border border-border/30 hover:border-quickgo-blue/30 transition-all"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg">
-                            {driver.name.split(" ").map(n => n[0]).join("")}
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-white font-bold text-lg">
+                            {initials(name)}
                           </div>
-                          <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-card ${
-                            driver.status === "online" ? "bg-green-500" :
-                            driver.status === "delivering" ? "bg-blue-500" :
-                            driver.status === "offline" ? "bg-gray-500" : "bg-red-500"
-                          }`} />
+                          <span className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-card ${statusDot}`} />
                         </div>
                         <div>
-                          <h3 className="font-bold text-foreground">{driver.name}</h3>
+                          <h3 className="font-bold text-white text-sm">{name}</h3>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              driver.level === "Platinum" ? "bg-purple-500/20 text-purple-400" :
-                              driver.level === "Gold" ? "bg-yellow-500/20 text-yellow-400" :
-                              driver.level === "Silver" ? "bg-gray-400/20 text-gray-300" :
-                              "bg-orange-500/20 text-orange-400"
-                            }`}>
-                              {driver.level}
-                            </span>
-                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-quickgo-blue/20 text-quickgo-blue flex items-center gap-1">
                               <VehicleIcon className="h-3 w-3" />
-                              {driver.vehicle}
+                              {driver.vehicle_type ?? "—"}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-yellow-400">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="text-sm font-bold">{driver.rating}</span>
-                      </div>
+                      {driver.rating != null && (
+                        <div className="flex items-center gap-1 text-yellow-400">
+                          <Star className="h-4 w-4 fill-current" />
+                          <span className="text-sm font-bold">{driver.rating.toFixed(1)}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Contact */}
-                    <div className="space-y-2 mb-4 text-sm">
+                    <div className="space-y-1.5 mb-4 text-sm">
                       <p className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5" />
-                        {driver.email}
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        {phone}
                       </p>
-                      <p className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5" />
-                        {driver.phone}
-                      </p>
-                      <p className="flex items-center gap-2 text-muted-foreground">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {driver.location}
-                      </p>
+                      {driver.city && (
+                        <p className="text-xs text-muted-foreground">{driver.city}</p>
+                      )}
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="p-3 rounded-xl bg-muted/30 text-center">
-                        <p className="text-lg font-bold text-foreground">{driver.deliveries}</p>
+                      <div className="p-3 rounded-xl bg-white/5 text-center">
+                        <p className="text-lg font-bold text-white">{driver.total_deliveries.toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">Livraisons</p>
                       </div>
-                      <div className="p-3 rounded-xl bg-muted/30 text-center">
-                        <p className="text-lg font-bold text-green-400">{driver.earnings}</p>
+                      <div className="p-3 rounded-xl bg-white/5 text-center">
+                        <p className="text-lg font-bold text-quickgo-lime">{formatCFA(driver.total_earnings)}</p>
                         <p className="text-xs text-muted-foreground">Revenus</p>
                       </div>
                     </div>
@@ -366,49 +261,50 @@ export default function AdminDriversPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" className="flex-1 gap-1">
-                        <Eye className="h-3.5 w-3.5" />
-                        Voir
+                        <Eye className="h-3.5 w-3.5" /> Voir
                       </Button>
-                      <Button variant="outline" size="sm" className="flex-1 gap-1">
-                        <Edit className="h-3.5 w-3.5" />
-                        Modifier
-                      </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8 text-red-400 hover:text-red-300">
-                        <Ban className="h-3.5 w-3.5" />
-                      </Button>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                        driver.status === "online" ? "bg-green-500/20 text-green-400" :
+                        driver.status === "delivering" ? "bg-blue-500/20 text-blue-400" :
+                        driver.status === "suspended" ? "bg-red-500/20 text-red-400" :
+                        "bg-gray-500/20 text-gray-400"
+                      }`}>
+                        {STATUS_CONFIG[driver.status]?.label ?? driver.status}
+                      </span>
                     </div>
                   </div>
                 )
               })}
             </motion.div>
+          )}
 
-            {/* Pagination */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="flex items-center justify-between mt-6"
-            >
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6">
               <p className="text-sm text-muted-foreground">
-                Affichage 1-5 sur 1 384 livreurs
+                {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, total)} sur {total.toLocaleString()} livreurs
               </p>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-8 w-8">
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 min-w-8">1</Button>
-                <Button variant="ghost" size="sm" className="h-8 min-w-8">2</Button>
-                <Button variant="ghost" size="sm" className="h-8 min-w-8">3</Button>
-                <span className="text-muted-foreground">...</span>
-                <Button variant="ghost" size="sm" className="h-8 min-w-8">277</Button>
-                <Button variant="outline" size="icon" className="h-8 w-8">
+                {[...Array(Math.min(3, totalPages))].map((_, i) => {
+                  const p = page <= 2 ? i + 1 : page - 1 + i
+                  if (p > totalPages) return null
+                  return <Button key={p} variant={p === page ? "default" : "outline"} size="sm" className="h-8 min-w-8" onClick={() => setPage(p)}>{p}</Button>
+                })}
+                {totalPages > 3 && <span className="text-muted-foreground">...</span>}
+                {totalPages > 3 && (
+                  <Button variant="ghost" size="sm" className="h-8 min-w-8" onClick={() => setPage(totalPages)}>{totalPages}</Button>
+                )}
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </motion.div>
-          </div>
+            </div>
+          )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }

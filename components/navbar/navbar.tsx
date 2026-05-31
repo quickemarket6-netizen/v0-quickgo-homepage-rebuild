@@ -15,15 +15,20 @@ import {
   Bell,
   User,
   Moon,
-  Sun,
+  LogOut,
+  LayoutDashboard,
+  Store,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { createClient } from "@/lib/supabase/client"
+import type { User as SupabaseUser, AuthChangeEvent, Session, AuthResponse } from "@supabase/supabase-js"
 
 const navLinks = [
   { href: "/", label: "Accueil", active: true },
@@ -49,14 +54,67 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [selectedCity, setSelectedCity] = useState("Yaoundé")
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null; role: string | null } | null>(null)
+  const [cartCount, setCartCount] = useState(0)
+  const [notifCount, setNotifCount] = useState(0)
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20)
-    }
+    const handleScroll = () => setIsScrolled(window.scrollY > 20)
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  useEffect(() => {
+    const supabase = createClient()
+
+    const loadProfile = async (uid: string) => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url, role")
+        .eq("id", uid)
+        .single()
+      setProfile(data as typeof profile)
+    }
+
+    supabase.auth.getUser().then((res: AuthResponse) => {
+      const u = res.data.user
+      setUser(u)
+      if (u) {
+        loadProfile(u.id)
+        fetch("/api/cart").then((r) => r.ok ? r.json() : []).then((items: unknown[]) => setCartCount(Array.isArray(items) ? items.length : 0)).catch(() => {})
+        fetch("/api/notifications").then((r) => r.ok ? r.json() : []).then((ns: { is_read?: boolean }[]) => setNotifCount(Array.isArray(ns) ? ns.filter((n) => !n.is_read).length : 0)).catch(() => {})
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+      setUser(session?.user ?? null)
+      if (session?.user) {
+        loadProfile(session.user.id)
+        // fetch counts on login
+        fetch("/api/cart").then((r) => r.ok ? r.json() : []).then((items: unknown[]) => setCartCount(Array.isArray(items) ? items.length : 0)).catch(() => {})
+        fetch("/api/notifications").then((r) => r.ok ? r.json() : []).then((ns: { is_read?: boolean }[]) => setNotifCount(Array.isArray(ns) ? ns.filter((n) => !n.is_read).length : 0)).catch(() => {})
+      } else {
+        setProfile(null)
+        setCartCount(0)
+        setNotifCount(0)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = "/"
+  }
+
+  const dashboardHref =
+    profile?.role === "vendor" ? "/vendor/dashboard" :
+    profile?.role === "admin"  ? "/admin/dashboard" :
+    profile?.role === "driver" ? "/driver/dashboard" :
+    "/dashboard"
 
   return (
     <>
@@ -148,19 +206,31 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               {/* Icons - Desktop */}
               <div className="hidden md:flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <Heart className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
-                  <ShoppingCart className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-secondary text-secondary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-                    3
-                  </span>
-                </Button>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full" />
-                </Button>
+                <Link href="/marketplace/favorites">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                    <Heart className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/marketplace/cart" className="relative">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
+                    <ShoppingCart className="h-5 w-5" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-secondary text-secondary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                        {cartCount > 9 ? "9+" : cartCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
+                <Link href="/notifications" className="relative">
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
+                    <Bell className="h-5 w-5" />
+                    {notifCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                        {notifCount > 9 ? "9+" : notifCount}
+                      </span>
+                    )}
+                  </Button>
+                </Link>
               </div>
 
               {/* Help & Support */}
@@ -176,12 +246,55 @@ export function Navbar() {
                 <Moon className="h-5 w-5" />
               </Button>
 
-              {/* Auth Button */}
-              <Link href="/auth/login">
-                <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-4 lg:px-6">
-                  Se connecter
-                </Button>
-              </Link>
+              {/* Auth */}
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 px-2 rounded-full hover:bg-muted/50">
+                      {profile?.avatar_url ? (
+                        <Image src={profile.avatar_url} alt="avatar" width={32} height={32} className="rounded-full object-cover w-8 h-8" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                          {(profile?.full_name ?? user.email ?? "U")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span className="hidden lg:block text-sm font-medium max-w-[120px] truncate">
+                        {profile?.full_name ?? user.email}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem asChild>
+                      <Link href={dashboardHref} className="flex items-center gap-2">
+                        <LayoutDashboard className="h-4 w-4" /> Mon tableau de bord
+                      </Link>
+                    </DropdownMenuItem>
+                    {profile?.role === "vendor" && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/vendor/dashboard" className="flex items-center gap-2">
+                          <Store className="h-4 w-4" /> Espace vendeur
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile" className="flex items-center gap-2">
+                        <User className="h-4 w-4" /> Mon profil
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive flex items-center gap-2">
+                      <LogOut className="h-4 w-4" /> Se déconnecter
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link href="/auth/login">
+                  <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-4 lg:px-6">
+                    Se connecter
+                  </Button>
+                </Link>
+              )}
 
               {/* Mobile Menu Toggle */}
               <Button
@@ -283,19 +396,49 @@ export function Navbar() {
                   ))}
                 </nav>
 
-                {/* Mobile Auth Buttons */}
-                <div className="space-y-3">
-                  <Link href="/auth/login" className="block">
-                    <Button className="w-full h-12 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold">
-                      Se connecter
+                {/* Mobile Auth */}
+                {user ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 mb-2">
+                      {profile?.avatar_url ? (
+                        <Image src={profile.avatar_url} alt="avatar" width={40} height={40} className="rounded-full object-cover w-10 h-10" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+                          {(profile?.full_name ?? user.email ?? "U")[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">{profile?.full_name ?? "Mon compte"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                    </div>
+                    <Link href={dashboardHref} onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full h-12 font-semibold justify-start gap-2">
+                        <LayoutDashboard className="h-4 w-4" /> Tableau de bord
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      className="w-full h-12 font-semibold justify-start gap-2 text-destructive hover:text-destructive"
+                      onClick={handleSignOut}
+                    >
+                      <LogOut className="h-4 w-4" /> Se déconnecter
                     </Button>
-                  </Link>
-                  <Link href="/auth/register" className="block">
-                    <Button variant="outline" className="w-full h-12 font-semibold">
-                      Créer un compte
-                    </Button>
-                  </Link>
-                </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Link href="/auth/login" className="block">
+                      <Button className="w-full h-12 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold">
+                        Se connecter
+                      </Button>
+                    </Link>
+                    <Link href="/auth/register" className="block">
+                      <Button variant="outline" className="w-full h-12 font-semibold">
+                        Créer un compte
+                      </Button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

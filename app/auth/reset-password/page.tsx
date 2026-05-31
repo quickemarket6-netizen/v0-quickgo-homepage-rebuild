@@ -8,11 +8,12 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle, Loader2, AlertCircle } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
-  
+
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -43,15 +44,20 @@ export default function ResetPasswordPage() {
     }
 
     setIsLoading(true)
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
+
+    const supabase = createClient()
+    const { error: supabaseError } = await supabase.auth.updateUser({ password })
+
     setIsLoading(false)
-    setIsSubmitted(true)
+
+    if (supabaseError) {
+      setError(supabaseError.message)
+    } else {
+      setIsSubmitted(true)
+    }
   }
 
-  if (!token) {
+  if (!token && typeof window !== "undefined" && !window.location.hash.includes("access_token")) {
     return (
       <main className="min-h-screen bg-background flex items-center justify-center p-6">
         <motion.div

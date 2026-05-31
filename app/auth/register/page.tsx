@@ -20,6 +20,51 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
+const welcomeCards = [
+  {
+    emoji: "🛍️",
+    title: "Acheteur",
+    desc: "Commandez facilement",
+    color: "#a3e635",
+    glowColor: "rgba(163,230,53,0.3)",
+    delay: 0.5,
+    floatDelay: 0,
+  },
+  {
+    emoji: "🏪",
+    title: "Marchand",
+    desc: "Vendez vos produits",
+    color: "#3b82f6",
+    glowColor: "rgba(59,130,246,0.3)",
+    delay: 0.7,
+    floatDelay: 0.8,
+  },
+  {
+    emoji: "🛵",
+    title: "Livreur",
+    desc: "Gagnez en livrant",
+    color: "#f97316",
+    glowColor: "rgba(249,115,22,0.3)",
+    delay: 0.9,
+    floatDelay: 1.6,
+  },
+  {
+    emoji: "🛡️",
+    title: "Sécurisé",
+    desc: "Paiements protégés",
+    color: "#8b5cf6",
+    glowColor: "rgba(139,92,246,0.3)",
+    delay: 1.1,
+    floatDelay: 2.4,
+  },
+]
+
+const formFields = [
+  { id: "name", name: "name", type: "text", label: "Nom complet", placeholder: "Samuel Djoko", Icon: User },
+  { id: "email", name: "email", type: "email", label: "Email", placeholder: "exemple@email.com", Icon: Mail },
+  { id: "phone", name: "phone", type: "tel", label: "Téléphone", placeholder: "+237 6 XX XX XX XX", Icon: Phone },
+]
+
 export default function RegisterPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
@@ -39,27 +84,27 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!acceptTerms) {
       setError("Veuillez accepter les conditions d'utilisation")
       return
     }
-    
+
     if (formData.password.length < 6) {
       setError("Le mot de passe doit contenir au moins 6 caracteres")
       return
     }
-    
+
     setLoading(true)
     setError("")
 
     const supabase = createClient()
-    
+
     const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? 
+        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
           `${window.location.origin}/auth/callback`,
         data: {
           full_name: formData.name,
@@ -82,98 +127,125 @@ export default function RegisterPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ?? 
+        redirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ??
           `${window.location.origin}/auth/callback`
       }
     })
   }
 
   return (
-    <main className="min-h-screen bg-background flex">
-      {/* Left - Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+    <main className="min-h-screen flex" style={{ backgroundColor: "#0a0a0f" }}>
+      {/* Global background orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
-        >
+          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute w-[500px] h-[500px] rounded-full blur-[130px]"
+          style={{ background: "#3b82f6", opacity: 0.18, top: "-150px", left: "-150px" }}
+        />
+        <motion.div
+          animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
+          className="absolute w-[400px] h-[400px] rounded-full blur-[100px]"
+          style={{ background: "#06b6d4", opacity: 0.15, bottom: "80px", right: "10%" }}
+        />
+        <motion.div
+          animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }}
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          className="absolute w-[350px] h-[350px] rounded-full blur-[90px]"
+          style={{ background: "#a3e635", opacity: 0.12, top: "200px", left: "5%" }}
+        />
+        {/* Scan-line overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px)",
+          }}
+        />
+      </div>
+
+      {/* Left - Form */}
+      <div className="flex-1 flex items-center justify-center p-8 relative z-10">
+        <div className="w-full max-w-md">
           {/* Logo */}
-          <Link href="/" className="inline-block mb-8">
-            <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0007-ezKXkl63WOFNwwQlwNLqPoMzyaOKo5.jpg"
-              alt="QuickGo"
-              width={140}
-              height={40}
-              className="h-10 w-auto"
-            />
-          </Link>
-          
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <Link href="/" className="inline-block mb-8">
+              <Image
+                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0007-ezKXkl63WOFNwwQlwNLqPoMzyaOKo5.jpg"
+                alt="QuickGo"
+                width={140}
+                height={40}
+                className="h-10 w-auto"
+              />
+            </Link>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl font-bold mb-2"
+            style={{ color: "#ffffff" }}
+          >
             Créer un compte
-          </h1>
-          <p className="text-muted-foreground mb-8">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="text-muted-foreground mb-8"
+          >
             Créez votre compte QuickGo en quelques secondes et profitez !
-          </p>
-          
+          </motion.p>
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm"
+              >
                 {error}
-              </div>
+              </motion.div>
             )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="name">Nom complet</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Samuel Djoko"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="pl-10 h-12"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="exemple@email.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="pl-10 h-12"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="+237 6 XX XX XX XX"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="pl-10 h-12"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
+
+            {formFields.map((field, i) => (
+              <motion.div
+                key={field.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.1 }}
+                className="space-y-2"
+              >
+                <Label htmlFor={field.id}>{field.label}</Label>
+                <div className="relative">
+                  <field.Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id={field.id}
+                    name={field.name}
+                    type={field.type}
+                    placeholder={field.placeholder}
+                    value={formData[field.name as keyof typeof formData]}
+                    onChange={handleChange}
+                    className="pl-10 h-12"
+                    required={field.id !== "phone"}
+                  />
+                </div>
+              </motion.div>
+            ))}
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="space-y-2"
+            >
               <Label htmlFor="password">Mot de passe</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -196,9 +268,14 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-            </div>
-            
-            <div className="flex items-start gap-2">
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-start gap-2"
+            >
               <input
                 type="checkbox"
                 id="terms"
@@ -216,39 +293,61 @@ export default function RegisterPage() {
                   politique de confidentialité
                 </Link>
               </label>
-            </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full h-12 bg-secondary text-secondary-foreground hover:bg-secondary/90"
-              disabled={loading}
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65 }}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Creation...
-                </>
-              ) : (
-                <>
-                  Créer un compte
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
-              )}
-            </Button>
+              <motion.div
+                whileHover={{ boxShadow: "0 0 24px 4px rgba(163,230,53,0.35)", scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="rounded-lg"
+              >
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Creation...
+                    </>
+                  ) : (
+                    <>
+                      Créer un compte
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            </motion.div>
           </form>
-          
+
           {/* Divider */}
-          <div className="relative my-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="relative my-8"
+          >
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-4 bg-background text-muted-foreground">Ou continuer avec</span>
             </div>
-          </div>
-          
+          </motion.div>
+
           {/* Social Login */}
-          <div className="grid grid-cols-2 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.75 }}
+            className="grid grid-cols-2 gap-4"
+          >
             <Button variant="outline" className="h-12" onClick={handleGoogleSignup} type="button">
               <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -264,29 +363,123 @@ export default function RegisterPage() {
               </svg>
               Apple
             </Button>
-          </div>
-          
+          </motion.div>
+
           {/* Login Link */}
-          <p className="mt-8 text-center text-sm text-muted-foreground">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-8 text-center text-sm text-muted-foreground"
+          >
             Déjà un compte ?{" "}
             <Link href="/auth/login" className="text-primary font-medium hover:underline">
               Se connecter
             </Link>
-          </p>
-        </motion.div>
+          </motion.p>
+        </div>
       </div>
-      
+
       {/* Right - Visual (Hidden on mobile) */}
-      <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-secondary/20 via-background to-primary/20">
-        <div className="absolute inset-0 bg-grid opacity-30" />
-        <div className="relative z-10 flex items-center justify-center p-12">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
-              Rejoignez QuickGo
+      <div
+        className="hidden lg:flex flex-1 relative overflow-hidden"
+        style={{ backgroundColor: "#111118" }}
+      >
+        {/* SVG grid pattern */}
+        <div className="absolute inset-0 opacity-20">
+          <svg width="100%" height="100%">
+            <defs>
+              <pattern id="register-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#register-grid)" />
+          </svg>
+        </div>
+
+        {/* Glow orbs behind cards */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], opacity: [0.25, 0.45, 0.25] }}
+            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute w-[380px] h-[380px] rounded-full blur-[120px]"
+            style={{ background: "#8b5cf6", top: "10%", left: "10%" }}
+          />
+          <motion.div
+            animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.35, 0.2] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute w-[320px] h-[320px] rounded-full blur-[100px]"
+            style={{ background: "#06b6d4", bottom: "10%", right: "5%" }}
+          />
+          <motion.div
+            animate={{ scale: [1, 1.1, 1], opacity: [0.15, 0.3, 0.15] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+            className="absolute w-[260px] h-[260px] rounded-full blur-[80px]"
+            style={{ background: "#f97316", top: "50%", right: "30%" }}
+          />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 flex flex-col items-center justify-center p-12 w-full">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl font-bold mb-3">
+              <span
+                className="text-transparent bg-clip-text"
+                style={{
+                  backgroundImage: "linear-gradient(to right, #a3e635, #06b6d4, #8b5cf6)",
+                }}
+              >
+                Rejoignez QuickGo
+              </span>
             </h2>
-            <p className="text-lg text-muted-foreground max-w-md">
-              Des milliers de produits disponibles, livraison express en moins de 30 minutes, et paiement sécurisé.
+            <p className="text-muted-foreground max-w-sm mx-auto">
+              Des milliers de produits, livraison express, paiement sécurisé.
             </p>
+          </motion.div>
+
+          {/* Floating welcome cards — 2x2 grid */}
+          <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
+            {welcomeCards.map((card) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: "spring", stiffness: 100, delay: card.delay }}
+              >
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{
+                    duration: 3.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: card.floatDelay,
+                  }}
+                  whileHover={{ y: -4, scale: 1.04 }}
+                  className="relative rounded-xl p-4 flex flex-col items-center gap-2 cursor-default text-center"
+                  style={{
+                    backgroundColor: "#16161f",
+                    border: `1px solid #1e1e2e`,
+                    boxShadow: `0 0 18px 2px ${card.glowColor}`,
+                  }}
+                >
+                  {/* Glow halo behind emoji */}
+                  <div
+                    className="absolute inset-0 rounded-xl opacity-10"
+                    style={{ background: `radial-gradient(circle at 50% 40%, ${card.color}, transparent 70%)` }}
+                  />
+                  <span className="text-3xl relative z-10">{card.emoji}</span>
+                  <div className="relative z-10">
+                    <p className="text-sm font-semibold" style={{ color: card.color }}>{card.title}</p>
+                    <p className="text-[11px] text-muted-foreground leading-tight">{card.desc}</p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            ))}
           </div>
         </div>
       </div>

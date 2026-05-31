@@ -1,172 +1,293 @@
 "use client"
 
-import { useState } from "react"
-import { 
-  Store, Search, Filter, MoreVertical, CheckCircle, XCircle, 
-  Clock, Star, TrendingUp, Package, Eye, Edit, Trash2, Plus 
+import { useState, useEffect, useCallback, useRef } from "react"
+import { motion } from "framer-motion"
+import Link from "next/link"
+import {
+  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
+  Settings, Search, CheckCircle, XCircle, Clock, Eye, Edit2,
+  ChevronLeft, ChevronRight, Plus, ShieldCheck, Wallet,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
-const vendors = [
-  { id: 1, name: "Super Marche Central", email: "contact@supermarche.cm", status: "active", rating: 4.8, orders: 1234, revenue: 2450000, joined: "2024-01-15" },
-  { id: 2, name: "Pharmacie du Soleil", email: "info@pharmasoleil.cm", status: "active", rating: 4.9, orders: 856, revenue: 1890000, joined: "2024-02-20" },
-  { id: 3, name: "Restaurant Le Gourmet", email: "legourmet@email.cm", status: "pending", rating: 0, orders: 0, revenue: 0, joined: "2024-05-10" },
-  { id: 4, name: "Boutique Mode Africa", email: "mode@africa.cm", status: "active", rating: 4.5, orders: 567, revenue: 980000, joined: "2024-03-05" },
-  { id: 5, name: "Tech Store Cameroun", email: "tech@store.cm", status: "suspended", rating: 3.2, orders: 123, revenue: 450000, joined: "2024-01-30" },
+const sidebarItems = [
+  { icon: LayoutDashboard, label: "Vue d'ensemble", href: "/admin" },
+  { icon: Package,         label: "Commandes",       href: "/admin/orders" },
+  { icon: Truck,           label: "Livreurs",         href: "/admin/drivers" },
+  { icon: Users,           label: "Clients",          href: "/admin/users" },
+  { icon: Store,           label: "Vendeurs",         href: "/admin/vendors", active: true },
+  { icon: BarChart3,       label: "Analyses",         href: "/admin/analytics" },
+  { icon: Wallet,          label: "Finances",         href: "/admin/finances" },
+  { icon: Settings,        label: "Paramètres",       href: "/admin/settings" },
 ]
 
-const stats = [
-  { label: "Total Vendeurs", value: "856", icon: Store, color: "text-blue-400", bg: "bg-blue-500/10" },
-  { label: "Actifs", value: "743", icon: CheckCircle, color: "text-green-400", bg: "bg-green-500/10" },
-  { label: "En attente", value: "89", icon: Clock, color: "text-yellow-400", bg: "bg-yellow-500/10" },
-  { label: "Suspendus", value: "24", icon: XCircle, color: "text-red-400", bg: "bg-red-500/10" },
-]
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  active:    { label: "Actif",       className: "bg-green-500/20 text-green-400" },
+  pending:   { label: "En attente",  className: "bg-yellow-500/20 text-yellow-400" },
+  suspended: { label: "Suspendu",    className: "bg-red-500/20 text-red-400" },
+}
+
+function formatCFA(n: number) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M F"
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + "K F"
+  return n + " F"
+}
+
+interface VendorRow {
+  id: string
+  name: string
+  category: string | null
+  city: string | null
+  status: string
+  is_verified: boolean
+  commission_rate: number | null
+  created_at: string
+  total_orders: number
+  owner: { full_name: string; phone: string; email: string } | null
+  wallet: { available_balance: number; total_earned: number } | null
+}
+
+const PAGE_SIZE = 20
 
 export default function AdminVendorsPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [vendors, setVendors] = useState<VendorRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [summary, setSummary] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [page, setPage] = useState(1)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const filteredVendors = vendors.filter(v => {
-    const matchesSearch = v.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || v.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active": return <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-400">Actif</span>
-      case "pending": return <span className="px-2 py-1 text-xs rounded-full bg-yellow-500/20 text-yellow-400">En attente</span>
-      case "suspended": return <span className="px-2 py-1 text-xs rounded-full bg-red-500/20 text-red-400">Suspendu</span>
-      default: return null
+  const fetchVendors = useCallback(async (q: string, status: string, p: number) => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({ search: q, status, page: String(p), limit: String(PAGE_SIZE) })
+      const res = await fetch(`/api/admin/vendors?${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setVendors(data.vendors)
+        setTotal(data.total)
+        setSummary(data.summary ?? {})
+      }
+    } finally {
+      setLoading(false)
     }
+  }, [])
+
+  useEffect(() => { fetchVendors(search, statusFilter, page) }, [statusFilter, page, fetchVendors])
+
+  const handleSearch = (val: string) => {
+    setSearch(val)
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => { setPage(1); fetchVendors(val, statusFilter, 1) }, 350)
   }
 
-  return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Gestion des Vendeurs</h1>
-            <p className="text-muted-foreground">Gerez tous les vendeurs de la plateforme</p>
-          </div>
-          <Button className="bg-quickgo-lime text-black hover:bg-quickgo-lime/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Ajouter un vendeur
-          </Button>
-        </div>
+  const totalPages = Math.ceil(total / PAGE_SIZE)
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {stats.map((stat, i) => (
-            <div key={i} className="p-4 rounded-xl bg-card border border-border">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+  const statsCards = [
+    { key: "active",    label: "Actifs",      icon: Store,       color: "from-quickgo-blue to-quickgo-cyan" },
+    { key: "pending",   label: "En attente",  icon: Clock,       color: "from-yellow-500 to-orange-500" },
+    { key: "suspended", label: "Suspendus",   icon: XCircle,     color: "from-red-500 to-pink-500" },
+    { key: "verified",  label: "Vérifiés",    icon: ShieldCheck, color: "from-green-500 to-emerald-500" },
+  ]
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 bg-card/30">
+        <div className="p-6 border-b border-border/30">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center">
+              <span className="text-white font-bold text-lg">Q</span>
+            </div>
+            <div>
+              <span className="text-xl font-bold text-white">QUICK</span>
+              <span className="text-xl font-bold text-quickgo-lime">GO</span>
+              <p className="text-[10px] text-red-400 uppercase tracking-wider font-semibold">Admin</p>
+            </div>
+          </Link>
+        </div>
+        <nav className="flex-1 p-4 space-y-1">
+          {sidebarItems.map((item) => (
+            <Link key={item.label} href={item.href}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                item.active ? "bg-quickgo-blue/20 text-quickgo-blue" : "text-muted-foreground hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <item.icon className="w-5 h-5" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+      </aside>
+
+      <main className="flex-1 overflow-auto">
+        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-white">Gestion des Vendeurs</h1>
+              <p className="text-sm text-muted-foreground">{total.toLocaleString()} vendeurs enregistrés</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-2">
+                <Plus className="w-4 h-4" /> Ajouter un vendeur
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="p-6">
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {statsCards.map(({ key, label, icon: Icon, color }, i) => (
+              <motion.div key={key}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                className="bg-card/50 rounded-2xl p-5 border border-border/30"
+              >
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-3`}>
+                  <Icon className="w-5 h-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="text-2xl font-bold text-white">{loading ? "—" : (summary[key] ?? 0)}</p>
+                <p className="text-sm text-muted-foreground">{label}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Rechercher un vendeur..." value={search}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 bg-card/50 border-border/30" />
+            </div>
+            <div className="flex items-center gap-2">
+              {["all", "active", "pending", "suspended"].map((s) => (
+                <Button key={s} size="sm" variant={statusFilter === s ? "default" : "outline"}
+                  onClick={() => { setStatusFilter(s); setPage(1) }} className="rounded-full">
+                  {s === "all" ? "Tous" : STATUS_CONFIG[s]?.label ?? s}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="bg-card/50 backdrop-blur-xl rounded-3xl border border-border/30 overflow-hidden"
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    {["Vendeur", "Catégorie", "Ville", "Commandes", "Solde wallet", "Commission", "Statut", "Actions"].map((h) => (
+                      <th key={h} className="text-left text-xs text-muted-foreground font-medium py-4 px-4 first:px-6">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <tr key={i}>
+                        <td colSpan={8} className="px-6 py-3">
+                          <div className="h-10 bg-white/5 animate-pulse rounded-xl" />
+                        </td>
+                      </tr>
+                    ))
+                  ) : vendors.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-16 text-muted-foreground">
+                        <Store className="w-10 h-10 mx-auto mb-3 opacity-40" />
+                        Aucun vendeur trouvé
+                      </td>
+                    </tr>
+                  ) : vendors.map((vendor) => {
+                    const ownerName = (vendor.owner as { full_name?: string } | null)?.full_name ?? "—"
+                    const balance = (vendor.wallet as { available_balance?: number } | null)?.available_balance ?? 0
+                    return (
+                      <tr key={vendor.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-quickgo-blue/20 flex items-center justify-center shrink-0">
+                              <Store className="w-5 h-5 text-quickgo-blue" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-white font-medium text-sm">{vendor.name}</p>
+                                {vendor.is_verified && <CheckCircle className="w-3.5 h-3.5 text-quickgo-blue" />}
+                              </div>
+                              <p className="text-xs text-muted-foreground">{ownerName}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-muted-foreground">{vendor.category ?? "—"}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-white">{vendor.city ?? "—"}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-white font-medium">{vendor.total_orders.toLocaleString()}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-quickgo-lime font-semibold">{formatCFA(balance)}</span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className="text-sm text-muted-foreground">
+                            {vendor.commission_rate != null ? `${vendor.commission_rate}%` : "—"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_CONFIG[vendor.status]?.className ?? ""}`}>
+                            {STATUS_CONFIG[vendor.status]?.label ?? vendor.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-1">
+                            <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                              <Eye className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                            <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                              <Edit2 className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t border-border/30">
+                <p className="text-sm text-muted-foreground">
+                  {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, total)} sur {total.toLocaleString()} vendeurs
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {[...Array(Math.min(3, totalPages))].map((_, i) => {
+                    const p = page <= 2 ? i + 1 : page - 1 + i
+                    if (p > totalPages) return null
+                    return <Button key={p} variant={p === page ? "default" : "outline"} size="sm" className="h-8 min-w-8" onClick={() => setPage(p)}>{p}</Button>
+                  })}
+                  {totalPages > 3 && <span className="text-muted-foreground">...</span>}
+                  {totalPages > 3 && (
+                    <Button variant="ghost" size="sm" className="h-8 min-w-8" onClick={() => setPage(totalPages)}>{totalPages}</Button>
+                  )}
+                  <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            </div>
-          ))}
+            )}
+          </motion.div>
         </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Rechercher un vendeur..." 
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Filter className="w-4 h-4" />
-                Statut: {statusFilter === "all" ? "Tous" : statusFilter}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setStatusFilter("all")}>Tous</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("active")}>Actifs</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("pending")}>En attente</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter("suspended")}>Suspendus</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Table */}
-        <div className="rounded-xl border border-border overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Vendeur</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground hidden md:table-cell">Statut</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground hidden lg:table-cell">Note</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground hidden lg:table-cell">Commandes</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground hidden xl:table-cell">Revenus</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredVendors.map((vendor) => (
-                <tr key={vendor.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-quickgo-blue/20 flex items-center justify-center">
-                        <Store className="w-5 h-5 text-quickgo-blue" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{vendor.name}</p>
-                        <p className="text-xs text-muted-foreground">{vendor.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 hidden md:table-cell">{getStatusBadge(vendor.status)}</td>
-                  <td className="px-4 py-4 hidden lg:table-cell">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      <span className="text-sm text-foreground">{vendor.rating || "-"}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 hidden lg:table-cell">
-                    <span className="text-sm text-foreground">{vendor.orders.toLocaleString()}</span>
-                  </td>
-                  <td className="px-4 py-4 hidden xl:table-cell">
-                    <span className="text-sm font-medium text-quickgo-lime">{vendor.revenue.toLocaleString()} FCFA</span>
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem><Eye className="w-4 h-4 mr-2" /> Voir details</DropdownMenuItem>
-                        <DropdownMenuItem><Edit className="w-4 h-4 mr-2" /> Modifier</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-400"><Trash2 className="w-4 h-4 mr-2" /> Supprimer</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </main>
     </div>
   )
 }

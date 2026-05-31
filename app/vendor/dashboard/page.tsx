@@ -1,374 +1,726 @@
 "use client"
 
-import { useState } from "react"
-import Image from "next/image"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
-import { motion } from "framer-motion"
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingBag,
-  DollarSign,
-  BarChart3,
-  Settings,
-  Bell,
-  ChevronDown,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Eye,
-  ArrowUpRight,
-  Search,
-  Filter,
-  MoreVertical,
-  Plus,
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
+  Tag, Star, Settings, HelpCircle, Bell, Search, ChevronDown, RefreshCw,
+  TrendingDown, AlertTriangle, Clock, CheckCircle, XCircle, Truck,
+  ArrowUpRight, Zap, Info, Download, ChevronRight, LogOut, User, Boxes,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  LineChart, Line, AreaChart, Area, PieChart, Pie, Cell,
+  ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+} from "recharts"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { createClient } from "@/lib/supabase/client"
 
-const sidebarItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", active: true },
-  { icon: Package, label: "Produits" },
-  { icon: ShoppingBag, label: "Commandes" },
-  { icon: DollarSign, label: "Revenus" },
-  { icon: BarChart3, label: "Analyses" },
-  { icon: Users, label: "Clients" },
-  { icon: Settings, label: "Paramètres" },
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface OrderItem { product_name: string; quantity: number; unit_price: number; total_price: number }
+interface RecentOrder {
+  id: string; order_number: string; status: string
+  total_amount: number | null; total: number | null; created_at: string; estimated_delivery_time: string | null
+  customer: { full_name: string; phone: string; avatar_url: string | null } | null
+  items: OrderItem[]
+}
+interface DashboardData {
+  vendor: { id: string; name: string; logo_url: string | null; is_verified: boolean; rating: number | null; status: string; commission_rate: number | null }
+  kpi: { today_sales: number; today_orders: number; month_revenue: number; active_products: number; rating: number }
+  chart: { date: string; sales: number; orders: number }[]
+  recent_orders: RecentOrder[]
+  top_products: { name: string; sold: number; revenue: number }[]
+  wallet: { available_balance: number; pending_balance: number; total_earned: number; total_withdrawn: number; next_payout_date: string | null; next_payout_amount: number | null } | null
+  commission: { yesterday: { gross_amount: number; quickgo_commission: number; vendor_net_amount: number; commission_rate: number } | null; month_total: number; rate: number }
+  notifications: { id: string; title: string; message: string; is_read: boolean; created_at: string }[]
+  unread_notifications: number
+  low_stock: { id: string; name: string; stock_quantity: number; images: string[] | null }[]
+}
+
+// ─── Sidebar structure ────────────────────────────────────────────────────────
+const SIDEBAR_ITEMS = [
+  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard", active: true },
+  { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
+  { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
+  {
+    icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
+    children: [
+      { label: "Tous les produits", href: "/vendor/products" },
+      { label: "Ajouter un produit", href: "/vendor/products/new" },
+      { label: "Catégories",         href: "/vendor/products/categories" },
+    ],
+  },
+  { icon: TrendingUp, label: "Revenus",    href: "/vendor/analytics" },
+  {
+    icon: Wallet, label: "Portefeuille", href: "/vendor/wallet", expandable: true,
+    children: [
+      { label: "Solde & Retrait",  href: "/vendor/wallet" },
+      { label: "Retraits",         href: "/vendor/payouts" },
+      { label: "Historique",       href: "/vendor/wallet/history" },
+    ],
+  },
+  { icon: Users,     label: "Clients CRM", href: "/vendor/crm" },
+  { icon: BarChart3, label: "Analyses",   href: "/vendor/analytics" },
+  { icon: Tag,       label: "Promotions", href: "/vendor/promotions" },
+  { icon: Star,      label: "Avis",       href: "/vendor/reviews" },
+  { icon: Settings,  label: "Paramètres", href: "/vendor/settings" },
+  { icon: HelpCircle,label: "Aide",       href: "/vendor/help" },
 ]
 
-const recentOrders = [
-  { id: "#QG13456", product: "iPhone 15 Pro Max", customer: "Marie C.", amount: "500 000 CFA", status: "Livrée" },
-  { id: "#QG13455", product: "Samsung Galaxy S24", customer: "Jean P.", amount: "450 000 CFA", status: "En cours" },
-  { id: "#QG13454", product: "AirPods Pro 2", customer: "Paul N.", amount: "120 000 CFA", status: "En préparation" },
-  { id: "#QG13453", product: "MacBook Air M2", customer: "Claire M.", amount: "850 000 CFA", status: "Livrée" },
-]
+const ORDER_STATUS: Record<string, { label: string; color: string; bg: string; icon: typeof Clock }> = {
+  pending:    { label: "En attente",   color: "text-[#eab308]", bg: "bg-[#eab308]/15", icon: Clock },
+  confirmed:  { label: "Confirmé",     color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: CheckCircle },
+  preparing:  { label: "Préparation",  color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/15", icon: Package },
+  ready:      { label: "Prêt",         color: "text-[#06b6d4]", bg: "bg-[#06b6d4]/15", icon: CheckCircle },
+  delivering: { label: "En livraison", color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: Truck },
+  delivered:  { label: "Livré",        color: "text-[#22c55e]", bg: "bg-[#22c55e]/15", icon: CheckCircle },
+  cancelled:  { label: "Annulé",       color: "text-[#ef4444]", bg: "bg-[#ef4444]/15", icon: XCircle },
+}
 
-const topProducts = [
-  { name: "Écouteurs Bluetooth", sales: 1243, image: "🎧" },
-  { name: "iPhone 15 Pro Max", sales: 856, image: "📱" },
-  { name: "Parfum Dior Sauvage", sales: 542, image: "🧴" },
-]
+const DONUT_COLORS = ["#3b82f6", "#22c55e", "#a3e635", "#8b5cf6", "#f97316"]
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function formatCFA(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M F`
+  if (n >= 1_000) return `${new Intl.NumberFormat("fr-FR").format(Math.round(n))} F`
+  return `${Math.round(n)} F`
+}
+function orderTotal(o: { total_amount?: number | null; total?: number | null }) {
+  return o.total_amount ?? o.total ?? 0
+}
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+}
+function initials(name: string) {
+  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+}
+
+// ─── Count-up hook ────────────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 800) {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    let start: number | null = null
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const progress = Math.min((ts - start) / duration, 1)
+      setValue(Math.round(progress * target))
+      if (progress < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [target, duration])
+  return value
+}
+
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
+function SalesTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3 text-xs shadow-xl">
+      <p className="text-white/60 mb-2">{label}</p>
+      {payload.map((p) => (
+        <div key={p.name} className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ background: p.color }} />
+          <span className="text-white/70">{p.name}:</span>
+          <span className="text-white font-bold">{p.name === "Ventes" ? formatCFA(p.value) : p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── KPI Card ────────────────────────────────────────────────────────────────
+function KpiCard({
+  label, rawValue, displayValue, sub, color, icon: Icon, sparkData, delay,
+}: {
+  label: string; rawValue: number; displayValue: string; sub?: string; color: string
+  icon: typeof TrendingUp; sparkData: number[]; delay: number
+}) {
+  const counted = useCountUp(rawValue, 700)
+  const _ = counted // used to trigger re-render, actual display is pre-formatted
+  const data = sparkData.map((v) => ({ v }))
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+      whileHover={{ y: -2 }}
+      className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-4 flex flex-col gap-3
+        hover:border-[#3b82f6]/40 hover:shadow-[0_0_30px_rgba(59,130,246,0.08)] transition-all duration-300"
+    >
+      <div className="flex items-center justify-between">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${color}20` }}>
+          <Icon className="w-4.5 h-4.5" style={{ color }} />
+        </div>
+        {sub && (
+          <span className={`text-xs flex items-center gap-0.5 ${sub.startsWith("+") ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
+            {sub.startsWith("+") ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {sub}
+          </span>
+        )}
+      </div>
+      <div>
+        <p className="text-xl font-bold text-white leading-tight">{displayValue}</p>
+        <p className="text-xs text-white/40 mt-0.5">{label}</p>
+      </div>
+      <div className="h-10">
+        <ResponsiveContainer width="100%" height={40}>
+          <AreaChart data={data}>
+            <Area type="monotone" dataKey="v" stroke={color} fill={`${color}18`} strokeWidth={1.5} dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Glassmorphism card wrapper ───────────────────────────────────────────────
+function GlassCard({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
+      whileHover={{ y: -1 }}
+      className={`bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
+        hover:border-[#3b82f6]/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.06)] transition-all duration-300 ${className}`}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VendorDashboardPage() {
-  const [period, setPeriod] = useState("7 jours")
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState(7)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ Produits: false, Portefeuille: false })
+  const supabase = useRef(createClient())
+
+  const fetchDashboard = useCallback(async (p: number) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/vendor/dashboard?period=${p}`)
+      if (res.ok) setData(await res.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchDashboard(7) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!data?.vendor.id) return
+    const sb = supabase.current
+    const channel = sb.channel(`vendor-${data.vendor.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `vendor_id=eq.${data.vendor.id}` },
+        () => fetchDashboard(period))
+      .subscribe()
+    return () => { sb.removeChannel(channel) }
+  }, [data?.vendor.id, fetchDashboard, period])
+
+  const handlePeriod = (p: number) => { setPeriod(p); fetchDashboard(p) }
+  const toggleSection = (label: string) => setExpandedSections((s) => ({ ...s, [label]: !s[label] }))
+
+  const kpi = data?.kpi
+  const chartData = data?.chart ?? []
+  const sparkSales = chartData.map((d) => d.sales)
+  const sparkOrders = chartData.map((d) => d.orders)
+  const donutData = (data?.top_products ?? []).slice(0, 5).map((p) => ({ name: p.name.slice(0, 18), value: p.revenue }))
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 bg-card/30">
-        <div className="p-6 border-b border-border/30">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center">
-              <span className="text-white font-bold text-lg">Q</span>
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+
+      {/* ── Left Sidebar ─────────────────────────────────────────────────────── */}
+      <aside className="hidden lg:flex w-60 shrink-0 flex-col bg-[#111118] border-r border-[#1e1e2e]">
+        {/* Logo */}
+        <div className="px-5 py-5 border-b border-[#1e1e2e]">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
+              <span className="text-white font-black text-base">Q</span>
             </div>
             <div>
-              <span className="text-xl font-bold text-white">QUICK</span>
-              <span className="text-xl font-bold text-quickgo-lime">GO</span>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Vendor</p>
+              <p className="text-white font-black text-base leading-none">QUICK<span className="text-[#a3e635]">GO</span></p>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest">Vendeur</p>
             </div>
           </Link>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          {sidebarItems.map((item) => (
-            <Link
-              key={item.label}
-              href="#"
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                item.active
-                  ? "bg-quickgo-blue/20 text-quickgo-blue"
-                  : "text-muted-foreground hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-sm font-medium">{item.label}</span>
-            </Link>
-          ))}
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {SIDEBAR_ITEMS.map((item, idx) => {
+            const isExpanded = expandedSections[item.label]
+            return (
+              <motion.div
+                key={item.label}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+              >
+                {item.expandable ? (
+                  <>
+                    <button
+                      onClick={() => toggleSection(item.label)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-white/40 hover:bg-white/5 hover:text-white"
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
+                    </button>
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden pl-7 mt-0.5 space-y-0.5"
+                        >
+                          {item.children?.map((child) => (
+                            <Link key={child.label} href={child.href}
+                              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/40 hover:bg-white/5 hover:text-white transition-all"
+                            >
+                              <span className="w-1 h-1 rounded-full bg-current opacity-50" />
+                              {child.label}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  <Link href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
+                      item.active
+                        ? "bg-[#a3e635]/10 border-l-2 border-[#a3e635] text-[#a3e635] rounded-r-xl ml-0 pl-[10px]"
+                        : "rounded-xl text-white/40 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4 shrink-0" />
+                    {item.label}
+                  </Link>
+                )}
+              </motion.div>
+            )
+          })}
         </nav>
 
-        {/* Store Status */}
-        <div className="p-4 border-t border-border/30">
-          <div className="bg-quickgo-lime/20 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-white font-medium text-sm">Boutique active</span>
-              <span className="w-2 h-2 bg-quickgo-lime rounded-full animate-pulse" />
+        {/* Booster CTA */}
+        <div className="p-3 border-t border-[#1e1e2e]">
+          <div className="bg-gradient-to-br from-[#a3e635]/15 to-[#3b82f6]/10 border border-[#a3e635]/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-[#a3e635]" />
+              <span className="text-white text-sm font-semibold">Booster</span>
             </div>
-            <p className="text-xs text-muted-foreground">QuickGo Official Store</p>
-            <p className="text-xs text-muted-foreground mt-1">98% avis positifs • 12 560 ventes</p>
+            <p className="text-white/40 text-xs mb-3">Mettez vos produits en avant et multipliez vos ventes.</p>
+            <Button size="sm" className="w-full h-8 bg-[#a3e635] hover:bg-[#a3e635]/90 text-black font-bold text-xs rounded-lg">
+              Activer
+            </Button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {/* Top Bar */}
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-white">Bonjour, Samuel <span>👋</span></h1>
-              <p className="text-sm text-muted-foreground">Que puis-je faire pour vous aujourd&apos;hui ?</p>
+      {/* ── Main Content ─────────────────────────────────────────────────────── */}
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Sticky header */}
+        <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-[#1e1e2e] px-6 py-3 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-white font-bold leading-tight">
+              Bonjour, {(data?.vendor.name ?? "Chargement…").split(" ")[0]} 👋
+            </h1>
+            <p className="text-xs text-white/30">Bienvenue sur votre tableau de bord</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="relative hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <Input placeholder="Rechercher…" className="pl-9 w-56 bg-[#16161f] border-[#1e1e2e] rounded-xl h-9 text-sm placeholder:text-white/20" />
             </div>
-
-            <div className="flex items-center gap-4">
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  className="pl-10 w-64 bg-card/50 border-border/30"
-                />
-              </div>
-
-              <button className="relative p-2 hover:bg-white/5 rounded-full">
-                <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-
-              <div className="flex items-center gap-3 pl-4 border-l border-border/30">
-                <div className="w-10 h-10 rounded-full bg-quickgo-blue flex items-center justify-center">
-                  <span className="text-white font-semibold">S</span>
+            <button className="relative p-2 hover:bg-white/5 rounded-xl transition-colors">
+              <Bell className="w-5 h-5 text-white/40" />
+              {(data?.unread_notifications ?? 0) > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#ef4444] rounded-full" />
+              )}
+            </button>
+            <Button variant="ghost" size="icon" onClick={() => fetchDashboard(period)} className="h-9 w-9 rounded-xl">
+              <RefreshCw className={`w-4 h-4 text-white/40 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e] hover:opacity-90 transition-opacity focus:outline-none">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center border-2 border-[#a3e635]/60 shrink-0 shadow-[0_0_12px_rgba(163,230,53,0.25)]">
+                    <span className="text-white font-bold text-xs">{data ? initials(data.vendor.name) : "?"}</span>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 text-white/30" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52 bg-[#16161f] border-[#1e1e2e]">
+                <div className="px-3 py-2 border-b border-[#1e1e2e]">
+                  <p className="text-white text-sm font-semibold truncate">{data?.vendor.name ?? "Vendeur"}</p>
+                  <span className={`text-xs ${data?.vendor.status === "active" ? "text-[#22c55e]" : "text-[#f97316]"}`}>
+                    {data?.vendor.status === "active" ? "● Actif" : "● Inactif"}
+                  </span>
                 </div>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              </div>
-            </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                    <User className="h-4 w-4" /> Mon profil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/vendor/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                    <Settings className="h-4 w-4" /> Paramètres
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[#1e1e2e]" />
+                <DropdownMenuItem
+                  onClick={async () => { await supabase.current.auth.signOut(); window.location.href = "/" }}
+                  className="flex items-center gap-2 text-red-400 hover:text-red-300 cursor-pointer focus:text-red-300"
+                >
+                  <LogOut className="h-4 w-4" /> Se déconnecter
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
-        {/* Dashboard Content */}
-        <div className="p-6">
-          {/* Period Selector */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Tableau de bord</h2>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={period === "7 jours" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPeriod("7 jours")}
-                className="rounded-full"
-              >
-                7 jours
-              </Button>
-              <Button
-                variant={period === "30 jours" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPeriod("30 jours")}
-                className="rounded-full"
-              >
-                30 jours
-              </Button>
-              <Button
-                variant={period === "Tout" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPeriod("Tout")}
-                className="rounded-full"
-              >
-                Tout
-              </Button>
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* Period selector */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-white font-semibold">Tableau de bord</h2>
+            <div className="flex items-center gap-1 bg-[#16161f] border border-[#1e1e2e] rounded-xl p-1">
+              {[{ v: 7, l: "7j" }, { v: 30, l: "30j" }, { v: 90, l: "90j" }].map(({ v, l }) => (
+                <button key={v} onClick={() => handlePeriod(v)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    period === v ? "bg-[#a3e635] text-black font-bold" : "text-white/40 hover:text-white"
+                  }`}
+                >{l}</button>
+              ))}
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {[
-              { label: "Revenus totales", value: "2 450 000 CFA", change: "+12%", trend: "up", icon: DollarSign },
-              { label: "Commandes", value: "320", change: "+8%", trend: "up", icon: ShoppingBag },
-              { label: "Produits", value: "45", change: "+2%", trend: "up", icon: Package },
-              { label: "Clients", value: "980", change: "+15%", trend: "up", icon: Users },
-            ].map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-card/50 backdrop-blur-xl rounded-2xl p-6 border border-border/30"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-quickgo-blue/20 flex items-center justify-center">
-                    <stat.icon className="w-5 h-5 text-quickgo-blue" />
-                  </div>
-                  <span className={`text-xs flex items-center gap-1 ${
-                    stat.trend === "up" ? "text-quickgo-lime" : "text-red-500"
-                  }`}>
-                    {stat.trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    {stat.change}
-                  </span>
+          {/* KPI grid */}
+          {loading && !data ? (
+            <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="h-36 rounded-2xl bg-[#16161f] animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
+              <KpiCard label="Ventes aujourd'hui" rawValue={kpi?.today_sales ?? 0} displayValue={formatCFA(kpi?.today_sales ?? 0)} color="#22c55e" icon={TrendingUp} sparkData={sparkSales} delay={0} />
+              <KpiCard label="Commandes du jour" rawValue={kpi?.today_orders ?? 0} displayValue={String(kpi?.today_orders ?? 0)} color="#3b82f6" icon={ShoppingBag} sparkData={sparkOrders} delay={0.05} />
+              <KpiCard label="Revenus du mois" rawValue={kpi?.month_revenue ?? 0} displayValue={formatCFA(kpi?.month_revenue ?? 0)} color="#a3e635" icon={BarChart3} sparkData={sparkSales} delay={0.1} />
+              <KpiCard label="Produits actifs" rawValue={kpi?.active_products ?? 0} displayValue={String(kpi?.active_products ?? 0)} color="#8b5cf6" icon={Package} sparkData={sparkOrders} delay={0.15} />
+              <KpiCard label="Note moyenne" rawValue={kpi?.rating ?? 0} displayValue={`${(kpi?.rating ?? 0).toFixed(1)} ★`} color="#f97316" icon={Star} sparkData={sparkOrders} delay={0.2} />
+            </div>
+          )}
+
+          {/* Charts row */}
+          <div className="grid xl:grid-cols-3 gap-4">
+            {/* Sales line chart */}
+            <GlassCard className="xl:col-span-2" delay={0.25}>
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-white font-semibold text-sm">Évolution des ventes</h3>
+                  <p className="text-xs text-white/30 mt-0.5">Derniers {period} jours</p>
                 </div>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
-              </motion.div>
+                <button className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white transition-colors">
+                  <Download className="w-3.5 h-3.5" /> Export
+                </button>
+              </div>
+              {loading && !data ? (
+                <div className="h-52 rounded-xl bg-white/5 animate-pulse" />
+              ) : (
+                <ResponsiveContainer width="100%" height={210}>
+                  <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
+                    <XAxis dataKey="date" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <YAxis yAxisId="left" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+                    <YAxis yAxisId="right" orientation="right" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip content={<SalesTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: "#888", paddingTop: 8 }} />
+                    <Line yAxisId="left" type="monotone" dataKey="sales" name="Ventes" stroke="#22c55e" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#22c55e" }} />
+                    <Line yAxisId="right" type="monotone" dataKey="orders" name="Commandes" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: "#3b82f6" }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </GlassCard>
+
+            {/* Donut + top products */}
+            <GlassCard delay={0.3}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-white font-semibold text-sm">Top Produits</h3>
+                <Link href="/vendor/products" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 flex items-center gap-1 transition-colors">
+                  Voir tout <ArrowUpRight className="w-3 h-3" />
+                </Link>
+              </div>
+              {loading && !data ? (
+                <div className="h-40 rounded-xl bg-white/5 animate-pulse mb-3" />
+              ) : donutData.length > 0 ? (
+                <>
+                  <div className="flex justify-center mb-3">
+                    <ResponsiveContainer width={140} height={140}>
+                      <PieChart>
+                        <Pie data={donutData} cx="50%" cy="50%" innerRadius={42} outerRadius={60} dataKey="value" strokeWidth={0}>
+                          {donutData.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip formatter={(v: number) => formatCFA(v)} wrapperStyle={{ fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-2">
+                    {donutData.map((d, i) => (
+                      <div key={d.name} className="flex items-center gap-2.5">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: DONUT_COLORS[i] }} />
+                        <span className="text-white/50 text-xs flex-1 truncate">{d.name}</span>
+                        <span className="text-white text-xs font-medium">{formatCFA(d.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="text-white/30 text-xs text-center py-8">Pas encore de données</p>
+              )}
+            </GlassCard>
+          </div>
+
+          {/* Recent orders */}
+          <GlassCard delay={0.35}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-white font-semibold text-sm">Commandes récentes</h3>
+              <Link href="/vendor/orders" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 flex items-center gap-1 transition-colors">
+                Voir tout <ArrowUpRight className="w-3 h-3" />
+              </Link>
+            </div>
+            {loading && !data ? (
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />)}
+              </div>
+            ) : (data?.recent_orders ?? []).length === 0 ? (
+              <p className="text-white/30 text-sm text-center py-8">Aucune commande pour le moment</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px]">
+                  <thead>
+                    <tr className="text-xs text-white/30 border-b border-[#1e1e2e]">
+                      <th className="pb-3 text-left font-medium">Client</th>
+                      <th className="pb-3 text-left font-medium">Commande</th>
+                      <th className="pb-3 text-left font-medium">Statut</th>
+                      <th className="pb-3 text-right font-medium">Montant</th>
+                      <th className="pb-3 text-right font-medium">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1e1e2e]">
+                    {(data?.recent_orders ?? []).map((order) => {
+                      const cfg = ORDER_STATUS[order.status]
+                      const StatusIcon = cfg?.icon ?? Clock
+                      const customerName = (order.customer as { full_name?: string } | null)?.full_name ?? "Client"
+                      return (
+                        <tr key={order.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
+                                <span className="text-white font-bold text-[10px]">{initials(customerName)}</span>
+                              </div>
+                              <div>
+                                <p className="text-white text-sm font-medium leading-tight">{customerName}</p>
+                                <p className="text-white/30 text-[11px]">{(order.customer as { phone?: string } | null)?.phone ?? "—"}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5">
+                            <p className="text-white/60 text-xs font-mono">#{order.order_number}</p>
+                            <p className="text-white/30 text-[11px] mt-0.5">
+                              {order.items?.length ?? 0} article{(order.items?.length ?? 0) > 1 ? "s" : ""}
+                            </p>
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cfg?.bg ?? ""} ${cfg?.color ?? ""}`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {cfg?.label ?? order.status}
+                            </span>
+                          </td>
+                          <td className="py-3.5 text-right">
+                            <span className="text-white font-semibold text-sm">{formatCFA(orderTotal(order))}</span>
+                          </td>
+                          <td className="py-3.5 text-right">
+                            <span className="text-white/30 text-xs">{formatDate(order.created_at)}</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </GlassCard>
+
+          {/* Low stock */}
+          {(data?.low_stock ?? []).length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+              className="bg-[#16161f]/80 backdrop-blur-xl border border-[#f97316]/20 rounded-2xl p-5"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <AlertTriangle className="w-4 h-4 text-[#f97316]" />
+                <h3 className="text-white font-semibold text-sm">Stock faible</h3>
+                <span className="ml-auto text-xs text-[#f97316]">{data?.low_stock.length} produit{(data?.low_stock.length ?? 0) > 1 ? "s" : ""}</span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(data?.low_stock ?? []).map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 p-3 bg-[#f97316]/5 border border-[#f97316]/10 rounded-xl">
+                    <div className="w-10 h-10 rounded-xl bg-[#f97316]/10 flex items-center justify-center shrink-0">
+                      <Package className="w-4 h-4 text-[#f97316]" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white text-xs font-medium truncate">{p.name}</p>
+                      <p className="text-[#f97316] text-[11px]">{p.stock_quantity} restant{p.stock_quantity > 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Notifications */}
+          {(data?.notifications ?? []).length > 0 && (
+            <GlassCard delay={0.45}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-white/40" />
+                  <h3 className="text-white font-semibold text-sm">Notifications</h3>
+                  {(data?.unread_notifications ?? 0) > 0 && (
+                    <span className="text-[10px] bg-[#ef4444] text-white px-1.5 py-0.5 rounded-full font-bold">{data?.unread_notifications}</span>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-3">
+                {(data?.notifications ?? []).map((n) => (
+                  <div key={n.id} className={`flex gap-3 p-3 rounded-xl transition-colors ${n.is_read ? "bg-white/[0.02]" : "bg-[#3b82f6]/5 border border-[#3b82f6]/10"}`}>
+                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.is_read ? "bg-white/20" : "bg-[#3b82f6]"}`} />
+                    <div className="min-w-0">
+                      <p className="text-white text-xs font-medium">{n.title}</p>
+                      <p className="text-white/40 text-[11px] mt-0.5 truncate">{n.message}</p>
+                    </div>
+                    <p className="text-white/20 text-[10px] shrink-0">{formatDate(n.created_at)}</p>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
+        </div>
+      </main>
+
+      {/* ── Right Wallet Panel ───────────────────────────────────────────────── */}
+      <aside className="hidden xl:flex w-72 shrink-0 flex-col bg-[#111118] border-l border-[#1e1e2e] overflow-y-auto">
+        <div className="p-5 space-y-4">
+          {/* Wallet balance */}
+          <div>
+            <h3 className="text-white/40 text-xs uppercase tracking-widest mb-3">Portefeuille</h3>
+            {loading && !data ? (
+              <div className="h-28 rounded-2xl bg-white/5 animate-pulse" />
+            ) : (
+              <div className="bg-gradient-to-br from-[#3b82f6]/20 to-[#06b6d4]/10 border border-[#3b82f6]/20 rounded-2xl p-4">
+                <p className="text-white/40 text-xs mb-1">Solde disponible</p>
+                <p className="text-2xl font-black text-white">{formatCFA(data?.wallet?.available_balance ?? 0)}</p>
+                {(data?.wallet?.pending_balance ?? 0) > 0 && (
+                  <p className="text-[#eab308] text-xs mt-1">{formatCFA(data?.wallet?.pending_balance ?? 0)} en attente</p>
+                )}
+                <Button className="w-full mt-4 h-9 bg-[#22c55e] hover:bg-[#22c55e]/90 text-white font-bold text-sm rounded-xl gap-2">
+                  <Download className="w-3.5 h-3.5" /> Demander un retrait
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Wallet stats */}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "Total gagné",  value: formatCFA(data?.wallet?.total_earned ?? 0),    color: "text-[#22c55e]" },
+              { label: "Total retiré", value: formatCFA(data?.wallet?.total_withdrawn ?? 0), color: "text-white/60" },
+            ].map((s) => (
+              <div key={s.label} className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3">
+                <p className="text-white/30 text-[10px] mb-1">{s.label}</p>
+                <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+              </div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Chart Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="lg:col-span-2 bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">Évolution des ventes</h3>
-                <Button variant="outline" size="sm" className="rounded-full">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtrer
-                </Button>
+          {/* Next payout */}
+          {data?.wallet?.next_payout_date && (
+            <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3 flex items-center gap-3">
+              <Clock className="w-4 h-4 text-[#3b82f6] shrink-0" />
+              <div>
+                <p className="text-white/40 text-[10px]">Prochain virement</p>
+                <p className="text-white text-xs font-medium">
+                  {new Date(data.wallet.next_payout_date).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" })}
+                  {data.wallet.next_payout_amount ? ` · ${formatCFA(data.wallet.next_payout_amount)}` : ""}
+                </p>
               </div>
+            </div>
+          )}
 
-              {/* Chart Placeholder */}
-              <div className="h-64 flex items-end gap-2">
-                {[40, 65, 45, 80, 55, 70, 90, 75, 85, 60, 95, 80].map((h, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                    <div
-                      className="w-full bg-gradient-to-t from-quickgo-blue to-quickgo-cyan rounded-t transition-all hover:from-quickgo-lime hover:to-quickgo-lime"
-                      style={{ height: `${h}%` }}
-                    />
-                    <span className="text-[10px] text-muted-foreground">
-                      {["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"][i]}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+          <Link href="/vendor/wallet" className="flex items-center justify-center gap-1.5 text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 transition-colors py-1">
+            Historique des retraits <ArrowUpRight className="w-3 h-3" />
+          </Link>
 
-            {/* Top Products */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-white">Produits populaires</h3>
-                <Link href="#" className="text-quickgo-blue text-sm">Voir tout</Link>
-              </div>
-
-              <div className="space-y-4">
-                {topProducts.map((product, i) => (
-                  <div key={product.name} className="flex items-center gap-4 p-3 bg-card/30 rounded-xl">
-                    <div className="w-12 h-12 rounded-xl bg-quickgo-blue/10 flex items-center justify-center text-2xl">
-                      {product.image}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-medium text-sm">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.sales} ventes</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-quickgo-lime text-xs">#{i + 1}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Sales Distribution */}
-              <div className="mt-6 pt-6 border-t border-border/30">
-                <h4 className="text-sm font-medium text-white mb-4">Répartition des ventes</h4>
-                <div className="flex items-center gap-4">
-                  <div className="w-24 h-24 relative">
-                    <svg className="w-full h-full -rotate-90">
-                      <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="none" className="text-white/10" />
-                      <circle cx="48" cy="48" r="40" stroke="url(#gradient)" strokeWidth="8" fill="none" strokeDasharray="251.2" strokeDashoffset="50" />
-                      <defs>
-                        <linearGradient id="gradient">
-                          <stop offset="0%" stopColor="#00D1FF" />
-                          <stop offset="100%" stopColor="#BFFF00" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-quickgo-blue rounded-full" />
-                      <span className="text-muted-foreground">Électronique</span>
-                      <span className="text-white ml-auto">45%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-quickgo-lime rounded-full" />
-                      <span className="text-muted-foreground">Mode</span>
-                      <span className="text-white ml-auto">30%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-yellow-500 rounded-full" />
-                      <span className="text-muted-foreground">Autres</span>
-                      <span className="text-white ml-auto">25%</span>
-                    </div>
-                  </div>
+          {/* Commission notice */}
+          <div>
+            <h3 className="text-white/40 text-xs uppercase tracking-widest mb-3">Commission DL Solutions</h3>
+            <div className="bg-[#3b82f6]/5 border border-[#3b82f6]/30 rounded-2xl p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-[#3b82f6] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-white text-xs font-semibold">Taux : {data?.commission.rate ?? 5}%</p>
+                  <p className="text-white/40 text-[11px] mt-0.5">Déduite automatiquement à 23h59 (heure Cameroun)</p>
                 </div>
               </div>
-            </motion.div>
-          </div>
-
-          {/* Recent Orders */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mt-6 bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-white">Commandes récentes</h3>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="rounded-full">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filtrer
-                </Button>
-                <Button size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nouvelle commande
-                </Button>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/40">Commission hier</span>
+                  <span className="text-white font-medium">
+                    {data?.commission.yesterday ? formatCFA(data.commission.yesterday.quickgo_commission) : "—"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/40">Commission ce mois</span>
+                  <span className="text-[#ef4444] font-medium">{formatCFA(data?.commission.month_total ?? 0)}</span>
+                </div>
+                {data?.commission.yesterday && (
+                  <div className="flex justify-between text-xs border-t border-[#3b82f6]/20 pt-2">
+                    <span className="text-white/40">Net hier</span>
+                    <span className="text-[#22c55e] font-medium">{formatCFA(data.commission.yesterday.vendor_net_amount)}</span>
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-sm text-muted-foreground border-b border-border/30">
-                    <th className="pb-4 font-medium">Commande</th>
-                    <th className="pb-4 font-medium">Produit</th>
-                    <th className="pb-4 font-medium">Client</th>
-                    <th className="pb-4 font-medium">Montant</th>
-                    <th className="pb-4 font-medium">Statut</th>
-                    <th className="pb-4 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order) => (
-                    <tr key={order.id} className="border-b border-border/30 last:border-0">
-                      <td className="py-4">
-                        <span className="text-white font-medium">{order.id}</span>
-                      </td>
-                      <td className="py-4">
-                        <span className="text-white">{order.product}</span>
-                      </td>
-                      <td className="py-4">
-                        <span className="text-muted-foreground">{order.customer}</span>
-                      </td>
-                      <td className="py-4">
-                        <span className="text-white font-medium">{order.amount}</span>
-                      </td>
-                      <td className="py-4">
-                        <span className={`text-xs px-3 py-1 rounded-full ${
-                          order.status === "Livrée"
-                            ? "bg-quickgo-lime/20 text-quickgo-lime"
-                            : order.status === "En cours"
-                            ? "bg-quickgo-blue/20 text-quickgo-blue"
-                            : "bg-yellow-500/20 text-yellow-500"
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="py-4">
-                        <button className="p-2 hover:bg-white/5 rounded-full">
-                          <MoreVertical className="w-4 h-4 text-muted-foreground" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Vendor status badge */}
+          {data && (
+            <div className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-white text-sm font-semibold truncate">{data.vendor.name}</span>
+                <span className={`w-2 h-2 rounded-full ${data.vendor.status === "active" ? "bg-[#22c55e] animate-pulse" : "bg-[#ef4444]"}`} />
+              </div>
+              {data.vendor.is_verified && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-[#3b82f6] bg-[#3b82f6]/10 px-2 py-0.5 rounded-full">
+                  <CheckCircle className="w-2.5 h-2.5" /> Vérifié
+                </span>
+              )}
+              {data.vendor.rating != null && (
+                <p className="text-[#eab308] text-xs mt-2 flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-current" /> {data.vendor.rating.toFixed(1)} / 5
+                </p>
+              )}
             </div>
-          </motion.div>
+          )}
         </div>
-      </main>
+      </aside>
     </div>
   )
 }

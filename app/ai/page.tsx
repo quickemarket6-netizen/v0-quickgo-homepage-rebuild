@@ -43,9 +43,9 @@ const chatMessages = [
     content: "Voici quelques téléphones disponibles à ce prix :",
     time: "14:33",
     products: [
-      { name: "Infinix Hot 40i", price: "68 000 CFA", image: "/products/infinix.jpg" },
-      { name: "Samsung A14", price: "85 000 CFA", image: "/products/samsung.jpg" },
-      { name: "Tecno Spark 20", price: "72 000 CFA", image: "/products/tecno.jpg" },
+      { name: "Infinix Hot 40i", price: "68 000 CFA", image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=120&h=120&fit=crop" },
+      { name: "Samsung A14", price: "85 000 CFA", image: "https://images.unsplash.com/photo-1610945264803-c22b62d2a7b3?w=120&h=120&fit=crop" },
+      { name: "Tecno Spark 20", price: "72 000 CFA", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=120&h=120&fit=crop" },
     ],
   },
 ]

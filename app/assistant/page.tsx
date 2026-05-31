@@ -132,9 +132,9 @@ export default function AssistantPage() {
                                 <Sparkles className="w-3 h-3" />
                                 <span>Recherche en cours...</span>
                               </div>
-                              {part.state === "output-available" && part.output && (
+                              {part.state === "output-available" && part.output != null && (
                                 <pre className="text-muted-foreground overflow-x-auto">
-                                  {JSON.stringify(part.output, null, 2)}
+                                  {JSON.stringify(part.output as unknown, null, 2)}
                                 </pre>
                               )}
                             </div>

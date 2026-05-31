@@ -1,47 +1,63 @@
-import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import JsonLd from '@/components/seo/json-ld'
-import './globals.css'
+import type { Metadata, Viewport } from "next"
+import { Inter } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from "@/components/ui/sonner"
+import { ThemeProvider } from "@/components/theme-provider"
+import JsonLd from "@/components/seo/json-ld"
+import "./globals.css"
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
-  variable: '--font-inter',
-  display: 'swap'
+  variable: "--font-inter",
+  display: "swap",
 })
 
 export const metadata: Metadata = {
   title: {
-    default: 'QuickGo - Livraison rapide & sécurisée au Cameroun',
-    template: '%s | QuickGo'
+    default: "QuickGo - Livraison rapide & sécurisée au Cameroun",
+    template: "%s | QuickGo",
   },
-  description: 'QuickGo est la super application de livraison au Cameroun. Courses, restaurants, pharmacies, supermarchés et bien plus encore, livrés rapidement.',
-  keywords: ['livraison', 'Cameroun', 'Yaoundé', 'Douala', 'express', 'marketplace', 'QuickGo', 'delivery', 'logistics'],
-  authors: [{ name: 'QuickGo' }],
-  creator: 'QuickGo',
-  publisher: 'QuickGo',
-  metadataBase: new URL('https://quickgo.cm'),
+  description:
+    "QuickGo est la super application de livraison au Cameroun. Courses, restaurants, pharmacies, supermarchés et bien plus encore, livrés rapidement.",
+  keywords: [
+    "livraison",
+    "Cameroun",
+    "Yaoundé",
+    "Douala",
+    "express",
+    "marketplace",
+    "QuickGo",
+    "delivery",
+    "logistics",
+    "Orange Money",
+    "MTN Mobile Money",
+  ],
+  authors: [{ name: "QuickGo" }],
+  creator: "QuickGo",
+  publisher: "QuickGo",
+  metadataBase: new URL("https://quickgo.cm"),
   openGraph: {
-    type: 'website',
-    locale: 'fr_CM',
-    url: 'https://quickgo.cm',
-    siteName: 'QuickGo',
-    title: 'QuickGo - Livraison rapide & sécurisée au Cameroun',
-    description: 'Marketplace locale, livraison express, paiements sécurisés. Tout ce dont vous avez besoin, livré intelligemment.',
+    type: "website",
+    locale: "fr_CM",
+    url: "https://quickgo.cm",
+    siteName: "QuickGo",
+    title: "QuickGo - Livraison rapide & sécurisée au Cameroun",
+    description:
+      "Marketplace locale, livraison express, paiements sécurisés. Tout ce dont vous avez besoin, livré intelligemment.",
     images: [
       {
-        url: '/og-image.jpg',
+        url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: 'QuickGo - Super App de Livraison',
+        alt: "QuickGo - Super App de Livraison",
       },
     ],
   },
   twitter: {
-    card: 'summary_large_image',
-    title: 'QuickGo - Livraison rapide & sécurisée',
-    description: 'La super application de livraison au Cameroun',
-    images: ['/og-image.jpg'],
+    card: "summary_large_image",
+    title: "QuickGo - Livraison rapide & sécurisée",
+    description: "La super application de livraison au Cameroun",
+    images: ["/og-image.jpg"],
   },
   robots: {
     index: true,
@@ -49,22 +65,23 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
+    icon: [
+      { url: "/icon-light-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
   },
-  manifest: '/site.webmanifest',
+  manifest: "/site.webmanifest",
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0a0f1a',
-  width: 'device-width',
+  themeColor: "#0a0f1a",
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
@@ -83,9 +100,14 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+      <body
+        className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
+      >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+          <Toaster position="top-right" richColors closeButton />
+          {process.env.NODE_ENV === "production" && <Analytics />}
+        </ThemeProvider>
       </body>
     </html>
   )

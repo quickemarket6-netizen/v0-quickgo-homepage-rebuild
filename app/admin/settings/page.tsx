@@ -87,7 +87,7 @@ export default function AdminSettingsPage() {
         
         if (data) {
           const dbSettings: Record<string, string> = {}
-          data.forEach(item => { dbSettings[item.key] = item.value })
+          data.forEach((item: { key: string; value: string }) => { dbSettings[item.key] = item.value })
           
           setSettings(prev => ({
             ...prev,

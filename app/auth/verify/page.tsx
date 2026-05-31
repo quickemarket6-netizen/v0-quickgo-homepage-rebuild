@@ -5,13 +5,18 @@ import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react"
+import { ArrowLeft, Loader2, RefreshCw, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { createClient } from "@/lib/supabase/client"
+import { useSearchParams } from "next/navigation"
 
 export default function OTPVerificationPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const email = searchParams.get("email") || ""
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [countdown, setCountdown] = useState(60)
   const [canResend, setCanResend] = useState(false)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
@@ -66,16 +71,32 @@ export default function OTPVerificationPage() {
     if (code.length !== 6) return
 
     setIsLoading(true)
-    // Simulate verification
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    setError("")
+
+    const supabase = createClient()
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "signup",
+    })
+
     setIsLoading(false)
-    router.push("/dashboard")
+
+    if (verifyError) {
+      setError(verifyError.message)
+    } else {
+      router.push("/dashboard")
+    }
   }
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setCanResend(false)
     setCountdown(60)
-    // TODO: Resend OTP API call
+    setError("")
+
+    if (!email) return
+    const supabase = createClient()
+    await supabase.auth.resend({ type: "signup", email })
   }
 
   return (
@@ -104,7 +125,7 @@ export default function OTPVerificationPage() {
             <h1 className="text-2xl font-bold text-white mb-2">Vérification</h1>
             <p className="text-muted-foreground mb-8">
               Nous avons envoyé un code à 6 chiffres à<br />
-              <span className="text-white">+237 6 12 34 56 78</span>
+              <span className="text-white">{email || "votre email"}</span>
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -143,6 +164,13 @@ export default function OTPVerificationPage() {
                   </p>
                 )}
               </div>
+
+              {error && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  {error}
+                </div>
+              )}
 
               <Button
                 type="submit"

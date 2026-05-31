@@ -9,6 +9,12 @@ export interface CartItem {
   image?: string
   vendorId?: string
   vendorName?: string
+  // extended / legacy fields
+  productId?: string
+  brand?: string
+  color?: string
+  vendor?: string
+  originalPrice?: number
 }
 
 interface CartState {
@@ -18,6 +24,7 @@ interface CartState {
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
   getTotal: () => number
+  getTotalPrice: () => number
   getItemCount: () => number
 }
 
@@ -58,6 +65,14 @@ export const useCart = create<CartState>()(
         })),
 
       clearCart: () => set({ items: [] }),
+
+      getTotalPrice: () => {
+        const state = get()
+        return state.items.reduce(
+          (total, item) => total + item.price * item.quantity,
+          0
+        )
+      },
 
       getTotal: () => {
         const state = get()

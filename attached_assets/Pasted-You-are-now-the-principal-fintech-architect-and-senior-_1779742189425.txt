@@ -1,0 +1,328 @@
+You are now the principal fintech architect and senior backend engineer for QUICKGO.
+
+Your mission is to IMPLEMENT a COMPLETE production-grade multi-vendor payout and wallet system directly into the existing QUICKGO codebase and Supabase backend.
+
+IMPORTANT:
+Do NOT generate placeholders.
+Do NOT generate demo logic.
+Everything must be fully functional, secure, scalable and production-ready.
+
+STACK:
+- Next.js 15
+- TypeScript
+- Supabase
+- Tailwind
+- shadcn/ui
+- CinetPay
+- Orange Money
+- MTN Mobile Money
+
+====================================================
+MISSION OVERVIEW
+====================================================
+
+QUICKGO is a multi-vendor escrow marketplace.
+
+Customers NEVER pay vendors directly.
+
+All customer payments go first to QUICKGO through CinetPay.
+
+QUICKGO then:
+- validates payments
+- stores funds securely
+- manages commissions
+- manages delivery validation
+- releases funds to vendors after successful delivery
+
+You must now implement the COMPLETE financial architecture.
+
+====================================================
+PHASE 1 — SUPABASE DATABASE ARCHITECTURE
+====================================================
+
+Audit existing Supabase tables.
+
+Then CREATE or FIX all missing tables, relationships, indexes and constraints.
+
+Generate proper SQL migrations.
+
+REQUIRED TABLES:
+
+1. vendor_wallets
+- id
+- vendor_id
+- pending_balance
+- available_balance
+- withdrawn_balance
+- total_earned
+- total_sales
+- updated_at
+
+2. vendor_payout_accounts
+- id
+- vendor_id
+- payout_method
+- account_name
+- phone_number
+- verified
+- is_default
+- created_at
+
+3. vendor_payouts
+- id
+- vendor_id
+- amount
+- payout_method
+- payout_phone
+- cinetpay_transaction_id
+- status
+- initiated_by_admin
+- approved_by
+- created_at
+
+4. commission_logs
+- id
+- order_id
+- vendor_id
+- gross_amount
+- quickgo_commission
+- payment_fees
+- delivery_fees
+- vendor_net_amount
+- created_at
+
+5. payment_transactions
+- id
+- order_id
+- customer_id
+- payment_provider
+- transaction_id
+- amount
+- currency
+- status
+- raw_response
+- created_at
+
+6. payout_audit_logs
+- id
+- payout_id
+- action
+- performed_by
+- ip_address
+- device_info
+- created_at
+
+7. financial_notifications
+- id
+- user_id
+- type
+- title
+- message
+- read
+- created_at
+
+====================================================
+PHASE 2 — WALLET SYSTEM
+====================================================
+
+Implement a COMPLETE wallet engine.
+
+FLOW:
+1. Customer pays QUICKGO
+2. Order validated
+3. Vendor receives pending balance
+4. Delivery completed
+5. Funds move to available balance
+6. Vendor eligible for payout
+7. Admin processes payout
+
+RULES:
+- pending balance cannot be withdrawn
+- available balance only after delivery confirmation
+- automatic commission deduction
+- automatic payment fee deduction
+- automatic delivery fee deduction
+
+Generate:
+- realtime wallet updates
+- secure transactions
+- accounting-safe calculations
+- rollback protection
+
+====================================================
+PHASE 3 — SUPER ADMIN FINANCIAL DASHBOARD
+====================================================
+
+Generate a PREMIUM enterprise-grade admin financial dashboard.
+
+SUPER ADMIN MUST BE ABLE TO:
+- view global revenue
+- view total commissions
+- view vendor balances
+- view pending payouts
+- view vendor analytics
+- view transaction history
+- search vendors
+- filter payouts
+- approve payouts
+- reject payouts
+- freeze vendor wallets
+- view fraud alerts
+- view accounting reports
+
+DASHBOARD MUST INCLUDE:
+- realtime charts
+- analytics
+- cashflow visualizations
+- payout tables
+- vendor rankings
+- fraud indicators
+
+====================================================
+PHASE 4 — VENDOR FINANCIAL DASHBOARD
+====================================================
+
+Generate COMPLETE vendor finance dashboards.
+
+VENDORS MUST SEE:
+- pending balance
+- available balance
+- withdrawn balance
+- payout history
+- sales analytics
+- commission history
+- transaction history
+- payout status
+- payout methods
+
+VENDORS MUST BE ABLE TO:
+- request payouts
+- manage payout accounts
+- track withdrawals
+
+====================================================
+PHASE 5 — MANUAL PAYOUT SYSTEM
+====================================================
+
+IMPORTANT:
+Start with MANUAL payout architecture.
+
+ADMIN WORKFLOW:
+1. Admin opens vendor wallet
+2. Admin verifies balance
+3. Admin clicks "Pay Vendor"
+4. Admin selects:
+   - Orange Money
+   - MTN Mobile Money
+5. Admin enters amount
+6. OTP/password confirmation required
+7. Payout processed via CinetPay API
+8. Transaction stored permanently
+9. Vendor notified in realtime
+
+Generate:
+- payout modals
+- payout confirmations
+- payout statuses
+- payout receipts
+- payout logs
+
+====================================================
+PHASE 6 — SECURITY & FRAUD PREVENTION
+====================================================
+
+Implement enterprise-grade financial security.
+
+PREVENT:
+- double payouts
+- negative balances
+- payouts before delivery
+- invalid payout accounts
+- duplicate transactions
+- replay attacks
+- forged requests
+
+ADD:
+- OTP validation
+- admin password confirmation
+- audit logs
+- payout rate limiting
+- suspicious activity detection
+- fraud scoring
+- transaction monitoring
+
+====================================================
+PHASE 7 — CINETPAY INTEGRATION
+====================================================
+
+Implement COMPLETE CinetPay payout integration.
+
+SUPPORT:
+- Orange Money
+- MTN Mobile Money
+
+VERIFY:
+- transaction status
+- webhook validation
+- retry handling
+- failed payouts
+- timeout handling
+- webhook security
+
+Generate:
+- secure API routes
+- webhook handlers
+- retry queues
+- transaction reconciliation
+
+====================================================
+PHASE 8 — REALTIME SYSTEMS
+====================================================
+
+Implement realtime financial updates using Supabase realtime.
+
+Realtime updates:
+- wallet balances
+- payout statuses
+- admin analytics
+- fraud alerts
+- financial notifications
+
+====================================================
+PHASE 9 — ACCOUNTING & REPORTING
+====================================================
+
+Generate enterprise accounting systems.
+
+Include:
+- financial exports
+- CSV/PDF reports
+- vendor statements
+- commission reports
+- payout reports
+- audit reports
+
+====================================================
+PHASE 10 — FINAL VALIDATION
+====================================================
+
+Run COMPLETE end-to-end validation.
+
+Verify:
+- no broken financial logic
+- no race conditions
+- no duplicate payouts
+- no unsafe calculations
+- no missing permissions
+- no missing audit trails
+
+Ensure:
+- production-grade quality
+- scalability
+- financial integrity
+- clean architecture
+- maintainable codebase
+
+IMPORTANT:
+Do NOT stop halfway.
+Fully implement the COMPLETE financial architecture directly into the existing QUICKGO application and Supabase backend.

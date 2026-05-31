@@ -1,443 +1,648 @@
 "use client"
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useRef, useCallback } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import Link from "next/link"
 import {
-  Package, TrendingUp, Users, DollarSign, ShoppingCart,
-  AlertTriangle, BarChart3, PieChart, ArrowUpRight, ArrowDownRight,
-  Plus, Search, Filter, Download, RefreshCw, Eye, Edit, Trash2,
-  Bell, Settings, Star, Clock, Truck, CheckCircle, XCircle,
-  Zap, Target, Award, Sparkles, Brain, MessageSquare
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Progress } from '@/components/ui/progress'
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
+  Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
+  RefreshCw, Search, Phone, Award, Crown, Zap, LogOut, User, Truck,
+  Boxes, ShoppingCart, TrendingDown, UserPlus, Activity,
+} from "lucide-react"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { createClient } from "@/lib/supabase/client"
 
-// Mock data
-const STATS = {
-  revenue: { value: 2450000, change: 12.5, period: 'ce mois' },
-  orders: { value: 156, change: 8.3, period: 'cette semaine' },
-  customers: { value: 89, change: 15.2, period: 'nouveaux' },
-  avgCart: { value: 15700, change: -2.1, period: 'moyen' }
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface Customer {
+  id: string
+  full_name: string
+  phone: string
+  avatar_url: string | null
+  joined_at: string
+  total_orders: number
+  total_spent: number
+  last_order_at: string
+  avg_cart: number
+  segment: "vip" | "regular" | "new"
+}
+interface Kpi {
+  total: number
+  active: number
+  new_week: number
+  avg_cart: number
+  avg_orders: number
+}
+interface CrmData { customers: Customer[]; kpi: Kpi }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const BACKGROUND_VIDEOS = [
+  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/background%20videos%20E-market%20hero-tiwMHaJdezDuLsRvu9dKGD6duCx1gr.mp4",
+  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/video%20market%20place%20background%20hero-ukKWRfEszbAZsD07cLFE1nT4OaJHBS.mp4",
+]
+
+const SIDEBAR_ITEMS = [
+  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
+  { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
+  { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
+  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
+  {
+    icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
+    children: [
+      { label: "Tous les produits", href: "/vendor/products" },
+      { label: "Ajouter un produit", href: "/vendor/products/new" },
+      { label: "Catégories",         href: "/vendor/products/categories" },
+    ],
+  },
+  { icon: TrendingUp, label: "Revenus",    href: "/vendor/analytics" },
+  {
+    icon: Wallet, label: "Portefeuille", href: "/vendor/wallet", expandable: true,
+    children: [
+      { label: "Solde & Retrait",  href: "/vendor/wallet" },
+      { label: "Retraits",         href: "/vendor/payouts" },
+      { label: "Historique",       href: "/vendor/wallet/history" },
+    ],
+  },
+  { icon: Users,      label: "Clients CRM", href: "/vendor/crm", active: true },
+  { icon: BarChart3,  label: "Analyses",    href: "/vendor/analytics" },
+  { icon: Tag,        label: "Promotions",  href: "/vendor/promotions" },
+  { icon: Star,       label: "Avis",        href: "/vendor/reviews" },
+  { icon: Settings,   label: "Paramètres",  href: "/vendor/settings" },
+  { icon: HelpCircle, label: "Aide",        href: "/vendor/help" },
+]
+
+type SegmentFilter = "all" | "vip" | "regular" | "new"
+
+const SEGMENT_CFG = {
+  vip:     { label: "VIP",       color: "#eab308", icon: Crown,    desc: "10+ commandes" },
+  regular: { label: "Réguliers", color: "#3b82f6", icon: Activity, desc: "3–9 commandes" },
+  new:     { label: "Nouveaux",  color: "#a3e635", icon: UserPlus, desc: "1–2 commandes" },
 }
 
-const PRODUCTS = [
-  { id: 1, name: 'Riz Parfume 25kg', stock: 45, sold: 234, price: 18000, status: 'active', trend: 'up' },
-  { id: 2, name: 'Huile Vegetale 5L', stock: 12, sold: 189, price: 8500, status: 'low_stock', trend: 'up' },
-  { id: 3, name: 'Sucre en Poudre 10kg', stock: 0, sold: 156, price: 12000, status: 'out_of_stock', trend: 'down' },
-  { id: 4, name: 'Lait en Poudre 400g', stock: 78, sold: 98, price: 3500, status: 'active', trend: 'stable' },
-  { id: 5, name: 'Tomate Concentree 800g', stock: 5, sold: 145, price: 1800, status: 'low_stock', trend: 'up' },
-]
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtCFA(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M F`
+  if (n >= 1_000)     return `${new Intl.NumberFormat("fr-FR").format(Math.round(n))} F`
+  return `${Math.round(n)} F`
+}
+function relTime(d: string) {
+  const mins = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
+  if (mins < 1)   return "À l'instant"
+  if (mins < 60)  return `Il y a ${mins} min`
+  const h = Math.floor(mins / 60)
+  if (h < 24)     return `Il y a ${h}h`
+  const days = Math.floor(h / 24)
+  if (days < 7)   return `Il y a ${days}j`
+  if (days < 30)  return `Il y a ${Math.floor(days / 7)} sem.`
+  return `Il y a ${Math.floor(days / 30)} mois`
+}
+function initials(name: string) {
+  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+}
 
-const ORDERS = [
-  { id: 'QG-2024-001', customer: 'Marie Nkolo', items: 3, total: 45000, status: 'pending', time: '10 min' },
-  { id: 'QG-2024-002', customer: 'Paul Essomba', items: 1, total: 18000, status: 'preparing', time: '25 min' },
-  { id: 'QG-2024-003', customer: 'Jean Mbarga', items: 5, total: 67500, status: 'ready', time: '45 min' },
-  { id: 'QG-2024-004', customer: 'Claire Atangana', items: 2, total: 23000, status: 'delivered', time: '1h' },
-]
-
-const TOP_CUSTOMERS = [
-  { name: 'Marie Nkolo', orders: 23, spent: 456000, lastOrder: '2 jours' },
-  { name: 'Paul Essomba', orders: 18, spent: 312000, lastOrder: '1 semaine' },
-  { name: 'Jean Mbarga', orders: 15, spent: 278000, lastOrder: '3 jours' },
-  { name: 'Claire Atangana', orders: 12, spent: 198000, lastOrder: 'Aujourd\'hui' },
-]
-
-const AI_INSIGHTS = [
-  { icon: '📈', text: 'Vos ventes de riz augmentent de 25% le weekend. Pensez a augmenter votre stock.', type: 'tip' },
-  { icon: '⚠️', text: 'Stock critique: Sucre en Poudre 10kg est en rupture. 12 clients en attente.', type: 'alert' },
-  { icon: '🎯', text: 'Marie Nkolo est votre meilleure cliente. Offrez-lui une reduction fidelite!', type: 'insight' },
-  { icon: '💡', text: 'Les commandes sont 40% plus elevees entre 18h-20h. Optimisez votre disponibilite.', type: 'tip' },
-]
-
-export default function VendorCRMPage() {
-  const [activeTab, setActiveTab] = useState('overview')
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('fr-CM', { style: 'decimal' }).format(price) + ' FCFA'
-  }
-
-  const getStatusBadge = (status: string) => {
-    const config: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-      active: { label: 'Actif', variant: 'default' },
-      low_stock: { label: 'Stock bas', variant: 'secondary' },
-      out_of_stock: { label: 'Rupture', variant: 'destructive' },
-      pending: { label: 'En attente', variant: 'outline' },
-      preparing: { label: 'Preparation', variant: 'secondary' },
-      ready: { label: 'Pret', variant: 'default' },
-      delivered: { label: 'Livre', variant: 'default' },
+// ─── Count-up hook ────────────────────────────────────────────────────────────
+function useCountUp(target: number, duration = 700) {
+  const [v, setV] = useState(0)
+  useEffect(() => {
+    let start: number | null = null
+    const step = (ts: number) => {
+      if (!start) start = ts
+      const p = Math.min((ts - start) / duration, 1)
+      setV(Math.round(p * target))
+      if (p < 1) requestAnimationFrame(step)
     }
-    const { label, variant } = config[status] || { label: status, variant: 'outline' }
-    return <Badge variant={variant}>{label}</Badge>
+    requestAnimationFrame(step)
+  }, [target, duration])
+  return v
+}
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, color, icon: Icon, delay }: {
+  label: string; value: number; sub?: string; color: string; icon: typeof Users; delay: number
+}) {
+  const counted = useCountUp(value)
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, type: "spring", stiffness: 120, damping: 18 }}
+      whileHover={{ y: -3 }}
+      className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5 flex flex-col gap-3
+        transition-all duration-300 relative overflow-hidden"
+    >
+      <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-2xl opacity-20" style={{ background: color }} />
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center relative z-10"
+        style={{ background: `${color}20` }}>
+        <Icon className="w-5 h-5" style={{ color }} />
+      </div>
+      <div className="relative z-10">
+        <p className="text-2xl font-black text-white leading-tight">
+          {sub ? sub : counted}
+        </p>
+        <p className="text-xs text-white/40 mt-1">{label}</p>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Customer Card ────────────────────────────────────────────────────────────
+function CustomerCard({ customer, index }: { customer: Customer; index: number }) {
+  const seg = SEGMENT_CFG[customer.segment]
+  const SegIcon = seg.icon
+
+  const avatarGradients: Record<string, string> = {
+    vip:     "from-[#eab308] to-[#f97316]",
+    regular: "from-[#3b82f6] to-[#06b6d4]",
+    new:     "from-[#a3e635] to-[#22c55e]",
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">CRM Vendeur Premium</h1>
-            <p className="text-muted-foreground">Gerez votre commerce intelligemment</p>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, x: -10 }}
+      transition={{ delay: index * 0.04, type: "spring", stiffness: 150, damping: 22 }}
+      whileHover={{ y: -2, borderColor: `${seg.color}40` }}
+      className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5 transition-all duration-300 relative overflow-hidden"
+    >
+      {/* rank glow */}
+      {index < 3 && (
+        <div className="absolute top-0 right-0 w-20 h-20 rounded-full blur-3xl opacity-10"
+          style={{ background: seg.color }} />
+      )}
+
+      <div className="flex items-start gap-4">
+        {/* Avatar */}
+        <div className="relative shrink-0">
+          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${avatarGradients[customer.segment]} flex items-center justify-center`}>
+            <span className="text-white font-black text-sm">{initials(customer.full_name)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            <Button size="sm" className="bg-gradient-to-r from-lime-500 to-green-500 text-black">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau produit
-            </Button>
-          </div>
+          {index < 3 && (
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#0a0a0f]"
+              style={{ background: seg.color }}>
+              <span className="text-[#0a0a0f] text-[9px] font-black">#{index + 1}</span>
+            </div>
+          )}
         </div>
 
-        {/* AI Insights Banner */}
-        <Card className="bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border-violet-500/20">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
-                <Brain className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold">QuickGo AI Business Assistant</h3>
-                <p className="text-xs text-muted-foreground">Recommandations intelligentes pour votre commerce</p>
-              </div>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <p className="text-white font-semibold text-sm truncate">{customer.full_name}</p>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold"
+              style={{ background: `${seg.color}20`, color: seg.color }}>
+              <SegIcon className="w-2.5 h-2.5" />{seg.label}
+            </span>
+          </div>
+          {customer.phone && (
+            <a href={`tel:${customer.phone}`}
+              className="flex items-center gap-1 text-xs text-white/40 hover:text-[#3b82f6] transition-colors mb-3">
+              <Phone className="w-3 h-3" />{customer.phone}
+            </a>
+          )}
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="bg-[#111118] rounded-xl p-2.5 text-center">
+              <p className="text-white font-bold text-sm">{customer.total_orders}</p>
+              <p className="text-white/30 text-[10px]">commandes</p>
             </div>
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-2">
-                {AI_INSIGHTS.map((insight, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className={`flex-shrink-0 p-3 rounded-xl border w-72 ${
-                      insight.type === 'alert' ? 'bg-red-500/10 border-red-500/30' :
-                      insight.type === 'tip' ? 'bg-blue-500/10 border-blue-500/30' :
-                      'bg-green-500/10 border-green-500/30'
-                    }`}
-                  >
-                    <span className="text-2xl mr-2">{insight.icon}</span>
-                    <p className="text-sm">{insight.text}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <DollarSign className="w-5 h-5 text-green-500" />
-                <Badge variant={STATS.revenue.change > 0 ? 'default' : 'destructive'} className="text-xs">
-                  {STATS.revenue.change > 0 ? '+' : ''}{STATS.revenue.change}%
-                </Badge>
-              </div>
-              <p className="text-2xl font-bold">{formatPrice(STATS.revenue.value)}</p>
-              <p className="text-xs text-muted-foreground">Chiffre d&apos;affaires {STATS.revenue.period}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <ShoppingCart className="w-5 h-5 text-blue-500" />
-                <Badge variant="default" className="text-xs">+{STATS.orders.change}%</Badge>
-              </div>
-              <p className="text-2xl font-bold">{STATS.orders.value}</p>
-              <p className="text-xs text-muted-foreground">Commandes {STATS.orders.period}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <Users className="w-5 h-5 text-purple-500" />
-                <Badge variant="default" className="text-xs">+{STATS.customers.change}%</Badge>
-              </div>
-              <p className="text-2xl font-bold">{STATS.customers.value}</p>
-              <p className="text-xs text-muted-foreground">Clients {STATS.customers.period}</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <Target className="w-5 h-5 text-orange-500" />
-                <Badge variant={STATS.avgCart.change > 0 ? 'default' : 'secondary'} className="text-xs">
-                  {STATS.avgCart.change}%
-                </Badge>
-              </div>
-              <p className="text-2xl font-bold">{formatPrice(STATS.avgCart.value)}</p>
-              <p className="text-xs text-muted-foreground">Panier {STATS.avgCart.period}</p>
-            </CardContent>
-          </Card>
+            <div className="bg-[#111118] rounded-xl p-2.5 text-center">
+              <p className="text-white font-bold text-sm">{fmtCFA(customer.total_spent)}</p>
+              <p className="text-white/30 text-[10px]">dépensé</p>
+            </div>
+            <div className="bg-[#111118] rounded-xl p-2.5 text-center">
+              <p className="text-white font-bold text-sm">{fmtCFA(customer.avg_cart)}</p>
+              <p className="text-white/30 text-[10px]">panier moy.</p>
+            </div>
+          </div>
         </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="products" className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full max-w-md">
-            <TabsTrigger value="products">Produits</TabsTrigger>
-            <TabsTrigger value="orders">Commandes</TabsTrigger>
-            <TabsTrigger value="customers">Clients</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          {/* Products Tab */}
-          <TabsContent value="products" className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle>Gestion des stocks</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input placeholder="Rechercher..." className="pl-9 w-48" />
-                    </div>
-                    <Button variant="outline" size="icon">
-                      <Filter className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {PRODUCTS.map((product) => (
-                    <div 
-                      key={product.id}
-                      className="flex items-center justify-between p-4 rounded-xl border hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                          <Package className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <span>{formatPrice(product.price)}</span>
-                            <span>•</span>
-                            <span>{product.sold} vendus</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="font-semibold">{product.stock} unites</p>
-                          <Progress 
-                            value={Math.min(product.stock * 2, 100)} 
-                            className={`w-20 h-2 ${product.stock === 0 ? '[&>div]:bg-red-500' : product.stock < 15 ? '[&>div]:bg-yellow-500' : ''}`}
-                          />
-                        </div>
-                        {getStatusBadge(product.status)}
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon">
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Stock Alerts */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card className="border-yellow-500/30 bg-yellow-500/5">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                    Stock bas (2)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {PRODUCTS.filter(p => p.status === 'low_stock').map((p) => (
-                      <div key={p.id} className="flex items-center justify-between text-sm">
-                        <span>{p.name}</span>
-                        <Badge variant="secondary">{p.stock} restants</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-red-500/30 bg-red-500/5">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <XCircle className="w-5 h-5 text-red-500" />
-                    Rupture de stock (1)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {PRODUCTS.filter(p => p.status === 'out_of_stock').map((p) => (
-                      <div key={p.id} className="flex items-center justify-between text-sm">
-                        <span>{p.name}</span>
-                        <Button size="sm" variant="outline">Reapprovisionner</Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Orders Tab */}
-          <TabsContent value="orders" className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Commandes recentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {ORDERS.map((order) => (
-                    <div 
-                      key={order.id}
-                      className="flex items-center justify-between p-4 rounded-xl border hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          order.status === 'pending' ? 'bg-yellow-500/10' :
-                          order.status === 'preparing' ? 'bg-blue-500/10' :
-                          order.status === 'ready' ? 'bg-green-500/10' :
-                          'bg-gray-500/10'
-                        }`}>
-                          {order.status === 'pending' && <Clock className="w-5 h-5 text-yellow-500" />}
-                          {order.status === 'preparing' && <Package className="w-5 h-5 text-blue-500" />}
-                          {order.status === 'ready' && <CheckCircle className="w-5 h-5 text-green-500" />}
-                          {order.status === 'delivered' && <Truck className="w-5 h-5 text-gray-500" />}
-                        </div>
-                        <div>
-                          <p className="font-medium">{order.id}</p>
-                          <p className="text-sm text-muted-foreground">{order.customer} • {order.items} articles</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="font-semibold">{formatPrice(order.total)}</p>
-                          <p className="text-xs text-muted-foreground">Il y a {order.time}</p>
-                        </div>
-                        {getStatusBadge(order.status)}
-                        <Button variant="outline" size="sm">Voir</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Customers Tab */}
-          <TabsContent value="customers" className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Meilleurs clients</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {TOP_CUSTOMERS.map((customer, i) => (
-                    <div 
-                      key={customer.name}
-                      className="flex items-center justify-between p-4 rounded-xl border hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          i === 0 ? 'bg-yellow-500/20' : i === 1 ? 'bg-gray-500/20' : i === 2 ? 'bg-orange-500/20' : 'bg-muted'
-                        }`}>
-                          {i < 3 ? (
-                            <Award className={`w-5 h-5 ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-500' : 'text-orange-500'}`} />
-                          ) : (
-                            <Users className="w-5 h-5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">{customer.name}</p>
-                          <p className="text-sm text-muted-foreground">{customer.orders} commandes • Derniere: {customer.lastOrder}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="font-semibold">{formatPrice(customer.spent)}</p>
-                          <p className="text-xs text-muted-foreground">Total depense</p>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Contacter
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" />
-                    Ventes par jour
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48 flex items-end gap-2">
-                    {[65, 45, 78, 52, 89, 95, 72].map((value, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <div 
-                          className="w-full bg-gradient-to-t from-lime-500 to-green-500 rounded-t"
-                          style={{ height: `${value}%` }}
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {['L', 'M', 'M', 'J', 'V', 'S', 'D'][i]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PieChart className="w-5 h-5" />
-                    Repartition des ventes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {PRODUCTS.slice(0, 4).map((product, i) => {
-                      const colors = ['bg-lime-500', 'bg-blue-500', 'bg-purple-500', 'bg-orange-500']
-                      const percent = [35, 28, 22, 15][i]
-                      return (
-                        <div key={product.id} className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${colors[i]}`} />
-                          <span className="flex-1 text-sm">{product.name}</span>
-                          <span className="font-medium">{percent}%</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#1e1e2e]">
+        <p className="text-white/30 text-xs">Dernière commande · {relTime(customer.last_order_at)}</p>
+        <div className="flex items-center gap-2">
+          {/* Retention dot */}
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+              style={{ background: seg.color }} />
+            <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: seg.color }} />
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function VendorCRMPage() {
+  const [data, setData]       = useState<CrmData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [search, setSearch]   = useState("")
+  const [segment, setSegment] = useState<SegmentFilter>("all")
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ Produits: false, Portefeuille: false })
+  const [vendorName, setVendorName]     = useState("")
+  const [vendorInitials, setVendorInitials] = useState("")
+  const supabase  = useRef(createClient())
+  const videoRef  = useRef<HTMLVideoElement>(null)
+  const [videoIdx, setVideoIdx] = useState(0)
+
+  // ── Video ───────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    video.src = BACKGROUND_VIDEOS[videoIdx % BACKGROUND_VIDEOS.length]
+    video.load()
+    const onCanPlay = () => video.play().catch(() => {})
+    video.addEventListener("canplay", onCanPlay, { once: true })
+    return () => video.removeEventListener("canplay", onCanPlay)
+  }, [videoIdx])
+
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      const { data: { user } } = await supabase.current.auth.getUser()
+      if (!user) return
+      const { data: v } = await supabase.current.from("vendors").select("name").eq("owner_id", user.id).single()
+      if (v) { setVendorName((v as { name: string }).name); setVendorInitials(initials((v as { name: string }).name)) }
+    }
+    void load()
+  }, [])
+
+  // ── Fetch ────────────────────────────────────────────────────────────────────
+  const fetchData = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true)
+    else setRefreshing(true)
+    try {
+      const res = await fetch("/api/vendor/customers")
+      if (res.ok) setData(await res.json())
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const handleSignOut = async () => {
+    await supabase.current.auth.signOut()
+    window.location.href = "/auth/login"
+  }
+
+  const toggleSection = (label: string) => setExpandedSections((s) => ({ ...s, [label]: !s[label] }))
+
+  const customers = data?.customers ?? []
+  const kpi = data?.kpi
+
+  const filtered = customers.filter((c) => {
+    const matchSearch = c.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      c.phone.includes(search)
+    const matchSegment = segment === "all" || c.segment === segment
+    return matchSearch && matchSegment
+  })
+
+  const segmentCounts = {
+    vip:     customers.filter((c) => c.segment === "vip").length,
+    regular: customers.filter((c) => c.segment === "regular").length,
+    new:     customers.filter((c) => c.segment === "new").length,
+  }
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+
+      {/* Background orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.35, 0.15] }}
+          transition={{ duration: 9, repeat: Infinity }}
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#8b5cf6] blur-[130px]" />
+        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
+          transition={{ duration: 11, repeat: Infinity, delay: 3 }}
+          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-[#eab308] blur-[120px]" />
+        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
+          transition={{ duration: 13, repeat: Infinity, delay: 6 }}
+          className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full bg-[#a3e635] blur-[120px]" />
+      </div>
+
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+      <aside className="hidden lg:flex w-60 shrink-0 flex-col bg-[#111118] border-r border-[#1e1e2e] relative z-10">
+        <div className="px-5 py-5 border-b border-[#1e1e2e]">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
+              <span className="text-white font-black text-base">Q</span>
+            </div>
+            <div>
+              <p className="text-white font-black text-base leading-none">QUICK<span className="text-[#a3e635]">GO</span></p>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest">Vendeur</p>
+            </div>
+          </Link>
+        </div>
+
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {SIDEBAR_ITEMS.map((item) => {
+            const isExpanded = expandedSections[item.label]
+            const Icon = item.icon
+            return (
+              <div key={item.label}>
+                {item.expandable ? (
+                  <button onClick={() => toggleSection(item.label)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-[#1e1e2e]/60 transition-all text-sm">
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  </button>
+                ) : (
+                  <Link href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                      item.active
+                        ? "bg-[#8b5cf6]/10 text-[#8b5cf6] border border-[#8b5cf6]/20"
+                        : "text-white/50 hover:text-white hover:bg-[#1e1e2e]/60"
+                    }`}>
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{item.label}</span>
+                    {item.active && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#8b5cf6]" />}
+                  </Link>
+                )}
+                <AnimatePresence>
+                  {item.expandable && isExpanded && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
+                      className="overflow-hidden ml-7 mt-0.5 space-y-0.5">
+                      {item.children?.map((child) => (
+                        <Link key={child.href} href={child.href}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-white/40 hover:text-white hover:bg-[#1e1e2e]/40 transition-all">
+                          <ChevronRight className="w-3 h-3" />{child.label}
+                        </Link>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          })}
+        </nav>
+
+        <div className="p-3">
+          <motion.div whileHover={{ scale: 1.02 }}
+            className="bg-gradient-to-br from-[#a3e635]/20 to-[#3b82f6]/20 border border-[#a3e635]/20 rounded-2xl p-4">
+            <p className="text-white text-xs font-bold mb-1">Développez votre activité</p>
+            <p className="text-white/40 text-[10px] mb-3">Boostez vos ventes avec QuickGo</p>
+            <button className="w-full py-1.5 rounded-lg bg-[#a3e635] text-[#0a0a0f] text-xs font-bold flex items-center justify-center gap-1.5">
+              <Zap className="w-3 h-3" /> Booster
+            </button>
+          </motion.div>
+        </div>
+      </aside>
+
+      {/* ── Main ────────────────────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col min-w-0 relative z-10">
+
+        {/* Video Header */}
+        <div className="relative overflow-hidden bg-[#111118]">
+          <video ref={videoRef} muted loop playsInline onEnded={() => setVideoIdx((i) => i + 1)}
+            className="absolute inset-0 w-full h-full object-cover opacity-20" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/60 via-transparent to-[#0a0a0f]" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#111118] via-transparent to-[#111118]" />
+          <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
+            transition={{ duration: 7, repeat: Infinity }}
+            className="absolute top-0 right-1/3 w-40 h-20 rounded-full bg-[#8b5cf6] blur-3xl opacity-30" />
+
+          <div className="relative z-10 px-6 py-5 flex items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <motion.div animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-10 h-10 rounded-2xl bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-[#8b5cf6]" />
+                </motion.div>
+                <h1 className="text-2xl font-black text-white">
+                  CRM{" "}
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#8b5cf6] to-[#06b6d4]">
+                    Clients
+                  </span>
+                </h1>
+              </div>
+              <p className="text-white/40 text-sm">Gérez et fidélisez vos clients</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <motion.button onClick={() => fetchData(true)}
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                <RefreshCw className={`w-4 h-4 text-white/60 ${refreshing ? "animate-spin" : ""}`} />
+              </motion.button>
+
+              <Link href="/vendor/dashboard">
+                <motion.div whileHover={{ scale: 1.05 }}
+                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
+                  <Bell className="w-4 h-4 text-white/60" />
+                </motion.div>
+              </Link>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e]">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#8b5cf6] to-[#06b6d4] border-2 border-[#a3e635]/60 shadow-[0_0_12px_rgba(163,230,53,0.25)] flex items-center justify-center">
+                      <span className="text-white font-black text-sm">{vendorInitials || "V"}</span>
+                    </div>
+                    <div className="text-left hidden sm:block">
+                      <p className="text-white text-sm font-semibold leading-tight">{vendorName || "Vendeur"}</p>
+                      <p className="text-white/40 text-xs">Gestionnaire</p>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-white/40" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 bg-[#16161f] border-[#1e1e2e]">
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                      <User className="w-4 h-4" /> Mon profil
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/vendor/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                      <Settings className="w-4 h-4" /> Paramètres
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-[#1e1e2e]" />
+                  <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 text-[#ef4444] hover:text-[#ef4444] cursor-pointer">
+                    <LogOut className="w-4 h-4" /> Se déconnecter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+
+          {/* KPI Cards */}
+          {loading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              {[...Array(5)].map((_, i) => <div key={i} className="h-28 rounded-2xl bg-[#16161f] animate-pulse" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <KpiCard label="Total clients"    value={kpi?.total ?? 0}      color="#8b5cf6" icon={Users}       delay={0}    />
+              <KpiCard label="Actifs (30j)"     value={kpi?.active ?? 0}     color="#a3e635" icon={Activity}    delay={0.06} />
+              <KpiCard label="Nouveaux (7j)"    value={kpi?.new_week ?? 0}   color="#3b82f6" icon={UserPlus}    delay={0.12} />
+              <KpiCard label="Panier moyen"     value={kpi?.avg_cart ?? 0}   sub={fmtCFA(kpi?.avg_cart ?? 0)} color="#f97316" icon={ShoppingCart} delay={0.18} />
+              <KpiCard label="Cmd. moy./client" value={kpi?.avg_orders ?? 0} color="#eab308" icon={Award}       delay={0.24} />
+            </div>
+          )}
+
+          {/* Segment summary */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="grid grid-cols-3 gap-4">
+            {(["vip", "regular", "new"] as const).map((seg) => {
+              const cfg = SEGMENT_CFG[seg]
+              const Icon = cfg.icon
+              const count = segmentCounts[seg]
+              return (
+                <motion.button key={seg} onClick={() => setSegment(segment === seg ? "all" : seg)}
+                  whileHover={{ y: -2 }}
+                  className="bg-[#16161f]/80 backdrop-blur-xl border rounded-2xl p-4 text-left transition-all duration-300 relative overflow-hidden"
+                  style={{
+                    borderColor: segment === seg ? `${cfg.color}40` : "#1e1e2e",
+                    background: segment === seg ? `${cfg.color}08` : undefined,
+                  }}>
+                  <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-15"
+                    style={{ background: cfg.color }} />
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                      style={{ background: `${cfg.color}20` }}>
+                      <Icon className="w-4 h-4" style={{ color: cfg.color }} />
+                    </div>
+                    <div>
+                      <p className="text-white font-bold text-sm">{cfg.label}</p>
+                      <p className="text-white/30 text-[10px]">{cfg.desc}</p>
+                    </div>
+                  </div>
+                  <p className="text-2xl font-black" style={{ color: cfg.color }}>{loading ? "—" : count}</p>
+                  <p className="text-white/30 text-xs mt-0.5">
+                    {loading || !kpi?.total ? "" : `${Math.round((count / kpi.total) * 100)}% du total`}
+                  </p>
+                </motion.button>
+              )
+            })}
+          </motion.div>
+
+          {/* Search + filters */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Nom ou téléphone..."
+                className="h-10 pl-9 pr-4 bg-[#16161f]/80 border border-[#1e1e2e] rounded-xl text-sm text-white
+                  placeholder-white/30 focus:outline-none focus:border-[#8b5cf6]/50 w-56 transition-colors backdrop-blur-xl" />
+            </div>
+            {(["all", "vip", "regular", "new"] as const).map((f) => {
+              const labels = { all: "Tous", vip: "VIP", regular: "Réguliers", new: "Nouveaux" }
+              const colors = { all: "#3b82f6", vip: "#eab308", regular: "#3b82f6", new: "#a3e635" }
+              const active = segment === f
+              return (
+                <button key={f} onClick={() => setSegment(f)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                  style={{
+                    background: active ? `${colors[f]}20` : "transparent",
+                    color: active ? colors[f] : "#ffffff50",
+                    border: active ? `1px solid ${colors[f]}40` : "1px solid transparent",
+                  }}>
+                  {labels[f]}
+                </button>
+              )
+            })}
+            <p className="text-white/30 text-xs ml-auto">
+              {loading ? "" : `${filtered.length} client${filtered.length !== 1 ? "s" : ""}`}
+            </p>
+          </div>
+
+          {/* Customers grid */}
+          {loading ? (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-44 rounded-2xl bg-[#16161f] animate-pulse" style={{ opacity: 1 - i * 0.12 }} />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center py-24 gap-4">
+              <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>
+                <Users className="w-16 h-16 text-white/10" />
+              </motion.div>
+              <p className="text-white/40 font-semibold">Aucun client trouvé</p>
+              <p className="text-white/20 text-sm">
+                {search ? "Essayez un autre nom ou numéro" : "Vos clients apparaîtront ici dès la première commande"}
+              </p>
+            </motion.div>
+          ) : (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <AnimatePresence>
+                {filtered.map((c, i) => (
+                  <CustomerCard key={c.id} customer={c} index={i} />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Top 3 podium (only when all shown) */}
+          {!loading && segment === "all" && search === "" && customers.slice(0, 3).length === 3 && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+              className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Crown className="w-5 h-5 text-[#eab308]" />
+                <p className="text-white font-bold">Top 3 meilleurs clients</p>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {customers.slice(0, 3).map((c, i) => {
+                  const podiumColors = ["#eab308", "#94a3b8", "#f97316"]
+                  const heights = ["h-24", "h-16", "h-20"]
+                  return (
+                    <div key={c.id} className="flex flex-col items-center gap-2">
+                      <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br flex items-center justify-center font-black text-white text-sm
+                        ${i === 0 ? "from-[#eab308] to-[#f97316]" : i === 1 ? "from-[#94a3b8] to-[#64748b]" : "from-[#f97316] to-[#ef4444]"}`}>
+                        {initials(c.full_name)}
+                      </div>
+                      <p className="text-white text-xs font-semibold text-center truncate w-full">{c.full_name.split(" ")[0]}</p>
+                      <p className="text-[10px] text-white/40">{fmtCFA(c.total_spent)}</p>
+                      <div className={`w-full ${heights[i]} rounded-xl flex items-end justify-center pb-2`}
+                        style={{ background: `${podiumColors[i]}20`, borderBottom: `3px solid ${podiumColors[i]}` }}>
+                        <span className="text-sm font-black" style={{ color: podiumColors[i] }}>#{i + 1}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Retention tip */}
+          {!loading && (kpi?.active ?? 0) < (kpi?.total ?? 0) && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
+              className="bg-[#8b5cf6]/10 border border-[#8b5cf6]/30 rounded-2xl px-5 py-4 flex items-center gap-3">
+              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                <TrendingDown className="w-5 h-5 text-[#8b5cf6]" />
+              </motion.div>
+              <div>
+                <p className="text-white/80 text-sm">
+                  <span className="text-[#8b5cf6] font-bold">{(kpi?.total ?? 0) - (kpi?.active ?? 0)} client{((kpi?.total ?? 0) - (kpi?.active ?? 0)) > 1 ? "s" : ""}</span>
+                  {" "}inactif{((kpi?.total ?? 0) - (kpi?.active ?? 0)) > 1 ? "s" : ""} depuis 30 jours —
+                  pensez à leur envoyer une promotion pour les réactiver.
+                </p>
+              </div>
+              <Link href="/vendor/promotions" className="ml-auto">
+                <button className="px-3 py-1.5 rounded-xl bg-[#8b5cf6]/20 text-[#8b5cf6] text-xs font-semibold hover:bg-[#8b5cf6]/30 transition-colors whitespace-nowrap border border-[#8b5cf6]/30">
+                  Créer une promo
+                </button>
+              </Link>
+            </motion.div>
+          )}
+
+        </div>
+      </main>
     </div>
   )
 }
