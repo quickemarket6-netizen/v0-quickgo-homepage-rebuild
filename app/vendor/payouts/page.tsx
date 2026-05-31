@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, BarChart3,
   Truck, Wallet, TrendingUp, Settings, Bell, MessageSquare,
   ChevronRight, LogOut, ArrowDownCircle, Clock, RefreshCw,
-  CircleCheck, Ban, BadgeCheck, X, CheckCircle,
+  CircleCheck, Ban, BadgeCheck, X, CheckCircle, Star,
 } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
@@ -79,6 +79,7 @@ const SIDEBAR_ITEMS = [
   { icon: Package,       label: "Stocks",        href: "/vendor/stocks" },
   { icon: Truck,         label: "Livraisons",    href: "/vendor/deliveries" },
   { icon: Users,         label: "CRM",           href: "/vendor/crm" },
+  { icon: Star,          label: "Avis",          href: "/vendor/reviews" },
   { icon: TrendingUp,    label: "Revenus",       href: "/vendor/analytics" },
   {
     icon: Wallet, label: "Portefeuille", href: "/vendor/wallet",
