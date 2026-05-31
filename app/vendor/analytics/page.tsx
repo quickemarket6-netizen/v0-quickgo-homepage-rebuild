@@ -4,34 +4,42 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import {
-  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
-  Tag, Star, Settings, HelpCircle, Bell, Search, ChevronDown, RefreshCw,
-  ArrowUpRight, Zap, ChevronRight, LogOut, User, Download, Boxes, Truck,
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, TrendingDown, Wallet, Users,
+  BarChart3, Tag, Star, Settings, HelpCircle, Bell, ChevronDown, RefreshCw,
+  Zap, ChevronRight, LogOut, User, Download, Boxes, Truck, Crown, Percent,
 } from "lucide-react"
 import {
-  AreaChart, Area, BarChart, Bar,
-  ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
+  AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface AnalyticsData {
-  vendor: { id: string; name: string; logo_url: string | null; is_verified: boolean; rating: number | null; status: string }
-  kpi: { today_sales: number; today_orders: number; month_revenue: number; active_products: number; rating: number }
-  chart: { date: string; sales: number; orders: number }[]
+interface RevenueData {
+  vendor: {
+    id: string; name: string; logo_url: string | null
+    is_verified: boolean; rating: number | null; status: string; commission_rate: number
+  }
+  kpi: {
+    today: number; today_change: number
+    week: number; week_change: number
+    month: number; month_change: number
+    year: number; year_change: number
+    avg_order_value: number
+    commission_month: number
+    commission_rate: number
+  }
+  chart: { date: string; revenue: number; orders: number }[]
+  by_dow: { day: string; revenue: number }[]
   top_products: { name: string; sold: number; revenue: number }[]
+  wallet: { available_balance: number; pending_balance: number; total_earned: number } | null
 }
 
-// ─── Sidebar items (same as dashboard, Analytics active) ─────────────────────
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
@@ -45,7 +53,7 @@ const SIDEBAR_ITEMS = [
       { label: "Catégories",         href: "/vendor/products/categories" },
     ],
   },
-  { icon: TrendingUp, label: "Revenus",    href: "/vendor/analytics" },
+  { icon: TrendingUp, label: "Revenus", href: "/vendor/analytics", active: true },
   {
     icon: Wallet, label: "Portefeuille", href: "/vendor/wallet", expandable: true,
     children: [
@@ -53,21 +61,20 @@ const SIDEBAR_ITEMS = [
       { label: "Historique",       href: "/vendor/wallet/history" },
     ],
   },
-  { icon: Users,     label: "Clients CRM", href: "/vendor/crm" },
-  { icon: BarChart3, label: "Analyses",   href: "/vendor/analytics", active: true },
-  { icon: Tag,       label: "Promotions", href: "/vendor/promotions" },
-  { icon: Star,      label: "Avis",       href: "/vendor/reviews" },
-  { icon: Settings,  label: "Paramètres", href: "/vendor/settings" },
-  { icon: HelpCircle,label: "Aide",       href: "/vendor/help" },
+  { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
+  { icon: Tag,        label: "Promotions",  href: "/vendor/promotions" },
+  { icon: Star,       label: "Avis",        href: "/vendor/reviews" },
+  { icon: Settings,   label: "Paramètres",  href: "/vendor/settings" },
+  { icon: HelpCircle, label: "Aide",        href: "/vendor/help" },
 ]
 
-// ─── Video URLs (from hero-section) ──────────────────────────────────────────
-const BACKGROUND_VIDEOS = [
+// ─── Videos ───────────────────────────────────────────────────────────────────
+const VIDEOS = [
   "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/background%20videos%20E-market%20hero-tiwMHaJdezDuLsRvu9dKGD6duCx1gr.mp4",
   "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/video%20market%20place%20background%20hero-ukKWRfEszbAZsD07cLFE1nT4OaJHBS.mp4",
 ]
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatCFA(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M F`
   if (n >= 1_000) return `${new Intl.NumberFormat("fr-FR").format(Math.round(n))} F`
@@ -76,25 +83,28 @@ function formatCFA(n: number) {
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
 }
-
-// ─── Count-up hook ────────────────────────────────────────────────────────────
 function useCountUp(target: number, duration = 800) {
-  const [value, setValue] = useState(0)
+  const [v, setV] = useState(0)
   useEffect(() => {
+    if (target === 0) { setV(0); return }
     let start: number | null = null
     const step = (ts: number) => {
       if (!start) start = ts
-      const progress = Math.min((ts - start) / duration, 1)
-      setValue(Math.round(progress * target))
-      if (progress < 1) requestAnimationFrame(step)
+      const p = Math.min((ts - start) / duration, 1)
+      const ease = 1 - Math.pow(1 - p, 3)
+      setV(Math.round(ease * target))
+      if (p < 1) requestAnimationFrame(step)
     }
-    requestAnimationFrame(step)
+    const id = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(id)
   }, [target, duration])
-  return value
+  return v
 }
 
-// ─── Custom Tooltip ───────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+// ─── Chart Tooltip ────────────────────────────────────────────────────────────
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string
+}) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3 text-xs shadow-xl">
@@ -110,38 +120,52 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   )
 }
 
-// ─── KPI Card ────────────────────────────────────────────────────────────────
+// ─── KPI Card (with % change badge) ──────────────────────────────────────────
 function KpiCard({
-  label, rawValue, displayValue, color, icon: Icon, delay,
+  label, value, displayValue, change, color, sub, icon: Icon, delay,
 }: {
-  label: string; rawValue: number; displayValue: string; color: string
-  icon: typeof TrendingUp; delay: number
+  label: string; value: number; displayValue: string; change: number
+  color: string; sub?: string; icon: typeof TrendingUp; delay: number
 }) {
-  const counted = useCountUp(rawValue, 700)
+  const counted = useCountUp(value)
   void counted
+  const isUp = change >= 0
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
       whileHover={{ y: -2 }}
       className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5 flex flex-col gap-3
-        hover:border-[#3b82f6]/40 hover:shadow-[0_0_30px_rgba(59,130,246,0.08)] transition-all duration-300"
+        transition-all duration-300 hover:border-white/10 hover:shadow-lg"
     >
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}20` }}>
-        <Icon className="w-5 h-5" style={{ color }} />
+      <div className="flex items-start justify-between gap-2">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: `${color}20` }}>
+          <Icon className="w-5 h-5" style={{ color }} />
+        </div>
+        <div className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full shrink-0 ${
+          isUp ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+        }`}>
+          {isUp
+            ? <TrendingUp className="w-3 h-3" />
+            : <TrendingDown className="w-3 h-3" />
+          }
+          {Math.abs(change)}%
+        </div>
       </div>
       <div>
         <p className="text-2xl font-black text-white leading-tight">{displayValue}</p>
         <p className="text-xs text-white/40 mt-1">{label}</p>
+        {sub && <p className="text-[10px] text-white/20 mt-0.5">{sub}</p>}
       </div>
     </motion.div>
   )
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function VendorAnalyticsPage() {
-  const [data, setData] = useState<AnalyticsData | null>(null)
+export default function VendorRevenuePage() {
+  const [data, setData] = useState<RevenueData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState(7)
+  const [period, setPeriod] = useState(30)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ Produits: false, Portefeuille: false })
   const supabase = useRef(createClient())
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -150,58 +174,59 @@ export default function VendorAnalyticsPage() {
   const fetchData = useCallback(async (p: number) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/vendor/dashboard?period=${p}`)
+      const res = await fetch(`/api/vendor/revenue?period=${p}`)
       if (res.ok) setData(await res.json())
     } finally {
       setLoading(false)
     }
   }, [])
 
-  useEffect(() => { fetchData(7) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void fetchData(30) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Video cycling
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
-    video.src = BACKGROUND_VIDEOS[videoIdx]
+    video.src = VIDEOS[videoIdx]
     video.load()
     const onCanPlay = () => video.play().catch(() => {})
     video.addEventListener("canplay", onCanPlay, { once: true })
     return () => video.removeEventListener("canplay", onCanPlay)
   }, [videoIdx])
 
-  const handlePeriod = (p: number) => { setPeriod(p); fetchData(p) }
+  const handlePeriod = (p: number) => { setPeriod(p); void fetchData(p) }
   const toggleSection = (label: string) => setExpandedSections((s) => ({ ...s, [label]: !s[label] }))
 
-  const kpi = data?.kpi
-  const chartData = data?.chart ?? []
-  const topProducts = data?.top_products ?? []
+  const kpi       = data?.kpi
+  const chart     = data?.chart ?? []
+  const byDow     = data?.by_dow ?? []
+  const topProds  = data?.top_products ?? []
+  const maxDow    = Math.max(...byDow.map((d) => d.revenue), 1)
+  const maxProd   = Math.max(...topProds.map((p) => p.revenue), 1)
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
 
-      {/* ── Background glow orbs ─────────────────────────────────────────────── */}
+      {/* ── Background orbs ────────────────────────────────────────────────── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.12, 0.28, 0.12] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#a3e635] blur-[120px]"
+          className="absolute top-1/4 left-1/3 w-[420px] h-[420px] rounded-full bg-[#a3e635] blur-[130px]"
         />
         <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-[#3b82f6] blur-[120px]"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.22, 0.1] }}
+          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-[#eab308] blur-[120px]"
         />
         <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 4 }}
-          className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full bg-[#8b5cf6] blur-[120px]"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.08, 0.2, 0.08] }}
+          transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+          className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full bg-[#22c55e] blur-[120px]"
         />
       </div>
 
-      {/* ── Left Sidebar ─────────────────────────────────────────────────────── */}
+      {/* ── Sidebar ────────────────────────────────────────────────────────── */}
       <aside className="hidden lg:flex w-60 shrink-0 flex-col bg-[#111118] border-r border-[#1e1e2e] relative z-10">
-        {/* Logo */}
         <div className="px-5 py-5 border-b border-[#1e1e2e]">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center shrink-0">
@@ -213,18 +238,11 @@ export default function VendorAnalyticsPage() {
             </div>
           </Link>
         </div>
-
-        {/* Nav */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {SIDEBAR_ITEMS.map((item, idx) => {
             const isExpanded = expandedSections[item.label]
             return (
-              <motion.div
-                key={item.label}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-              >
+              <motion.div key={item.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.04 }}>
                 {item.expandable ? (
                   <>
                     <button
@@ -238,10 +256,8 @@ export default function VendorAnalyticsPage() {
                     <AnimatePresence>
                       {isExpanded && (
                         <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
                           className="overflow-hidden pl-7 mt-0.5 space-y-0.5"
                         >
                           {item.children?.map((child) => (
@@ -260,7 +276,7 @@ export default function VendorAnalyticsPage() {
                   <Link href={item.href}
                     className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
                       item.active
-                        ? "bg-[#a3e635]/10 border-l-2 border-[#a3e635] text-[#a3e635] rounded-r-xl ml-0 pl-[10px]"
+                        ? "bg-[#a3e635]/10 border-l-2 border-[#a3e635] text-[#a3e635] rounded-r-xl pl-[10px]"
                         : "rounded-xl text-white/40 hover:bg-white/5 hover:text-white"
                     }`}
                   >
@@ -272,15 +288,13 @@ export default function VendorAnalyticsPage() {
             )
           })}
         </nav>
-
-        {/* Booster CTA */}
         <div className="p-3 border-t border-[#1e1e2e]">
-          <div className="bg-gradient-to-br from-[#a3e635]/15 to-[#3b82f6]/10 border border-[#a3e635]/20 rounded-xl p-4">
+          <div className="bg-gradient-to-br from-[#a3e635]/15 to-[#eab308]/10 border border-[#a3e635]/20 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-4 h-4 text-[#a3e635]" />
               <span className="text-white text-sm font-semibold">Booster</span>
             </div>
-            <p className="text-white/40 text-xs mb-3">Mettez vos produits en avant et multipliez vos ventes.</p>
+            <p className="text-white/40 text-xs mb-3">Multipliez vos revenus avec nos offres sponsorisées.</p>
             <Button size="sm" className="w-full h-8 bg-[#a3e635] hover:bg-[#a3e635]/90 text-black font-bold text-xs rounded-lg">
               Activer
             </Button>
@@ -288,45 +302,36 @@ export default function VendorAnalyticsPage() {
         </div>
       </aside>
 
-      {/* ── Main Content ─────────────────────────────────────────────────────── */}
+      {/* ── Main ───────────────────────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden relative z-10">
 
-        {/* ── Hero header with video background ──────────────────────────────── */}
+        {/* ── Hero header ──────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden">
-          {/* Video */}
           <video
             ref={videoRef}
-            className="absolute inset-0 w-full h-full object-cover"
-            muted
-            playsInline
-            onEnded={() => setVideoIdx((i) => (i + 1) % BACKGROUND_VIDEOS.length)}
+            className="absolute inset-0 w-full h-full object-cover opacity-20"
+            muted playsInline
+            onEnded={() => setVideoIdx((i) => (i + 1) % VIDEOS.length)}
           />
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-[#0a0a0f]/70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] via-[#0a0a0f]/90 to-[#0a0a0f]/60" />
 
-          {/* Sticky top bar */}
+          {/* Topbar */}
           <header className="sticky top-0 z-40 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-6 py-3 flex items-center justify-between gap-4 relative">
             <div>
-              <h1 className="text-white font-bold leading-tight">
-                Analyses &amp; Performances
-              </h1>
-              <p className="text-xs text-white/30">Vue détaillée de votre activité</p>
+              <h1 className="text-white font-bold">Revenus &amp; Statistiques</h1>
+              <p className="text-xs text-white/30">Analyse complète de vos revenus</p>
             </div>
             <div className="flex items-center gap-3">
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                <Input placeholder="Rechercher…" className="pl-9 w-56 bg-[#16161f] border-[#1e1e2e] rounded-xl h-9 text-sm placeholder:text-white/20" />
-              </div>
               <button className="relative p-2 hover:bg-white/5 rounded-xl transition-colors">
                 <Bell className="w-5 h-5 text-white/40" />
               </button>
-              <Button variant="ghost" size="icon" onClick={() => fetchData(period)} className="h-9 w-9 rounded-xl">
+              <Button variant="ghost" size="icon" onClick={() => void fetchData(period)} className="h-9 w-9 rounded-xl">
                 <RefreshCw className={`w-4 h-4 text-white/40 ${loading ? "animate-spin" : ""}`} />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e] hover:opacity-90 transition-opacity focus:outline-none">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center border-2 border-[#a3e635]/60 shrink-0 shadow-[0_0_12px_rgba(163,230,53,0.25)]">
+                  <button className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e] focus:outline-none hover:opacity-90 transition-opacity">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center border-2 border-[#a3e635]/60 shadow-[0_0_12px_rgba(163,230,53,0.25)]">
                       <span className="text-white font-bold text-xs">{data ? initials(data.vendor.name) : "?"}</span>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-white/30" />
@@ -361,217 +366,306 @@ export default function VendorAnalyticsPage() {
             </div>
           </header>
 
-          {/* Hero content */}
-          <div className="relative px-6 py-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <div className="inline-flex items-center gap-2 bg-[#a3e635]/10 border border-[#a3e635]/20 rounded-full px-3 py-1 mb-4">
-                <BarChart3 className="w-3.5 h-3.5 text-[#a3e635]" />
-                <span className="text-[#a3e635] text-xs font-medium uppercase tracking-widest">Analytics</span>
+          {/* Hero text */}
+          <div className="relative px-6 py-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+              <div className="inline-flex items-center gap-2 bg-[#a3e635]/10 border border-[#a3e635]/20 rounded-full px-3 py-1 mb-3">
+                <TrendingUp className="w-3.5 h-3.5 text-[#a3e635]" />
+                <span className="text-[#a3e635] text-xs font-medium uppercase tracking-widest">Revenus</span>
               </div>
               <h2 className="text-3xl lg:text-4xl font-black text-white mb-2">
-                Tableau de bord<br />
-                <span className="text-[#a3e635]">analytique</span>
+                Statistiques<br /><span className="text-[#a3e635]">de revenus</span>
               </h2>
-              <p className="text-white/50 text-sm max-w-md">
-                Suivez vos performances en temps réel et prenez les meilleures décisions pour développer votre activité.
+              <p className="text-white/40 text-sm max-w-md">
+                Suivez l&apos;évolution de vos revenus, identifiez vos meilleurs produits et optimisez votre rentabilité.
               </p>
             </motion.div>
           </div>
         </div>
 
-        {/* ── Scrollable body ─────────────────────────────────────────────────── */}
+        {/* ── Body ─────────────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-          {/* Period selector */}
-          <div className="flex items-center justify-between">
-            <h3 className="text-white font-semibold">Vue d&apos;ensemble</h3>
-            <div className="flex items-center gap-1 bg-[#16161f] border border-[#1e1e2e] rounded-xl p-1">
-              {[{ v: 7, l: "7j" }, { v: 30, l: "30j" }, { v: 90, l: "90j" }].map(({ v, l }) => (
-                <button key={v} onClick={() => handlePeriod(v)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    period === v ? "bg-[#a3e635] text-black font-bold" : "text-white/40 hover:text-white"
-                  }`}
-                >{l}</button>
-              ))}
-            </div>
-          </div>
-
-          {/* KPI cards */}
+          {/* ── 4 KPI cards (with % change) ──────────────────────────────── */}
           {loading && !data ? (
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-36 rounded-2xl bg-[#16161f] animate-pulse" />
+                <div key={i} className="h-40 rounded-2xl bg-[#16161f] animate-pulse" />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <KpiCard label="Ventes aujourd'hui" rawValue={kpi?.today_sales ?? 0} displayValue={formatCFA(kpi?.today_sales ?? 0)} color="#22c55e" icon={TrendingUp} delay={0} />
-              <KpiCard label="Commandes du jour" rawValue={kpi?.today_orders ?? 0} displayValue={String(kpi?.today_orders ?? 0)} color="#3b82f6" icon={ShoppingBag} delay={0.05} />
-              <KpiCard label="Revenus du mois" rawValue={kpi?.month_revenue ?? 0} displayValue={formatCFA(kpi?.month_revenue ?? 0)} color="#a3e635" icon={BarChart3} delay={0.1} />
-              <KpiCard label="Note moyenne" rawValue={kpi?.rating ?? 0} displayValue={`${(kpi?.rating ?? 0).toFixed(1)} ★`} color="#f97316" icon={Star} delay={0.15} />
+              <KpiCard label="Aujourd'hui"  sub="vs hier"              value={kpi?.today ?? 0} displayValue={formatCFA(kpi?.today ?? 0)} change={kpi?.today_change ?? 0} color="#22c55e" icon={TrendingUp} delay={0} />
+              <KpiCard label="Cette semaine" sub="vs semaine dernière" value={kpi?.week ?? 0}  displayValue={formatCFA(kpi?.week ?? 0)}  change={kpi?.week_change ?? 0}  color="#3b82f6" icon={BarChart3} delay={0.06} />
+              <KpiCard label="Ce mois"       sub="vs mois dernier"    value={kpi?.month ?? 0} displayValue={formatCFA(kpi?.month ?? 0)} change={kpi?.month_change ?? 0} color="#a3e635" icon={TrendingUp} delay={0.12} />
+              <KpiCard label="Cette année"   sub="vs année dernière"  value={kpi?.year ?? 0}  displayValue={formatCFA(kpi?.year ?? 0)}  change={kpi?.year_change ?? 0}  color="#eab308" icon={Crown}     delay={0.18} />
             </div>
           )}
 
-          {/* Charts row */}
-          <div className="grid xl:grid-cols-2 gap-4">
-
-            {/* Revenue Area Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              whileHover={{ y: -1 }}
-              className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
-                hover:border-[#3b82f6]/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.06)] transition-all duration-300"
-            >
-              <div className="flex items-center justify-between mb-5">
+          {/* ── 2 secondary cards ────────────────────────────────────────── */}
+          {!loading && data && (
+            <div className="grid sm:grid-cols-2 gap-3">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.24 }}
+                className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5 flex items-center gap-5
+                  hover:border-[#8b5cf6]/20 transition-all duration-300"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-[#8b5cf6]/15 flex items-center justify-center shrink-0">
+                  <BarChart3 className="w-7 h-7 text-[#8b5cf6]" />
+                </div>
                 <div>
-                  <h3 className="text-white font-semibold text-sm">Revenus sur la période</h3>
-                  <p className="text-xs text-white/30 mt-0.5">Derniers {period} jours</p>
+                  <p className="text-xs text-white/40 mb-1">Panier moyen (30 derniers jours)</p>
+                  <p className="text-2xl font-black text-white">{formatCFA(kpi?.avg_order_value ?? 0)}</p>
+                  <p className="text-[11px] text-white/20 mt-0.5">par commande validée</p>
+                </div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
+                className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5 flex items-center gap-5
+                  hover:border-[#f97316]/20 transition-all duration-300"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-[#f97316]/10 flex items-center justify-center shrink-0">
+                  <Percent className="w-7 h-7 text-[#f97316]" />
+                </div>
+                <div>
+                  <p className="text-xs text-white/40 mb-1">Commission ce mois ({kpi?.commission_rate ?? 5}%)</p>
+                  <p className="text-2xl font-black text-white">{formatCFA(kpi?.commission_month ?? 0)}</p>
+                  <p className="text-[11px] text-white/20 mt-0.5">déduit de vos revenus bruts</p>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {/* ── Revenue trend chart ───────────────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
+              hover:border-[#a3e635]/15 transition-all duration-300"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div>
+                <h3 className="text-white font-semibold text-sm">Évolution des revenus</h3>
+                <p className="text-xs text-white/30 mt-0.5">Revenus journaliers sur la période sélectionnée</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl p-1">
+                  {([{ v: 7, l: "7j" }, { v: 30, l: "30j" }, { v: 90, l: "90j" }] as const).map(({ v, l }) => (
+                    <button key={v} onClick={() => handlePeriod(v)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        period === v ? "bg-[#a3e635] text-black font-bold" : "text-white/40 hover:text-white"
+                      }`}
+                    >{l}</button>
+                  ))}
                 </div>
                 <button className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white transition-colors">
                   <Download className="w-3.5 h-3.5" /> Export
                 </button>
               </div>
-              {loading && !data ? (
-                <div className="h-52 rounded-xl bg-white/5 animate-pulse" />
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#a3e635" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#a3e635" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
-                    <XAxis dataKey="date" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Area type="monotone" dataKey="sales" name="Revenus" stroke="#a3e635" strokeWidth={2} fill="url(#salesGrad)" dot={false} activeDot={{ r: 4, fill: "#a3e635" }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </motion.div>
-
-            {/* Orders Bar Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-              whileHover={{ y: -1 }}
-              className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
-                hover:border-[#3b82f6]/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.06)] transition-all duration-300"
-            >
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <h3 className="text-white font-semibold text-sm">Commandes par jour</h3>
-                  <p className="text-xs text-white/30 mt-0.5">Derniers {period} jours</p>
-                </div>
-              </div>
-              {loading && !data ? (
-                <div className="h-52 rounded-xl bg-white/5 animate-pulse" />
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="ordersGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.4} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
-                    <XAxis dataKey="date" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false} />
-                    <Tooltip content={<ChartTooltip />} />
-                    <Bar dataKey="orders" name="Commandes" fill="url(#ordersGrad)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </motion.div>
-          </div>
-
-          {/* Top products table */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-            whileHover={{ y: -1 }}
-            className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
-              hover:border-[#3b82f6]/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.06)] transition-all duration-300"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-white font-semibold text-sm">Top Produits</h3>
-              <Link href="/vendor/products" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 flex items-center gap-1 transition-colors">
-                Voir tout <ArrowUpRight className="w-3 h-3" />
-              </Link>
             </div>
-            {loading && !data ? (
-              <div className="space-y-3">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-12 rounded-xl bg-white/5 animate-pulse" />
-                ))}
-              </div>
-            ) : topProducts.length === 0 ? (
-              <p className="text-white/30 text-sm text-center py-10">Aucun produit pour le moment</p>
+            {loading ? (
+              <div className="h-60 rounded-xl bg-white/5 animate-pulse" />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px]">
-                  <thead>
-                    <tr className="text-xs text-white/30 border-b border-[#1e1e2e]">
-                      <th className="pb-3 text-left font-medium">#</th>
-                      <th className="pb-3 text-left font-medium">Produit</th>
-                      <th className="pb-3 text-right font-medium">Ventes</th>
-                      <th className="pb-3 text-right font-medium">Revenus</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1e1e2e]">
-                    {topProducts.map((p, i) => (
-                      <motion.tr
-                        key={p.name}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 + i * 0.05 }}
-                        className="hover:bg-white/[0.02] transition-colors"
-                      >
-                        <td className="py-3.5">
-                          <span className="w-6 h-6 rounded-full bg-[#a3e635]/10 text-[#a3e635] text-xs font-bold flex items-center justify-center">
-                            {i + 1}
-                          </span>
-                        </td>
-                        <td className="py-3.5">
-                          <p className="text-white text-sm font-medium truncate max-w-[200px]">{p.name}</p>
-                        </td>
-                        <td className="py-3.5 text-right">
-                          <span className="text-white/60 text-sm">{p.sold}</span>
-                        </td>
-                        <td className="py-3.5 text-right">
-                          <span className="text-white font-semibold text-sm">{formatCFA(p.revenue)}</span>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={chart} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#a3e635" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#a3e635" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e1e2e" />
+                  <XAxis dataKey="date" tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false}
+                    interval={period > 30 ? 6 : period > 14 ? 3 : "preserveStartEnd"} />
+                  <YAxis tick={{ fill: "#555", fontSize: 10 }} axisLine={false} tickLine={false}
+                    tickFormatter={(v) => v >= 1000 ? `${Math.round(v / 1000)}k` : String(v)} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area type="monotone" dataKey="revenue" name="Revenus" stroke="#a3e635" strokeWidth={2.5}
+                    fill="url(#revGrad)" dot={false}
+                    activeDot={{ r: 5, fill: "#a3e635", stroke: "#0a0a0f", strokeWidth: 2 }} />
+                </AreaChart>
+              </ResponsiveContainer>
             )}
           </motion.div>
 
-          {/* Summary stats */}
-          <div className="grid sm:grid-cols-3 gap-4">
-            {[
-              { label: "Total revenus période", value: formatCFA(chartData.reduce((s, d) => s + d.sales, 0)), color: "#a3e635", delay: 0.35 },
-              { label: "Total commandes période", value: String(chartData.reduce((s, d) => s + d.orders, 0)), color: "#3b82f6", delay: 0.4 },
-              { label: "Produits actifs", value: String(kpi?.active_products ?? 0), color: "#8b5cf6", delay: 0.45 },
-            ].map((s) => (
-              <motion.div
-                key={s.label}
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: s.delay }}
-                className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5 text-center
-                  hover:border-[#3b82f6]/30 transition-all duration-300"
-              >
-                <p className="text-2xl font-black" style={{ color: s.color }}>{loading && !data ? "…" : s.value}</p>
-                <p className="text-xs text-white/40 mt-1">{s.label}</p>
-              </motion.div>
-            ))}
+          {/* ── 2-col: by day-of-week + top products ─────────────────────── */}
+          <div className="grid xl:grid-cols-2 gap-4">
+
+            {/* Revenue by day of week */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.36 }}
+              className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
+                hover:border-[#3b82f6]/15 transition-all duration-300"
+            >
+              <h3 className="text-white font-semibold text-sm mb-1">Revenus par jour de la semaine</h3>
+              <p className="text-xs text-white/30 mb-5">Distribution sur les {period} derniers jours</p>
+              {loading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div key={i} className="h-7 rounded-lg bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {byDow.map((d, i) => (
+                    <div key={d.day} className="flex items-center gap-3">
+                      <span className="text-xs text-white/40 w-7 shrink-0 font-medium">{d.day}</span>
+                      <div className="flex-1 h-6 bg-white/[0.04] rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(d.revenue / maxDow) * 100}%` }}
+                          transition={{ delay: 0.36 + i * 0.05, duration: 0.7, ease: "easeOut" }}
+                          className="h-full rounded-full bg-gradient-to-r from-[#3b82f6] to-[#06b6d4]"
+                        />
+                      </div>
+                      <span className="text-xs font-semibold w-20 text-right shrink-0 text-white">
+                        {d.revenue > 0 ? formatCFA(d.revenue) : <span className="text-white/20">—</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
+            {/* Top products by revenue */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}
+              className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
+                hover:border-[#eab308]/15 transition-all duration-300"
+            >
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-white font-semibold text-sm">Top produits — Revenus</h3>
+                  <p className="text-xs text-white/30 mt-0.5">30 derniers jours, classés par chiffre d&apos;affaires</p>
+                </div>
+                <Link href="/vendor/products"
+                  className="text-xs text-[#a3e635] hover:text-[#a3e635]/80 flex items-center gap-1 transition-colors">
+                  Voir tout <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+              {loading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-10 rounded-xl bg-white/5 animate-pulse" />
+                  ))}
+                </div>
+              ) : topProds.length === 0 ? (
+                <p className="text-white/30 text-sm text-center py-10">Aucun produit vendu récemment</p>
+              ) : (
+                <div className="space-y-4">
+                  {topProds.map((p, i) => (
+                    <motion.div
+                      key={p.name}
+                      initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.42 + i * 0.04 }}
+                      className="flex items-center gap-3"
+                    >
+                      <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
+                        i === 0 ? "bg-[#eab308]/20 text-[#eab308]" :
+                        i === 1 ? "bg-white/10 text-white/50" :
+                        i === 2 ? "bg-[#f97316]/15 text-[#f97316]" :
+                        "bg-white/5 text-white/25"
+                      }`}>{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-xs font-medium truncate">{p.name}</p>
+                        <div className="mt-1.5 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(p.revenue / maxProd) * 100}%` }}
+                            transition={{ delay: 0.42 + i * 0.04, duration: 0.7 }}
+                            className="h-full rounded-full"
+                            style={{
+                              background: i === 0 ? "#eab308" : i === 1 ? "#a3e635" : i === 2 ? "#22c55e" : "#3b82f6",
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-white font-bold text-xs">{formatCFA(p.revenue)}</p>
+                        <p className="text-white/30 text-[10px]">{p.sold} vendus</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </div>
+
+          {/* ── Bottom: wallet + revenue breakdown ───────────────────────── */}
+          {!loading && data && (
+            <div className="grid sm:grid-cols-2 gap-4">
+
+              {/* Wallet quick card */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}
+                className="bg-gradient-to-br from-[#a3e635]/10 via-[#22c55e]/5 to-transparent
+                  border border-[#a3e635]/20 rounded-2xl p-5 hover:border-[#a3e635]/35 transition-all duration-300"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <p className="text-[10px] text-[#a3e635]/60 font-bold uppercase tracking-widest mb-1">Portefeuille</p>
+                    <p className="text-white font-bold text-sm">Solde disponible</p>
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-[#a3e635]/15 flex items-center justify-center shrink-0">
+                    <Wallet className="w-5 h-5 text-[#a3e635]" />
+                  </div>
+                </div>
+                <p className="text-3xl font-black text-white mb-1">
+                  {formatCFA(data.wallet?.available_balance ?? 0)}
+                </p>
+                {(data.wallet?.pending_balance ?? 0) > 0 && (
+                  <p className="text-xs text-white/30 mb-4">
+                    + {formatCFA(data.wallet?.pending_balance ?? 0)} en attente
+                  </p>
+                )}
+                <div className="mt-4 pt-4 border-t border-[#a3e635]/15 flex items-center justify-between">
+                  <p className="text-xs text-white/30">Total encaissé</p>
+                  <p className="text-xs font-bold text-[#a3e635]">{formatCFA(data.wallet?.total_earned ?? 0)}</p>
+                </div>
+                <Link href="/vendor/wallet"
+                  className="mt-4 inline-flex items-center gap-2 bg-[#a3e635] hover:bg-[#a3e635]/90
+                    text-black font-bold text-xs px-4 py-2 rounded-xl transition-colors w-full justify-center"
+                >
+                  Gérer le portefeuille <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </motion.div>
+
+              {/* Revenue breakdown: gross / commission / net */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.52 }}
+                className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-5
+                  hover:border-[#f97316]/15 transition-all duration-300"
+              >
+                <h3 className="text-white font-semibold text-sm mb-5">Décomposition des revenus ce mois</h3>
+                <div className="space-y-4">
+                  {[
+                    { label: "Revenus bruts",     value: kpi?.month ?? 0,                                                  color: "#a3e635", pct: 100 },
+                    { label: "Commission QuickGo", value: kpi?.commission_month ?? 0,                                       color: "#f97316", pct: Math.min(kpi?.commission_rate ?? 5, 100) },
+                    { label: "Revenus nets",       value: Math.max(0, (kpi?.month ?? 0) - (kpi?.commission_month ?? 0)),   color: "#22c55e", pct: Math.max(0, 100 - (kpi?.commission_rate ?? 5)) },
+                  ].map((row) => (
+                    <div key={row.label}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs text-white/50">{row.label}</span>
+                        <span className="text-xs font-bold text-white">{formatCFA(row.value)}</span>
+                      </div>
+                      <div className="h-2 bg-white/[0.04] rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${row.pct}%` }}
+                          transition={{ delay: 0.55, duration: 0.8, ease: "easeOut" }}
+                          className="h-full rounded-full"
+                          style={{ background: row.color }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 pt-4 border-t border-[#1e1e2e] flex items-center justify-between">
+                  <span className="text-xs text-white/30">Taux de commission appliqué</span>
+                  <span className="text-[#f97316] font-bold">{kpi?.commission_rate ?? 5}%</span>
+                </div>
+              </motion.div>
+            </div>
+          )}
 
         </div>
       </main>
