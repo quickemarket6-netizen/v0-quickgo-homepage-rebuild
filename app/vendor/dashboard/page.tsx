@@ -113,6 +113,15 @@ function timeAgo(iso: string) {
   if (h < 24) return `il y a ${h}h`
   return `il y a ${Math.floor(h / 24)}j`
 }
+function getNotifStyle(n: { title: string; message: string }) {
+  const t = (n.title + " " + n.message).toLowerCase()
+  if (t.includes("commande"))                                          return { color: "#8b5cf6", Icon: ShoppingBag  }
+  if (t.includes("paiement") || t.includes("payé"))                   return { color: "#22c55e", Icon: CheckCircle  }
+  if (t.includes("payout") || t.includes("retrait") || t.includes("envoyé")) return { color: "#3b82f6", Icon: CreditCard }
+  if (t.includes("avis")   || t.includes("note"))                     return { color: "#f59e0b", Icon: Star         }
+  if (t.includes("stock")  || t.includes("produit"))                  return { color: "#f97316", Icon: Package      }
+  return { color: "#6b7280", Icon: Bell }
+}
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
 }
@@ -776,76 +785,94 @@ export default function VendorDashboardPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-[#f59e0b]/15 flex items-center justify-center shrink-0">
-                    <Clock className="w-3 h-3 text-[#f59e0b]" />
-                  </div>
+              <div className="space-y-2">
+                <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl px-4 py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-white/30 text-[9px]">En attente</p>
-                    <p className="text-[#f59e0b] text-xs font-bold">{fmtCFA(data?.wallet?.pending_balance ?? 0)}</p>
+                    <p className="text-white/40 text-xs">En attente</p>
+                    <p className="text-[#f59e0b] text-lg font-black mt-0.5 leading-tight">
+                      {fmtCFA(data?.wallet?.pending_balance ?? 0)}
+                    </p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-[#f59e0b]/15 flex items-center justify-center shrink-0">
+                    <Wallet className="w-4 h-4 text-[#f59e0b]" />
                   </div>
                 </div>
-                <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3 flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-[#22c55e]/15 flex items-center justify-center shrink-0">
-                    <CreditCard className="w-3 h-3 text-[#22c55e]" />
-                  </div>
+                <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl px-4 py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-white/30 text-[9px]">Total retiré</p>
-                    <p className="text-[#22c55e] text-xs font-bold">{fmtCFA(data?.wallet?.total_withdrawn ?? 0)}</p>
+                    <p className="text-white/40 text-xs">Total retiré</p>
+                    <p className="text-white text-lg font-black mt-0.5 leading-tight">
+                      {fmtCFA(data?.wallet?.total_withdrawn ?? 0)}
+                    </p>
+                  </div>
+                  <div className="w-9 h-9 rounded-xl bg-[#3b82f6]/15 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-4 h-4 text-[#3b82f6]" />
                   </div>
                 </div>
               </div>
 
               {data?.wallet?.next_payout_date && (
-                <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-white/30 text-[10px]">Prochain payout</p>
-                    <p className="text-white text-xs font-semibold mt-0.5">
-                      {new Date(data.wallet.next_payout_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                    </p>
+                <div className="bg-[#16161f] border border-[#1e1e2e] rounded-xl px-4 py-3">
+                  <p className="text-white/40 text-xs font-medium mb-2">Prochain payout</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-white/30 text-[10px] mb-0.5">Date estimée</p>
+                      <p className="text-white text-xs font-semibold">
+                        {new Date(data.wallet.next_payout_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    {data.wallet.next_payout_amount && (
+                      <div>
+                        <p className="text-white/30 text-[10px] mb-0.5">Montant estimé</p>
+                        <p className="text-[#3b82f6] text-xs font-semibold">{fmtCFA(data.wallet.next_payout_amount)}</p>
+                      </div>
+                    )}
                   </div>
-                  {data.wallet.next_payout_amount && (
-                    <p className="text-[#3b82f6] text-xs font-bold">{fmtCFA(data.wallet.next_payout_amount)}</p>
-                  )}
                 </div>
               )}
 
-              <Link href="/vendor/payouts" className="flex items-center justify-center gap-1 text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 transition-colors py-1">
-                Voir l&apos;historique des payouts <ArrowUpRight className="w-3 h-3" />
+              <Link href="/vendor/payouts"
+                className="flex items-center justify-between text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 transition-colors py-1 px-1">
+                <span>Voir l&apos;historique des payouts</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </>
           )}
         </div>
 
         {/* Stock faible */}
-        {(data?.low_stock ?? []).length > 0 && (
-          <div className="p-4 border-b border-[#1e1e2e]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 text-[#f97316]" />
-                <h4 className="text-white text-xs font-bold">Stock faible</h4>
-              </div>
-              <Link href="/vendor/stocks" className="text-[10px] text-[#3b82f6] hover:opacity-80">Voir tout</Link>
+        <div className="p-4 border-b border-[#1e1e2e]">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-[#f97316]" />
+              <h4 className="text-white text-xs font-bold">Stock faible</h4>
             </div>
+            <Link href="/vendor/stocks" className="text-[10px] text-[#3b82f6] hover:opacity-80">Voir tout</Link>
+          </div>
+          {loading && !data ? (
             <div className="space-y-2">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-10 rounded-xl bg-white/5 animate-pulse" />)}
+            </div>
+          ) : (data?.low_stock ?? []).length === 0 ? (
+            <p className="text-white/20 text-xs text-center py-3">Tous les stocks sont OK ✓</p>
+          ) : (
+            <div className="space-y-2.5">
               {(data?.low_stock ?? []).map((p) => {
                 const isCritical = p.stock_quantity <= 5
                 return (
                   <div key={p.id} className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0"
+                    <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0"
                       style={{ background: isCritical ? "#ef444420" : "#f9741620", border: `1px solid ${isCritical ? "#ef444440" : "#f9741640"}` }}>
                       {p.images?.[0]
                         ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-3.5 h-3.5" style={{ color: isCritical ? "#ef4444" : "#f97316" }} />
+                            <Package className="w-4 h-4" style={{ color: isCritical ? "#ef4444" : "#f97316" }} />
                           </div>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-xs truncate">{p.name}</p>
+                      <p className="text-white text-xs font-medium truncate">{p.name}</p>
                       <p className="text-white/30 text-[10px]">Stock restant : {p.stock_quantity}</p>
                     </div>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md shrink-0
                       ${isCritical ? "bg-[#ef4444]/15 text-[#ef4444]" : "bg-[#f97316]/15 text-[#f97316]"}`}>
                       {isCritical ? "Critique" : "Faible"}
                     </span>
@@ -853,40 +880,52 @@ export default function VendorDashboardPage() {
                 )
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Notifications récentes */}
-        {(data?.notifications ?? []).length > 0 && (
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Bell className="w-3.5 h-3.5 text-white/40" />
-                <h4 className="text-white text-xs font-bold">Notifications récentes</h4>
-                {(data?.unread_notifications ?? 0) > 0 && (
-                  <span className="text-[9px] bg-[#ef4444] text-white px-1.5 py-0.5 rounded-full font-bold">
-                    {data?.unread_notifications}
-                  </span>
-                )}
-              </div>
-              <Link href="/vendor/notifications" className="text-[10px] text-[#3b82f6] hover:opacity-80">Voir toutes</Link>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Bell className="w-3.5 h-3.5 text-white/40" />
+              <h4 className="text-white text-xs font-bold">Notifications récentes</h4>
+              {(data?.unread_notifications ?? 0) > 0 && (
+                <span className="text-[9px] bg-[#ef4444] text-white px-1.5 py-0.5 rounded-full font-bold">
+                  {data?.unread_notifications}
+                </span>
+              )}
             </div>
+            <Link href="/vendor/notifications" className="text-[10px] text-[#3b82f6] hover:opacity-80">Voir toutes</Link>
+          </div>
+          {loading && !data ? (
             <div className="space-y-2">
-              {(data?.notifications ?? []).slice(0, 3).map((n) => (
-                <div key={n.id} className={`p-2.5 rounded-xl transition-colors ${n.is_read ? "bg-white/[0.02]" : "bg-[#3b82f6]/5 border border-[#3b82f6]/10"}`}>
-                  <div className="flex items-start gap-2">
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1 shrink-0 ${n.is_read ? "bg-white/20" : "bg-[#3b82f6]"}`} />
+              {[...Array(3)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-white/5 animate-pulse" />)}
+            </div>
+          ) : (data?.notifications ?? []).length === 0 ? (
+            <p className="text-white/20 text-xs text-center py-3">Aucune notification</p>
+          ) : (
+            <div className="space-y-2">
+              {(data?.notifications ?? []).slice(0, 3).map((n) => {
+                const { color, Icon } = getNotifStyle(n)
+                return (
+                  <motion.div key={n.id} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
+                    className="flex items-start gap-2.5 rounded-xl p-2.5 border-l-2"
+                    style={{ background: `${color}08`, borderLeftColor: color }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ background: `${color}20` }}>
+                      <Icon className="w-3.5 h-3.5" style={{ color }} />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-[11px] font-medium leading-tight">{n.title}</p>
-                      <p className="text-white/30 text-[10px] mt-0.5 truncate">{n.message}</p>
+                      <p className="text-white/40 text-[10px] mt-0.5 truncate">{n.message}</p>
                     </div>
-                  </div>
-                  <p className="text-white/20 text-[9px] mt-1 text-right">{timeAgo(n.created_at)}</p>
-                </div>
-              ))}
+                    <p className="text-white/25 text-[9px] shrink-0 mt-0.5 whitespace-nowrap">{timeAgo(n.created_at)}</p>
+                  </motion.div>
+                )
+              })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
       </aside>
     </div>
