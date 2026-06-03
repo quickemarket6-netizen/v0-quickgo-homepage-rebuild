@@ -99,10 +99,10 @@ const NAV = [
 
 const DONUT_COLORS = ["#3b82f6", "#22d3ee", "#a3e635", "#f59e0b", "#f43f5e"]
 const CAT_COLORS   = ["#3b82f6", "#22d3ee", "#a3e635", "#f59e0b", "#f43f5e", "#8b5cf6"]
-const SEV_CFG: Record<string, { label: string; cls: string; dot: string }> = {
-  high:   { label: "Critique", cls: "border-red-500/30 bg-red-500/10",    dot: "bg-red-400" },
-  medium: { label: "Moyen",    cls: "border-orange-500/30 bg-orange-500/10", dot: "bg-orange-400" },
-  low:    { label: "Faible",   cls: "border-yellow-500/30 bg-yellow-500/10", dot: "bg-yellow-400" },
+const SEV_CFG: Record<string, { label: string; cls: string; dot: string; leftBorder: string; badge: string; color: string; pulse: boolean }> = {
+  high:   { label: "Critique", cls: "border-red-500/40 bg-red-500/[0.07]",    dot: "bg-red-400",    leftBorder: "border-l-red-500",    badge: "bg-red-500/20 text-red-300 border border-red-500/30",    color: "#ef4444", pulse: true  },
+  medium: { label: "Moyen",    cls: "border-orange-500/30 bg-orange-500/[0.06]", dot: "bg-orange-400", leftBorder: "border-l-orange-500", badge: "bg-orange-500/20 text-orange-300 border border-orange-500/30", color: "#f97316", pulse: false },
+  low:    { label: "Faible",   cls: "border-yellow-500/25 bg-yellow-500/[0.05]", dot: "bg-yellow-400", leftBorder: "border-l-yellow-500", badge: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30", color: "#eab308", pulse: false },
 }
 const ACT_CFG: Record<string, { color: string; iconBg: string; label: string; dot: string; Icon: typeof Package }> = {
   order:    { color: "text-blue-400",   iconBg: "bg-blue-500/15",   dot: "bg-blue-500",   label: "Commande", Icon: Package },
@@ -415,6 +415,8 @@ export default function AdminDashboardPage() {
   const [cityView,       setCityView]       = useState<"orders" | "revenue">("orders")
   const [hoveredCity,    setHoveredCity]    = useState<string | null>(null)
   const [actFilter,      setActFilter]      = useState<"all"|"order"|"vendor"|"driver"|"security">("all")
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set())
+  const [expandedAlert,   setExpandedAlert]   = useState<string | null>(null)
   const [selectedPays,   setSelectedPays]   = useState<Set<string>>(new Set())
   const [payingId,       setPayingId]       = useState<string | null>(null)
   const [paidIds,        setPaidIds]        = useState<Set<string>>(new Set())
@@ -1866,59 +1868,219 @@ export default function AdminDashboardPage() {
               )
             })()}
 
-            {/* Détection IA */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-white font-bold text-sm">Détection IA</h2>
-                  <p className="text-[#6b6b8a] text-[10px]">Alertes sécurité en temps réel</p>
-                </div>
-                <Shield className="w-4 h-4 text-purple-400" />
-              </div>
+            {/* ── Détection IA ─────────────────────────────────────────── */}
+            {(() => {
+              const alerts  = (data?.ai_alerts ?? []).filter(a => !dismissedAlerts.has(a.id))
+              const visible = alerts.length
+              const high    = alerts.filter(a => a.severity === "high").length
+              const medium  = alerts.filter(a => a.severity === "medium").length
+              const low     = alerts.filter(a => a.severity === "low").length
+              const allClear = !loading && visible === 0
 
-              {loading ? (
-                <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-16 bg-white/5 animate-pulse rounded-xl" />)}</div>
-              ) : (data?.ai_alerts ?? []).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <ShieldCheck className="w-8 h-8 text-green-400 mb-2" />
-                  <p className="text-green-400 text-sm font-semibold">Aucune alerte active</p>
-                  <p className="text-[#6b6b8a] text-xs mt-1">Tous les systèmes sont normaux</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {data!.ai_alerts.map(alert => {
-                    const sev = SEV_CFG[alert.severity] ?? SEV_CFG.medium
-                    return (
-                      <div key={alert.id} className={`border rounded-xl p-3 ${sev.cls}`}>
-                        <div className="flex items-start gap-2">
-                          <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${sev.dot}`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-white text-xs font-semibold truncate">{alert.title}</p>
-                              <span className={`text-[9px] px-1.5 py-0.5 rounded-full shrink-0 font-semibold ${
-                                alert.severity === "high" ? "bg-red-500/20 text-red-300" :
-                                alert.severity === "medium" ? "bg-orange-500/20 text-orange-300" :
-                                "bg-yellow-500/20 text-yellow-300"
-                              }`}>{sev.label}</span>
-                            </div>
-                            <p className="text-[#6b6b8a] text-[10px] mt-0.5 line-clamp-2">{alert.description}</p>
-                            <p className="text-[#4a4a6a] text-[10px] mt-1">{fmtTime(alert.timestamp)}</p>
-                          </div>
+              return (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                  className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden flex flex-col"
+                >
+                  {/* header */}
+                  <div className="px-5 pt-5 pb-3">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-white font-bold text-sm leading-none">Détection IA</h2>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold border border-purple-500/25">
+                            IA
+                          </span>
                         </div>
+                        <p className="text-[#4a4a6a] text-[10px] mt-0.5">Surveillance sécurité en temps réel</p>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${allClear ? "bg-green-500/15" : "bg-purple-500/15"}`}>
+                        {allClear
+                          ? <ShieldCheck className="w-4.5 h-4.5 text-green-400" />
+                          : <Shield className="w-4.5 h-4.5 text-purple-400" />
+                        }
+                      </div>
+                    </div>
 
-              <Link href="/admin/security"
-                className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-[#1e1e2e] hover:bg-[#2a2a3e] rounded-xl text-[#6b6b8a] text-xs font-medium transition-colors"
-              >
-                <Eye className="w-3.5 h-3.5" />Voir tous les logs
-              </Link>
-            </motion.div>
+                    {/* scan bar */}
+                    <div className="relative h-1 bg-[#1e1e2e] rounded-full overflow-hidden mb-3">
+                      {!allClear && (
+                        <motion.div
+                          className="absolute inset-y-0 w-1/3 rounded-full"
+                          style={{ background: "linear-gradient(90deg, transparent, #a855f7, transparent)" }}
+                          animate={{ x: ["-100%", "400%"] }}
+                          transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }}
+                        />
+                      )}
+                      {allClear && <div className="absolute inset-0 bg-green-500/40 rounded-full" />}
+                    </div>
+
+                    {/* severity summary */}
+                    {!loading && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: "Critique", count: high,   color: "text-red-400",    bg: "bg-red-500/10",    border: "border-red-500/20"    },
+                          { label: "Moyen",    count: medium, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
+                          { label: "Faible",   count: low,    color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+                        ].map(s => (
+                          <div key={s.label} className={`rounded-lg px-2 py-1.5 border ${s.bg} ${s.border} text-center`}>
+                            <p className={`text-base font-extrabold leading-none ${s.count > 0 ? s.color : "text-[#2a2a3e]"}`}>{s.count}</p>
+                            <p className={`text-[9px] mt-0.5 font-medium ${s.count > 0 ? "text-[#6b6b8a]" : "text-[#2a2a3e]"}`}>{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* alerts list */}
+                  <div className="flex-1 overflow-y-auto max-h-80 px-5 pb-2">
+                    {loading ? (
+                      <div className="space-y-2">
+                        {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-white/5 animate-pulse rounded-xl" />)}
+                      </div>
+                    ) : allClear ? (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                        className="flex flex-col items-center justify-center py-8 text-center gap-3"
+                      >
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                          className="w-14 h-14 rounded-full bg-green-500/15 flex items-center justify-center"
+                        >
+                          <ShieldCheck className="w-7 h-7 text-green-400" />
+                        </motion.div>
+                        <div>
+                          <p className="text-green-400 font-bold text-sm">Système protégé</p>
+                          <p className="text-[#6b6b8a] text-xs mt-0.5">Aucune menace détectée</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-[#4a4a6a]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                          Analyse active · {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <AnimatePresence initial={false}>
+                        {alerts.map((alert, i) => {
+                          const sev      = SEV_CFG[alert.severity] ?? SEV_CFG.medium
+                          const expanded = expandedAlert === alert.id
+
+                          return (
+                            <motion.div
+                              key={alert.id}
+                              layout
+                              initial={{ opacity: 0, x: 12, height: 0 }}
+                              animate={{ opacity: 1, x: 0, height: "auto" }}
+                              exit={{ opacity: 0, x: 12, height: 0 }}
+                              transition={{ delay: i * 0.05, duration: 0.2 }}
+                              className="mb-2 overflow-hidden"
+                            >
+                              <div
+                                className={`border border-l-4 rounded-xl cursor-pointer transition-all duration-150 ${sev.cls} ${sev.leftBorder}`}
+                                onClick={() => setExpandedAlert(expanded ? null : alert.id)}
+                              >
+                                {/* collapsed header */}
+                                <div className="flex items-start gap-2.5 p-3">
+                                  {/* pulse dot */}
+                                  <div className="relative mt-0.5 shrink-0">
+                                    <span className={`block w-2.5 h-2.5 rounded-full ${sev.dot}`} />
+                                    {sev.pulse && (
+                                      <span className={`absolute inset-0 rounded-full ${sev.dot} animate-ping opacity-60`} />
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="text-white text-xs font-bold leading-snug truncate">{alert.title}</p>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold ${sev.badge}`}>
+                                          {sev.label}
+                                        </span>
+                                        <ChevronDown className={`w-3 h-3 text-[#6b6b8a] transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+                                      </div>
+                                    </div>
+                                    <p className={`text-[#6b6b8a] text-[10px] mt-0.5 ${expanded ? "" : "line-clamp-1"}`}>
+                                      {alert.description}
+                                    </p>
+                                    <p className="text-[#4a4a6a] text-[10px] mt-1">{fmtTime(alert.timestamp)}</p>
+                                  </div>
+                                </div>
+
+                                {/* expanded detail */}
+                                <AnimatePresence>
+                                  {expanded && (
+                                    <motion.div
+                                      initial={{ opacity: 0, height: 0 }}
+                                      animate={{ opacity: 1, height: "auto" }}
+                                      exit={{ opacity: 0, height: 0 }}
+                                      transition={{ duration: 0.18 }}
+                                      className="overflow-hidden"
+                                    >
+                                      <div className="px-3 pb-3 pt-0 border-t border-white/5 mt-0">
+                                        {/* metadata chips */}
+                                        <div className="flex flex-wrap gap-1.5 mt-2 mb-3">
+                                          {alert.count > 1 && (
+                                            <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-[#6b6b8a] font-semibold">
+                                              <AlertTriangle className="w-2.5 h-2.5" />×{alert.count} occurrences
+                                            </span>
+                                          )}
+                                          <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-[#6b6b8a] font-semibold">
+                                            <Clock className="w-2.5 h-2.5" />{new Date(alert.timestamp).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                                          </span>
+                                          <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 font-semibold border border-purple-500/20">
+                                            <Shield className="w-2.5 h-2.5" />Détecté par IA
+                                          </span>
+                                        </div>
+
+                                        {/* actions */}
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={e => { e.stopPropagation(); setDismissedAlerts(prev => new Set([...prev, alert.id])); setExpandedAlert(null) }}
+                                            className="flex-1 py-1.5 rounded-lg bg-[#1e1e2e] text-[#6b6b8a] text-[10px] font-semibold hover:text-white hover:bg-[#2a2a3e] transition-colors"
+                                          >
+                                            Ignorer
+                                          </button>
+                                          <Link
+                                            href="/admin/security"
+                                            onClick={e => e.stopPropagation()}
+                                            className="flex-1 py-1.5 rounded-lg text-[10px] font-bold text-center transition-colors flex items-center justify-center gap-1"
+                                            style={{ background: sev.color + "25", color: sev.color, border: `1px solid ${sev.color}40` }}
+                                          >
+                                            Investiguer <ChevronRight className="w-3 h-3" />
+                                          </Link>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            </motion.div>
+                          )
+                        })}
+                      </AnimatePresence>
+                    )}
+                  </div>
+
+                  {/* footer */}
+                  <div className="px-5 py-3 border-t border-[#1e1e2e] flex items-center justify-between">
+                    {dismissedAlerts.size > 0 && (
+                      <button onClick={() => setDismissedAlerts(new Set())}
+                        className="text-[#4a4a6a] text-[10px] hover:text-[#6b6b8a] transition-colors"
+                      >
+                        Restaurer ({dismissedAlerts.size})
+                      </button>
+                    )}
+                    {dismissedAlerts.size === 0 && (
+                      <span className="text-[#4a4a6a] text-[10px]">{visible} alerte{visible !== 1 ? "s" : ""} active{visible !== 1 ? "s" : ""}</span>
+                    )}
+                    <Link href="/admin/security"
+                      className="flex items-center gap-1 text-[#6b6b8a] text-[10px] hover:text-white transition-colors"
+                    >
+                      <Eye className="w-3 h-3" />Voir les logs
+                    </Link>
+                  </div>
+                </motion.div>
+              )
+            })()}
           </div>
 
           {/* ── ROW 3: System + Categories + Performance + Shortcuts ───── */}
