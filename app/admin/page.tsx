@@ -282,13 +282,15 @@ export default function AdminDashboardPage() {
     },
   ]
 
+  const [hoveredSeg, setHoveredSeg] = useState<number | null>(null)
+
   // financial donut
   const donutData = fin ? [
-    { name: "Payouts vendeurs",  value: fin.vendor_payouts },
-    { name: "Commission QuickGo", value: fin.quickgo_commission },
-    { name: "Frais livraison",   value: fin.delivery_fees },
-    { name: "Remboursements",    value: fin.refunds },
-    { name: "Autres",            value: Math.max(0, fin.total - fin.vendor_payouts - fin.quickgo_commission - fin.delivery_fees - fin.refunds) },
+    { name: "Payouts vendeurs",   value: fin.vendor_payouts,      sub: "Reversé aux boutiques" },
+    { name: "Commission QuickGo", value: fin.quickgo_commission,  sub: "Revenus plateforme" },
+    { name: "Frais de livraison", value: fin.delivery_fees,       sub: "Coûts logistiques" },
+    { name: "Remboursements",     value: fin.refunds,             sub: "Montants remboursés" },
+    { name: "Autres",             value: Math.max(0, fin.total - fin.vendor_payouts - fin.quickgo_commission - fin.delivery_fees - fin.refunds), sub: "Divers" },
   ].filter(d => d.value > 0) : []
 
   return (
@@ -757,76 +759,206 @@ export default function AdminDashboardPage() {
           {/* ── ROW 1: Financial + 24H Chart + City Stats ──────────────── */}
           <div className="grid lg:grid-cols-3 gap-6">
 
-            {/* Aperçu financier */}
+            {/* ── Aperçu financier global ──────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
+              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-5 flex flex-col gap-4"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Aperçu financier global</h2>
-                <span className="text-[10px] text-[#6b6b8a] bg-[#1e1e2e] px-2 py-1 rounded-full">Ce mois</span>
+              {/* header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-white font-bold text-sm leading-none">Aperçu financier global</h2>
+                  <p className="text-[#4a4a6a] text-[10px] mt-0.5">Répartition du chiffre d'affaires</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#6b6b8a] bg-[#1e1e2e] px-2.5 py-1 rounded-full border border-[#2a2a3e]">Ce mois</span>
+                  <Link href="/admin/finances" className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                    <ExternalLink className="w-3.5 h-3.5 text-[#4a4a6a] hover:text-white transition-colors" />
+                  </Link>
+                </div>
               </div>
 
               {loading ? (
-                <div className="flex items-center justify-center h-40"><div className="w-24 h-24 rounded-full border-4 border-[#1e1e2e] border-t-blue-500 animate-spin" /></div>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-44 h-44 rounded-full border-8 border-[#1e1e2e] border-t-blue-500 animate-spin" />
+                  <div className="w-full space-y-2">
+                    {[...Array(4)].map((_, i) => <div key={i} className="h-6 bg-white/5 animate-pulse rounded-lg" />)}
+                  </div>
+                </div>
               ) : (
-                <div className="flex flex-col items-center">
-                  <div className="relative w-36 h-36">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={donutData} cx="50%" cy="50%" innerRadius={44} outerRadius={64}
-                          dataKey="value" paddingAngle={2} stroke="none"
-                        >
-                          {donutData.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{ background: "#16161f", border: "1px solid #1e1e2e", borderRadius: 8, fontSize: 11 }}
-                          formatter={(v: number) => [fmtCFAFull(v), ""]}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <p className="text-white font-bold text-sm leading-none">{fmtCFA(fin?.total ?? 0)}</p>
-                      <p className="text-[#6b6b8a] text-[10px]">Total</p>
+                <>
+                  {/* donut */}
+                  <div className="flex items-center justify-center">
+                    <div className="relative w-44 h-44">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={donutData}
+                            cx="50%" cy="50%"
+                            innerRadius={54} outerRadius={78}
+                            dataKey="value"
+                            paddingAngle={3}
+                            stroke="none"
+                            isAnimationActive
+                            animationBegin={100}
+                            animationDuration={900}
+                            onMouseEnter={(_, idx) => setHoveredSeg(idx)}
+                            onMouseLeave={() => setHoveredSeg(null)}
+                          >
+                            {donutData.map((_, i) => (
+                              <Cell
+                                key={i}
+                                fill={DONUT_COLORS[i % DONUT_COLORS.length]}
+                                opacity={hoveredSeg === null || hoveredSeg === i ? 1 : 0.3}
+                                style={{ cursor: "pointer", transition: "opacity 0.15s" }}
+                              />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+
+                      {/* center callout */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
+                        <AnimatePresence mode="wait">
+                          {hoveredSeg !== null ? (
+                            <motion.div key={`seg-${hoveredSeg}`}
+                              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.12 }}
+                              className="flex flex-col items-center text-center px-2"
+                            >
+                              <span className="w-2 h-2 rounded-full mb-1" style={{ background: DONUT_COLORS[hoveredSeg % DONUT_COLORS.length] }} />
+                              <p className="text-white font-extrabold text-base leading-none">
+                                {fmtCFA(donutData[hoveredSeg].value)}
+                              </p>
+                              <p className="text-[#6b6b8a] text-[9px] leading-tight mt-1 max-w-[64px]">
+                                {donutData[hoveredSeg].name}
+                              </p>
+                              <p className="text-[#4a4a6a] text-[9px] mt-0.5">
+                                {fin?.total ? Math.round(donutData[hoveredSeg].value / fin.total * 100) : 0}%
+                              </p>
+                            </motion.div>
+                          ) : (
+                            <motion.div key="total"
+                              initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.12 }}
+                              className="flex flex-col items-center"
+                            >
+                              <p className="text-[#4a4a6a] text-[9px] uppercase tracking-widest font-semibold mb-1">Total</p>
+                              <p className="text-white font-extrabold text-xl leading-none">{fmtCFA(fin?.total ?? 0)}</p>
+                              <p className="text-[#6b6b8a] text-[10px] mt-0.5">CFA</p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="w-full mt-3 space-y-2">
-                    {donutData.map((d, i) => (
-                      <div key={d.name} className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-                        <span className="text-[#6b6b8a] text-xs flex-1 truncate">{d.name}</span>
-                        <span className="text-white text-xs font-medium">{fmtCFA(d.value)}</span>
-                      </div>
-                    ))}
+                  {/* legend with bars */}
+                  <div className="space-y-1">
+                    {donutData.map((d, i) => {
+                      const pct = fin?.total ? Math.round(d.value / fin.total * 100) : 0
+                      const active = hoveredSeg === i
+                      return (
+                        <div
+                          key={d.name}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-150 ${active ? "bg-white/5" : "hover:bg-white/[0.03]"}`}
+                          onMouseEnter={() => setHoveredSeg(i)}
+                          onMouseLeave={() => setHoveredSeg(null)}
+                        >
+                          <span className="w-2 h-2 rounded-full shrink-0 transition-transform duration-150"
+                            style={{ background: DONUT_COLORS[i % DONUT_COLORS.length], transform: active ? "scale(1.3)" : "scale(1)" }}
+                          />
+                          <span className={`text-xs flex-1 truncate transition-colors duration-150 ${active ? "text-white font-medium" : "text-[#6b6b8a]"}`}>
+                            {d.name}
+                          </span>
+                          {/* mini bar */}
+                          <div className="w-16 h-1 bg-[#1e1e2e] rounded-full overflow-hidden shrink-0">
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ delay: 0.5 + i * 0.07, duration: 0.6, ease: "easeOut" }}
+                            />
+                          </div>
+                          <span className={`text-[10px] w-7 text-right shrink-0 tabular-nums transition-colors ${active ? "text-white" : "text-[#4a4a6a]"}`}>
+                            {pct}%
+                          </span>
+                          <span className="text-white text-xs font-semibold w-16 text-right shrink-0 tabular-nums">
+                            {fmtCFA(d.value)}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
-                </div>
+                </>
               )}
 
-              <div className="mt-4 pt-4 border-t border-[#1e1e2e] grid grid-cols-2 gap-3">
+              {/* stats footer */}
+              <div className="pt-3 border-t border-[#1e1e2e] grid grid-cols-3 gap-2">
+                {/* Net profit */}
                 <div className="bg-[#1e1e2e] rounded-xl p-3">
-                  <p className="text-[#6b6b8a] text-[10px] mb-0.5">Bénéfice net</p>
-                  <p className="text-white font-bold text-sm">{fmtCFAFull(fin?.net_profit ?? 0)}</p>
-                  {(fin?.net_profit_change ?? 0) !== 0 && (
-                    <p className={`text-[10px] mt-0.5 ${fin!.net_profit_change > 0 ? "text-green-400" : "text-red-400"}`}>
-                      {fin!.net_profit_change > 0 ? "+" : ""}{fin!.net_profit_change}% vs mois préc.
+                  <p className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold mb-1">Bénéfice net</p>
+                  {loading ? <div className="h-4 w-12 bg-white/10 animate-pulse rounded" /> : (
+                    <p className="text-white font-bold text-sm leading-none">{fmtCFA(fin?.net_profit ?? 0)}</p>
+                  )}
+                  {!loading && (fin?.net_profit_change ?? 0) !== 0 && (
+                    <p className={`text-[9px] mt-1 flex items-center gap-0.5 ${fin!.net_profit_change > 0 ? "text-green-400" : "text-red-400"}`}>
+                      {fin!.net_profit_change > 0 ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                      {Math.abs(fin!.net_profit_change)}%
                     </p>
                   )}
                 </div>
+
+                {/* Commission rate */}
                 <div className="bg-[#1e1e2e] rounded-xl p-3">
-                  <p className="text-[#6b6b8a] text-[10px] mb-0.5">Wallet livraison</p>
-                  <p className="text-white font-bold text-sm">{fmtCFAFull(fin?.wallet_livraison ?? 0)}</p>
-                  <p className="text-[10px] text-[#6b6b8a] mt-0.5">Solde total</p>
+                  <p className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold mb-1">Commission</p>
+                  {loading ? <div className="h-4 w-12 bg-white/10 animate-pulse rounded" /> : (
+                    <p className="text-white font-bold text-sm leading-none">{fmtCFA(fin?.quickgo_commission ?? 0)}</p>
+                  )}
+                  <p className="text-[#4a4a6a] text-[9px] mt-1">Ce mois</p>
+                </div>
+
+                {/* Wallet */}
+                <div className="bg-[#1e1e2e] rounded-xl p-3">
+                  <p className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold mb-1">Wallets</p>
+                  {loading ? <div className="h-4 w-12 bg-white/10 animate-pulse rounded" /> : (
+                    <p className="text-white font-bold text-sm leading-none">{fmtCFA(fin?.wallet_livraison ?? 0)}</p>
+                  )}
+                  <p className="text-[#4a4a6a] text-[9px] mt-1">Solde total</p>
                 </div>
               </div>
 
-              {(fin?.pending_payouts_count ?? 0) > 0 && (
-                <div className="mt-3 flex items-center justify-between bg-orange-500/10 border border-orange-500/20 rounded-xl px-3 py-2">
-                  <div>
-                    <p className="text-orange-300 text-xs font-semibold">{fin!.pending_payouts_count} payout{fin!.pending_payouts_count > 1 ? "s" : ""} en attente</p>
-                    <p className="text-[#6b6b8a] text-[10px]">{fmtCFAFull(fin!.pending_payouts_amount)}</p>
+              {/* pending payouts banner */}
+              {!loading && (fin?.pending_payouts_count ?? 0) > 0 && (
+                <Link href="/admin/payouts"
+                  className="flex items-center gap-3 px-3 py-2.5 bg-orange-500/10 border border-orange-500/20 rounded-xl hover:bg-orange-500/15 transition-colors group"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-orange-500/20 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-3.5 h-3.5 text-orange-400" />
                   </div>
-                  <Link href="/admin/payouts" className="text-orange-400 text-[10px] font-semibold hover:underline">Voir</Link>
-                </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-orange-300 text-xs font-semibold leading-none">
+                      {fin!.pending_payouts_count} payout{fin!.pending_payouts_count > 1 ? "s" : ""} en attente
+                    </p>
+                    <p className="text-[#6b6b8a] text-[10px] mt-0.5">{fmtCFAFull(fin!.pending_payouts_amount)}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-orange-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              )}
+
+              {!loading && (fin?.failed_transactions_count ?? 0) > 0 && (
+                <Link href="/admin/transactions"
+                  className="flex items-center gap-3 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl hover:bg-red-500/15 transition-colors group"
+                >
+                  <XCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-red-300 text-xs font-semibold leading-none">
+                      {fin!.failed_transactions_count} paiement{fin!.failed_transactions_count > 1 ? "s" : ""} échoué{fin!.failed_transactions_count > 1 ? "s" : ""}
+                    </p>
+                    <p className="text-[#6b6b8a] text-[10px] mt-0.5">{fmtCFAFull(fin!.failed_transactions_amount)}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-red-400 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
               )}
             </motion.div>
 
@@ -981,16 +1113,6 @@ export default function AdminDashboardPage() {
                 </div>
               )}
 
-              {(fin?.failed_transactions_count ?? 0) > 0 && (
-                <div className="mt-4 flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  <XCircle className="w-4 h-4 text-red-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-red-300 text-xs font-semibold">{fin!.failed_transactions_count} paiement{fin!.failed_transactions_count > 1 ? "s" : ""} échoué{fin!.failed_transactions_count > 1 ? "s" : ""}</p>
-                    <p className="text-[#6b6b8a] text-[10px]">{fmtCFAFull(fin!.failed_transactions_amount)}</p>
-                  </div>
-                  <Link href="/admin/transactions" className="text-red-400 text-[10px] font-semibold hover:underline">Voir</Link>
-                </div>
-              )}
             </motion.div>
 
             {/* Activités récentes */}
