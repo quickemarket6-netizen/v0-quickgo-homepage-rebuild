@@ -11,7 +11,7 @@ import {
   MessageCircle, Megaphone, Star, Shield, FileText, ShoppingBag,
   Tag, Percent, CreditCard, AlertTriangle, CheckCircle, XCircle,
   Zap, UserPlus, LogOut, ChevronRight, MoreHorizontal, ArrowUpRight,
-  ArrowDownRight, Clock, Globe,
+  ArrowDownRight, Clock, Globe, X, User, ExternalLink,
 } from "lucide-react"
 import {
   AreaChart, Area, LineChart, Line, BarChart, Bar,
@@ -141,7 +141,12 @@ export default function AdminDashboardPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [search,     setSearch]     = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
+  const [city,       setCity]       = useState("Toutes")
+  const [notifOpen,  setNotifOpen]  = useState(false)
+  const [userOpen,   setUserOpen]   = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
+  const notifRef  = useRef<HTMLDivElement>(null)
+  const userRef   = useRef<HTMLDivElement>(null)
 
   const fetchData = useCallback(async () => {
     try {
@@ -163,6 +168,15 @@ export default function AdminDashboardPage() {
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
+      if (userRef.current  && !userRef.current.contains(e.target as Node))  setUserOpen(false)
+    }
+    document.addEventListener("mousedown", onClickOutside)
+    return () => document.removeEventListener("mousedown", onClickOutside)
   }, [])
 
   function badge(key: string | null) {
@@ -304,95 +318,290 @@ export default function AdminDashboardPage() {
       {/* ── MAIN ───────────────────────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 overflow-auto">
 
-        {/* Header */}
-        <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-[#1e1e2e] px-6 py-3">
-          <div className="flex items-center gap-4">
-            {/* Greeting */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-white font-bold text-lg truncate">Centre de Contrôle</h1>
-              <p className="text-[#6b6b8a] text-xs">Bonjour, Administrateur — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</p>
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
+        <header className="sticky top-0 z-40 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-[#1e1e2e]">
+          <div className="flex items-center gap-3 px-6 py-3">
+
+            {/* Title + live */}
+            <div className="shrink-0 hidden md:block">
+              <div className="flex items-center gap-2">
+                <h1 className="text-white font-bold text-base leading-none">Centre de Contrôle</h1>
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/15 border border-green-500/20 text-green-400 text-[10px] font-semibold">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                  </span>
+                  Live
+                </span>
+              </div>
+              <p className="text-[#4a4a6a] text-[10px] mt-0.5 leading-none capitalize">
+                {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              </p>
             </div>
 
-            {/* Search */}
-            <button onClick={() => { setSearchOpen(true); setTimeout(() => searchRef.current?.focus(), 50) }}
-              className="hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-[#1e1e2e] text-[#6b6b8a] text-sm border border-[#2a2a3e] hover:border-blue-500/50 transition-colors min-w-[180px]"
-            >
-              <Search className="w-4 h-4" />
-              <span className="flex-1 text-left">Rechercher…</span>
-              <kbd className="text-[10px] bg-[#2a2a3e] px-1.5 py-0.5 rounded">⌘K</kbd>
-            </button>
+            {/* Search bar */}
+            <div className="flex-1 max-w-md mx-auto">
+              <div
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#16161f] border border-[#2a2a3e] hover:border-blue-500/40 focus-within:border-blue-500/60 transition-colors cursor-text"
+                onClick={() => searchRef.current?.focus()}
+              >
+                <Search className="w-4 h-4 text-[#4a4a6a] shrink-0" />
+                <input
+                  ref={searchRef}
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  onFocus={() => setSearchOpen(true)}
+                  placeholder="Rechercher commandes, vendeurs, livreurs…"
+                  className="flex-1 bg-transparent text-white placeholder-[#4a4a6a] text-sm outline-none min-w-0"
+                />
+                {search.length > 0 ? (
+                  <button onClick={() => setSearch("")} className="p-0.5 hover:bg-white/10 rounded shrink-0">
+                    <X className="w-3 h-3 text-[#6b6b8a]" />
+                  </button>
+                ) : (
+                  <kbd className="text-[10px] text-[#4a4a6a] bg-[#1e1e2e] border border-[#2a2a3e] px-1.5 py-0.5 rounded shrink-0 hidden sm:block">⌘K</kbd>
+                )}
+              </div>
+            </div>
 
-            {/* Live badge */}
-            <span className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
-              </span>
-              Live
-            </span>
+            {/* City selector */}
+            <div className="shrink-0 hidden lg:block">
+              <div className="relative">
+                <MapPin className="w-3.5 h-3.5 text-[#4a4a6a] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={city}
+                  onChange={e => setCity(e.target.value)}
+                  className="pl-7 pr-7 py-2 bg-[#16161f] border border-[#2a2a3e] rounded-xl text-white text-xs appearance-none outline-none hover:border-blue-500/40 focus:border-blue-500/60 transition-colors cursor-pointer"
+                >
+                  <option value="Toutes">Toutes les villes</option>
+                  <option value="Douala">Douala</option>
+                  <option value="Yaoundé">Yaoundé</option>
+                  <option value="Bafoussam">Bafoussam</option>
+                  <option value="Garoua">Garoua</option>
+                  <option value="Buea">Buea</option>
+                  <option value="Limbe">Limbe</option>
+                  <option value="Bamenda">Bamenda</option>
+                </select>
+                <ChevronDown className="w-3 h-3 text-[#4a4a6a] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
 
             {/* Refresh */}
-            <button onClick={() => { setRefreshing(true); fetchData() }}
-              className="p-2 rounded-xl bg-[#1e1e2e] hover:bg-[#2a2a3e] transition-colors"
+            <button
+              onClick={() => { setRefreshing(true); fetchData() }}
+              title="Actualiser"
+              className="shrink-0 p-2 rounded-xl bg-[#16161f] border border-[#2a2a3e] hover:border-blue-500/40 hover:bg-[#1e1e2e] transition-colors"
             >
               <RefreshCw className={`w-4 h-4 text-[#6b6b8a] ${refreshing ? "animate-spin" : ""}`} />
             </button>
 
-            {/* Notifs */}
-            <div className="relative">
-              <button className="p-2 rounded-xl bg-[#1e1e2e] hover:bg-[#2a2a3e] transition-colors">
+            {/* Notifications */}
+            <div className="relative shrink-0" ref={notifRef}>
+              <button
+                onClick={() => { setNotifOpen(v => !v); setUserOpen(false) }}
+                className={`p-2 rounded-xl border transition-colors relative ${notifOpen ? "bg-[#1e1e2e] border-[#2a2a3e]" : "bg-[#16161f] border-[#2a2a3e] hover:border-blue-500/40 hover:bg-[#1e1e2e]"}`}
+              >
                 <Bell className="w-4 h-4 text-[#6b6b8a]" />
+                {badge("notifications") > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-1 rounded-full bg-red-500 text-white text-[8px] font-bold flex items-center justify-center leading-none">
+                    {badge("notifications") > 9 ? "9+" : badge("notifications")}
+                  </span>
+                )}
               </button>
-              {badge("notifications") > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
-                  {badge("notifications")}
-                </span>
-              )}
+
+              <AnimatePresence>
+                {notifOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-80 bg-[#111118] border border-[#2a2a3e] rounded-2xl shadow-2xl overflow-hidden z-50"
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e1e2e]">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-white" />
+                        <span className="text-white font-semibold text-sm">Notifications</span>
+                        {badge("notifications") > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-bold">
+                            {badge("notifications")}
+                          </span>
+                        )}
+                      </div>
+                      <button className="text-[10px] text-blue-400 hover:underline">Tout marquer lu</button>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto">
+                      {(data?.activities ?? []).length === 0 ? (
+                        <div className="px-4 py-8 text-center">
+                          <Bell className="w-6 h-6 text-[#4a4a6a] mx-auto mb-2" />
+                          <p className="text-[#6b6b8a] text-xs">Aucune notification</p>
+                        </div>
+                      ) : (
+                        (data?.activities ?? []).slice(0, 5).map(act => {
+                          const cfg = ACT_CFG[act.type] ?? ACT_CFG.order
+                          return (
+                            <div key={act.id} className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 border-b border-[#1e1e2e] last:border-0 transition-colors cursor-pointer">
+                              <div className={`w-7 h-7 rounded-full bg-[#1e1e2e] flex items-center justify-center shrink-0 mt-0.5 ${cfg.color}`}>
+                                <cfg.Icon className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-xs font-medium leading-snug">{act.title}</p>
+                                <p className="text-[#6b6b8a] text-[10px] truncate">{act.subtitle}</p>
+                                <p className="text-[#4a4a6a] text-[10px] mt-0.5">{fmtTime(act.timestamp)}</p>
+                              </div>
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-1.5" />
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+
+                    <div className="px-4 py-2.5 border-t border-[#1e1e2e]">
+                      <Link href="/admin/notifications"
+                        className="flex items-center justify-center gap-1.5 text-blue-400 text-xs font-medium hover:underline"
+                        onClick={() => setNotifOpen(false)}
+                      >
+                        Voir toutes les notifications <ExternalLink className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Messages */}
-            <div className="relative">
-              <button className="p-2 rounded-xl bg-[#1e1e2e] hover:bg-[#2a2a3e] transition-colors">
+            {/* Messages / Support */}
+            <div className="relative shrink-0">
+              <Link href="/admin/support" title="Support CRM"
+                className="p-2 rounded-xl bg-[#16161f] border border-[#2a2a3e] hover:border-blue-500/40 hover:bg-[#1e1e2e] transition-colors flex items-center justify-center"
+              >
                 <MessageCircle className="w-4 h-4 text-[#6b6b8a]" />
-              </button>
-              {badge("crm_support") > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center">
-                  {badge("crm_support")}
-                </span>
-              )}
+                {badge("crm_support") > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-1 rounded-full bg-orange-500 text-white text-[8px] font-bold flex items-center justify-center leading-none">
+                    {badge("crm_support") > 9 ? "9+" : badge("crm_support")}
+                  </span>
+                )}
+              </Link>
             </div>
 
-            {/* User */}
-            <button className="flex items-center gap-2 pl-3 border-l border-[#1e1e2e]">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">AD</span>
-              </div>
-              <ChevronDown className="w-3 h-3 text-[#6b6b8a]" />
-            </button>
+            {/* User dropdown */}
+            <div className="relative shrink-0 pl-2 border-l border-[#1e1e2e]" ref={userRef}>
+              <button
+                onClick={() => { setUserOpen(v => !v); setNotifOpen(false) }}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shrink-0 ring-2 ring-transparent hover:ring-orange-500/40 transition-all">
+                  <span className="text-white font-bold text-xs">AD</span>
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-white text-xs font-semibold leading-none">Admin</p>
+                  <p className="text-[10px] text-red-400 leading-none mt-0.5">Super Admin</p>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-[#6b6b8a] transition-transform ${userOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              <AnimatePresence>
+                {userOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-56 bg-[#111118] border border-[#2a2a3e] rounded-2xl shadow-2xl overflow-hidden z-50"
+                  >
+                    {/* Profile header */}
+                    <div className="px-4 py-3 border-b border-[#1e1e2e]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shrink-0">
+                          <span className="text-white font-bold text-sm">AD</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-white text-sm font-semibold truncate">Administrateur</p>
+                          <p className="text-red-400 text-[10px]">Super Admin</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu items */}
+                    <div className="py-1.5">
+                      {[
+                        { icon: User,       label: "Mon profil",      href: "/admin/profile" },
+                        { icon: Settings,   label: "Paramètres",      href: "/admin/settings" },
+                        { icon: BarChart3,  label: "Mes statistiques", href: "/admin/analytics" },
+                      ].map(item => (
+                        <Link key={item.href} href={item.href}
+                          onClick={() => setUserOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors"
+                        >
+                          <item.icon className="w-4 h-4 text-[#6b6b8a]" />
+                          <span className="text-white text-sm">{item.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-[#1e1e2e] py-1.5">
+                      <button
+                        className="flex items-center gap-3 px-4 py-2.5 w-full hover:bg-red-500/10 transition-colors text-left"
+                        onClick={() => setUserOpen(false)}
+                      >
+                        <LogOut className="w-4 h-4 text-red-400" />
+                        <span className="text-red-400 text-sm font-medium">Se déconnecter</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
           </div>
         </header>
 
-        {/* Search overlay */}
+        {/* Search spotlight overlay */}
         <AnimatePresence>
-          {searchOpen && (
+          {searchOpen && search.length > 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-24"
-              onClick={() => setSearchOpen(false)}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center pt-20"
+              onClick={() => { setSearchOpen(false); setSearch("") }}
             >
-              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-                className="bg-[#111118] border border-[#2a2a3e] rounded-2xl w-full max-w-lg mx-4 overflow-hidden"
+              <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.15 }}
+                className="bg-[#111118] border border-[#2a2a3e] rounded-2xl w-full max-w-xl mx-4 overflow-hidden shadow-2xl"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-[#1e1e2e]">
-                  <Search className="w-5 h-5 text-[#6b6b8a]" />
-                  <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)}
-                    placeholder="Rechercher commandes, vendeurs, livreurs…"
-                    className="flex-1 bg-transparent text-white placeholder-[#6b6b8a] text-sm outline-none"
-                  />
-                  <kbd className="text-[10px] text-[#6b6b8a] bg-[#1e1e2e] px-1.5 py-0.5 rounded">Esc</kbd>
+                <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#1e1e2e]">
+                  <Search className="w-4 h-4 text-[#6b6b8a] shrink-0" />
+                  <span className="text-white text-sm flex-1">Résultats pour <strong>"{search}"</strong></span>
+                  <button onClick={() => { setSearchOpen(false); setSearch("") }}>
+                    <kbd className="text-[10px] text-[#6b6b8a] bg-[#1e1e2e] border border-[#2a2a3e] px-1.5 py-0.5 rounded cursor-pointer hover:border-white/20">Esc</kbd>
+                  </button>
                 </div>
-                <div className="px-4 py-3 text-xs text-[#6b6b8a]">
-                  {search.length === 0 ? "Commencez à taper pour rechercher…" : `Recherche: "${search}"`}
+                {[
+                  { section: "Commandes", href: "/admin/orders",  Icon: Package,  items: [`Commande #${search}`, `Commande liée à "${search}"`] },
+                  { section: "Vendeurs",  href: "/admin/vendors", Icon: Store,    items: [`Vendeur "${search}"`] },
+                  { section: "Livreurs",  href: "/admin/drivers", Icon: Truck,    items: [`Livreur "${search}"`] },
+                ].map(grp => (
+                  <div key={grp.section}>
+                    <div className="px-4 py-1.5 bg-[#0a0a0f]">
+                      <p className="text-[10px] text-[#4a4a6a] font-semibold uppercase tracking-widest">{grp.section}</p>
+                    </div>
+                    {grp.items.map(item => (
+                      <Link key={item} href={grp.href}
+                        onClick={() => { setSearchOpen(false); setSearch("") }}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors border-b border-[#1e1e2e] last:border-0"
+                      >
+                        <grp.Icon className="w-4 h-4 text-[#6b6b8a] shrink-0" />
+                        <span className="text-white text-sm">{item}</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-[#4a4a6a] ml-auto" />
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+                <div className="px-4 py-2.5 bg-[#0a0a0f] flex items-center gap-2 text-[10px] text-[#4a4a6a]">
+                  <kbd className="bg-[#1e1e2e] border border-[#2a2a3e] px-1 py-0.5 rounded">↵</kbd> Ouvrir
+                  <span className="mx-1">·</span>
+                  <kbd className="bg-[#1e1e2e] border border-[#2a2a3e] px-1 py-0.5 rounded">↑↓</kbd> Naviguer
+                  <span className="mx-1">·</span>
+                  <kbd className="bg-[#1e1e2e] border border-[#2a2a3e] px-1 py-0.5 rounded">Esc</kbd> Fermer
                 </div>
               </motion.div>
             </motion.div>
