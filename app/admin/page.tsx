@@ -116,23 +116,54 @@ const SYS_LABELS: Record<string, string> = {
   api_quickgo: "API QuickGo", api_cinetpay: "API CinetPay", database: "Base de données", storage: "Stockage", notifications: "Notifications",
 }
 
-// ── sparkline mini ────────────────────────────────────────────────────────────
-function Spark({ data, color }: { data: number[]; color: string }) {
+// ── sparkline ────────────────────────────────────────────────────────────────
+function Spark({ data, color, id }: { data: number[]; color: string; id: string }) {
   const pts = data.map((v, i) => ({ v, i }))
+  const gradId = `spark-${id}`
   return (
-    <ResponsiveContainer width="100%" height={40}>
-      <AreaChart data={pts} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+    <ResponsiveContainer width="100%" height={52}>
+      <AreaChart data={pts} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
         <defs>
-          <linearGradient id={`sg-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor={color} stopOpacity={0.3} />
-            <stop offset="95%" stopColor={color} stopOpacity={0} />
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"  stopColor={color} stopOpacity={0.35} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
-        <Area type="monotone" dataKey="v" stroke={color} strokeWidth={1.5}
-          fill={`url(#sg-${color.replace("#","")})`} dot={false} />
+        <Tooltip
+          contentStyle={{ background: "#16161f", border: "1px solid #2a2a3e", borderRadius: 6, fontSize: 10, padding: "2px 8px" }}
+          itemStyle={{ color: "#fff" }}
+          labelStyle={{ display: "none" }}
+          formatter={(v: number) => [v, ""]}
+          cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: "3 3" }}
+        />
+        <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2}
+          fill={`url(#${gradId})`} dot={false}
+          activeDot={{ r: 3, fill: color, stroke: "#16161f", strokeWidth: 2 }}
+        />
       </AreaChart>
     </ResponsiveContainer>
   )
+}
+
+// ── count-up value ─────────────────────────────────────────────────────────
+function CountUp({ target, format }: { target: number; format: (n: number) => string }) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    if (target === 0) { setVal(0); return }
+    const duration = 900
+    const steps = 40
+    const step = target / steps
+    let current = 0
+    let frame = 0
+    const id = setInterval(() => {
+      frame++
+      current = Math.min(current + step, target)
+      setVal(current)
+      if (frame >= steps) clearInterval(id)
+    }, duration / steps)
+    return () => clearInterval(id)
+  }, [target])
+  return <>{format(val)}</>
 }
 
 export default function AdminDashboardPage() {
@@ -188,55 +219,66 @@ export default function AdminDashboardPage() {
   const fin = data?.financial
   const chart24 = data?.chart_24h ?? []
 
-  // sparkline data from last 8 hours of chart
-  const sparkRev = chart24.slice(-8).map(h => h.revenue)
-  const sparkOrd = chart24.slice(-8).map(h => h.orders)
-
   const kpiCards = [
     {
+      id:    "revenue",
       label: "Revenus aujourd'hui",
-      value: fmtCFAFull(kpi?.today_revenue ?? 0),
+      cur:   kpi?.today_revenue    ?? 0,
       prev:  kpi?.yesterday_revenue ?? 0,
-      cur:   kpi?.today_revenue ?? 0,
-      spark: sparkRev,
+      spark: chart24.map(h => h.revenue),
+      fmt:   fmtCFAFull,
       color: "#3b82f6",
       icon:  DollarSign,
+      href:  "/admin/finances",
+      isMoney: true,
     },
     {
+      id:    "orders",
       label: "Commandes actives",
-      value: String(kpi?.today_orders ?? 0),
+      cur:   kpi?.today_orders    ?? 0,
       prev:  kpi?.yesterday_orders ?? 0,
-      cur:   kpi?.today_orders ?? 0,
-      spark: sparkOrd,
+      spark: chart24.map(h => h.orders),
+      fmt:   (n: number) => String(Math.round(n)),
       color: "#22d3ee",
       icon:  Package,
+      href:  "/admin/orders",
+      isMoney: false,
     },
     {
+      id:    "deliveries",
       label: "Livraisons en cours",
-      value: String(kpi?.active_deliveries ?? 0),
+      cur:   kpi?.active_deliveries    ?? 0,
       prev:  kpi?.yesterday_deliveries ?? 0,
-      cur:   kpi?.active_deliveries ?? 0,
-      spark: chart24.slice(-8).map(h => Math.round(h.orders * 0.4)),
+      spark: chart24.map(h => Math.round(h.orders * 0.4)),
+      fmt:   (n: number) => String(Math.round(n)),
       color: "#a3e635",
       icon:  Truck,
+      href:  "/admin/orders",
+      isMoney: false,
     },
     {
+      id:    "vendors",
       label: "Vendeurs actifs",
-      value: String(kpi?.active_vendors ?? 0),
+      cur:   kpi?.active_vendors    ?? 0,
       prev:  kpi?.yesterday_vendors ?? 0,
-      cur:   kpi?.active_vendors ?? 0,
-      spark: [0,0,0,0,0,0,0,kpi?.active_vendors ?? 0],
+      spark: Array.from({ length: 24 }, (_, h) => h <= new Date().getHours() ? kpi?.active_vendors ?? 0 : 0),
+      fmt:   (n: number) => String(Math.round(n)),
       color: "#f59e0b",
       icon:  Store,
+      href:  "/admin/vendors",
+      isMoney: false,
     },
     {
+      id:    "drivers",
       label: "Livreurs en ligne",
-      value: String(kpi?.online_drivers ?? 0),
+      cur:   kpi?.online_drivers    ?? 0,
       prev:  kpi?.yesterday_drivers ?? 0,
-      cur:   kpi?.online_drivers ?? 0,
-      spark: [0,0,0,0,0,0,0,kpi?.online_drivers ?? 0],
+      spark: Array.from({ length: 24 }, (_, h) => h <= new Date().getHours() ? kpi?.online_drivers ?? 0 : 0),
+      fmt:   (n: number) => String(Math.round(n)),
       color: "#8b5cf6",
       icon:  Users,
+      href:  "/admin/drivers",
+      isMoney: false,
     },
   ]
 
@@ -613,30 +655,100 @@ export default function AdminDashboardPage() {
           {/* ── KPI STRIP ────────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
             {kpiCards.map((card, i) => {
-              const diff = card.prev > 0 ? Math.round(((card.cur - card.prev) / card.prev) * 1000) / 10 : 0
+              const diff   = card.prev > 0 ? Math.round(((card.cur - card.prev) / card.prev) * 1000) / 10 : 0
+              const delta  = card.cur - card.prev
               const { sign, color: arrowColor, Icon: ArrowIcon } = pctArrow(diff)
+              const ratio  = card.prev > 0 ? Math.min(card.cur / card.prev, 2) : 1
+              const barPct = Math.round(Math.min(ratio, 1) * 100)
+
               return (
-                <motion.div key={card.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                  className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-4 overflow-hidden relative"
+                <motion.div
+                  key={card.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.07, duration: 0.4, ease: "easeOut" }}
+                  whileHover={{ y: -2, transition: { duration: 0.15 } }}
+                  className="group relative bg-[#16161f] border rounded-2xl overflow-hidden cursor-pointer"
+                  style={{ borderColor: "#1e1e2e" }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: card.color + "22" }}>
-                      <card.icon className="w-4 h-4" style={{ color: card.color }} />
+                  {/* top accent glow */}
+                  <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${card.color}55, transparent)` }} />
+                  {/* corner glow */}
+                  <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-10 blur-xl pointer-events-none" style={{ background: card.color }} />
+
+                  <Link href={card.href} className="block p-4">
+                    {/* row 1: icon + badge */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: card.color + "1a" }}>
+                        <card.icon className="w-4 h-4" style={{ color: card.color }} />
+                      </div>
+
+                      {loading ? (
+                        <div className="h-5 w-14 bg-white/10 animate-pulse rounded-full" />
+                      ) : (
+                        <span className={`flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                          diff > 0  ? "bg-green-500/15 text-green-400" :
+                          diff < 0  ? "bg-red-500/15 text-red-400" :
+                                      "bg-white/5 text-[#6b6b8a]"
+                        }`}>
+                          <ArrowIcon className="w-3 h-3" />
+                          {sign}{Math.abs(diff)}%
+                        </span>
+                      )}
                     </div>
-                    {diff !== 0 && (
-                      <span className={`flex items-center gap-0.5 text-xs font-semibold ${arrowColor}`}>
-                        <ArrowIcon className="w-3 h-3" />{sign}{Math.abs(diff)}%
-                      </span>
+
+                    {/* row 2: main value */}
+                    {loading ? (
+                      <>
+                        <div className="h-8 w-28 bg-white/10 animate-pulse rounded-lg mb-1.5" />
+                        <div className="h-3 w-20 bg-white/5 animate-pulse rounded mb-3" />
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-white font-extrabold text-[22px] leading-none mb-1 tracking-tight">
+                          <CountUp target={card.cur} format={card.fmt} />
+                        </p>
+                        <p className="text-[#6b6b8a] text-xs font-medium mb-3">{card.label}</p>
+                      </>
                     )}
-                  </div>
-                  {loading ? (
-                    <div className="h-7 w-24 bg-white/10 animate-pulse rounded mt-2 mb-1" />
-                  ) : (
-                    <p className="text-white font-bold text-xl mt-2 mb-0.5 leading-none">{card.value}</p>
-                  )}
-                  <p className="text-[#6b6b8a] text-xs mb-2">{card.label}</p>
-                  <p className={`text-[10px] ${arrowColor} mb-2`}>vs hier : {fmtCFAFull(card.prev)}</p>
-                  <Spark data={card.spark} color={card.color} />
+
+                    {/* row 3: sparkline */}
+                    <div className="-mx-1 mb-3">
+                      <Spark data={card.spark} color={card.color} id={card.id} />
+                    </div>
+
+                    {/* row 4: vs hier */}
+                    {loading ? (
+                      <div className="h-3 w-32 bg-white/5 animate-pulse rounded" />
+                    ) : (
+                      <div className="space-y-1.5">
+                        {/* progress bar */}
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1 bg-[#1e1e2e] rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${barPct}%` }}
+                              transition={{ delay: 0.4 + i * 0.07, duration: 0.7, ease: "easeOut" }}
+                              className="h-full rounded-full"
+                              style={{ background: card.color }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-[#4a4a6a] shrink-0">{barPct}%</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-[#4a4a6a]">
+                            Hier : <span className="text-[#6b6b8a] font-medium">{card.fmt(card.prev)}</span>
+                          </span>
+                          {delta !== 0 && (
+                            <span className={`text-[10px] font-semibold ${arrowColor}`}>
+                              {delta > 0 ? "+" : ""}{card.isMoney ? fmtCFAFull(Math.abs(delta)) : Math.abs(delta)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Link>
                 </motion.div>
               )
             })}
