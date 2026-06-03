@@ -167,6 +167,90 @@ function CountUp({ target, format }: { target: number; format: (n: number) => st
   return <>{format(val)}</>
 }
 
+// ── Cameroon SVG map ─────────────────────────────────────────────────────────
+const CITY_COORDS: Record<string, [number, number]> = {
+  "Douala":      [44,  173],
+  "Yaoundé":     [90,  164],
+  "Bafoussam":   [47,  143],
+  "Garoua":      [112,  85],
+  "Bamenda":     [34,  127],
+  "Buea":        [32,  180],
+  "Limbe":       [25,  186],
+  "Maroua":      [124,  43],
+  "Ngaoundéré":  [103, 118],
+  "Bertoua":     [133, 152],
+}
+const CAMEROON_PATH =
+  "M78,4 L83,13 L89,19 L96,13 L106,19 L116,13 L138,30 L147,52 " +
+  "L141,79 L149,102 L147,130 L139,153 L129,173 L113,191 " +
+  "L93,199 L72,197 L51,191 L34,179 L20,161 L15,139 " +
+  "L19,115 L13,91 L19,67 L27,49 L40,34 L53,22 L65,10 Z"
+
+function CameroonMap({
+  cities, colors, metric, hoveredCity, onHover,
+}: {
+  cities: { city: string; orders: number; revenue: number; pct: number }[]
+  colors: string[]
+  metric: "orders" | "revenue"
+  hoveredCity: string | null
+  onHover: (c: string | null) => void
+}) {
+  const maxVal = Math.max(...cities.map(c => metric === "orders" ? c.orders : c.revenue), 1)
+
+  return (
+    <svg viewBox="0 0 160 204" className="w-full" style={{ maxHeight: 148 }}>
+      {/* subtle grid */}
+      <defs>
+        <pattern id="mapgrid" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#ffffff06" strokeWidth="0.5" />
+        </pattern>
+      </defs>
+      <rect width="160" height="204" fill="url(#mapgrid)" />
+
+      {/* Cameroon outline */}
+      <path d={CAMEROON_PATH} fill="#1a1a26" stroke="#2a2a3e" strokeWidth="1.5" strokeLinejoin="round" />
+
+      {/* city pins */}
+      {cities.slice(0, 8).map((c, i) => {
+        const [cx, cy] = CITY_COORDS[c.city] ?? [80, 120]
+        const val = metric === "orders" ? c.orders : c.revenue
+        const r = 3 + (val / maxVal) * 9
+        const color = colors[i % colors.length]
+        const active = hoveredCity === c.city
+        const isTop  = i === 0
+
+        // label anchor: push right for left-side cities, left for right-side
+        const labelX = cx < 80 ? cx + r + 3 : cx - r - 3
+        const anchor  = cx < 80 ? "start" : "end"
+
+        return (
+          <g key={c.city} style={{ cursor: "pointer" }}
+            onMouseEnter={() => onHover(c.city)}
+            onMouseLeave={() => onHover(null)}
+          >
+            {/* outer glow ring */}
+            <circle cx={cx} cy={cy} r={r + 5} fill={color}
+              opacity={active ? 0.18 : 0} style={{ transition: "opacity .15s" }} />
+            {/* halo */}
+            <circle cx={cx} cy={cy} r={r + 2} fill={color} opacity={active ? 0.25 : 0.12} />
+            {/* main pin */}
+            <circle cx={cx} cy={cy} r={r} fill={color} opacity={active ? 1 : 0.75} />
+            {/* white center dot */}
+            <circle cx={cx} cy={cy} r={Math.max(1.5, r * 0.3)} fill="#fff" opacity={0.8} />
+            {/* label */}
+            {(active || isTop) && (
+              <text x={labelX} y={cy + 1} textAnchor={anchor} fill={active ? "#fff" : "#9ca3af"}
+                fontSize="7" fontWeight={active ? "700" : "400"} style={{ pointerEvents: "none" }}>
+                {c.city}
+              </text>
+            )}
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 // ── Chart24 custom tooltip ────────────────────────────────────────────────────
 interface TooltipPayloadItem { value: number; name: string; color: string }
 function Chart24Tooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string }) {
@@ -305,6 +389,8 @@ export default function AdminDashboardPage() {
 
   const [hoveredSeg,   setHoveredSeg]   = useState<number | null>(null)
   const [chartSeries,  setChartSeries]  = useState<"both" | "revenue" | "orders">("both")
+  const [cityView,     setCityView]     = useState<"orders" | "revenue">("orders")
+  const [hoveredCity,  setHoveredCity]  = useState<string | null>(null)
 
   // financial donut
   const donutData = fin ? [
@@ -1164,53 +1250,149 @@ export default function AdminDashboardPage() {
               )
             })()}
 
-            {/* City stats */}
+            {/* ── Commandes par ville ──────────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
+              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-5 flex flex-col gap-4"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Commandes par ville</h2>
-                <span className="text-[10px] text-[#6b6b8a]">Aujourd'hui</span>
+              {/* header */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-white font-bold text-sm leading-none">Commandes par ville</h2>
+                  <p className="text-[#4a4a6a] text-[10px] mt-0.5">Distribution géographique · Cameroun</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  {(["orders", "revenue"] as const).map(v => (
+                    <button key={v} onClick={() => setCityView(v)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all ${
+                        cityView === v
+                          ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          : "text-[#4a4a6a] hover:text-[#6b6b8a] hover:bg-white/5"
+                      }`}
+                    >{v === "orders" ? "Commandes" : "Revenus"}</button>
+                  ))}
+                </div>
               </div>
 
               {loading ? (
-                <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg" />)}</div>
+                <>
+                  <div className="h-36 bg-white/5 animate-pulse rounded-xl" />
+                  <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="h-6 bg-white/5 animate-pulse rounded-lg" />)}</div>
+                </>
               ) : (data?.city_stats ?? []).length === 0 ? (
-                <p className="text-center text-[#6b6b8a] text-sm py-8">Aucune donnée</p>
+                <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
+                  <MapPin className="w-8 h-8 text-[#2a2a3e]" />
+                  <p className="text-[#6b6b8a] text-sm">Aucune donnée aujourd'hui</p>
+                </div>
               ) : (
                 <>
-                  <ResponsiveContainer width="100%" height={140}>
-                    <BarChart data={data?.city_stats.slice(0,5)} margin={{ top: 0, right: 0, bottom: 0, left: -24 }} barSize={14}>
-                      <XAxis dataKey="city" tick={{ fill: "#6b6b8a", fontSize: 9 }} tickLine={false} axisLine={false} />
-                      <YAxis tick={{ fill: "#6b6b8a", fontSize: 9 }} tickLine={false} axisLine={false} />
-                      <Tooltip
-                        contentStyle={{ background: "#16161f", border: "1px solid #1e1e2e", borderRadius: 8, fontSize: 11 }}
-                        formatter={(v: number) => [v, "Commandes"]}
-                      />
-                      <Bar dataKey="orders" radius={[4,4,0,0]}>
-                        {(data?.city_stats ?? []).map((_, i) => (
-                          <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  {/* SVG map + hover tooltip */}
+                  <div className="relative rounded-xl overflow-hidden bg-[#111118] border border-[#1e1e2e] px-2 py-2">
+                    <CameroonMap
+                      cities={data!.city_stats}
+                      colors={DONUT_COLORS}
+                      metric={cityView}
+                      hoveredCity={hoveredCity}
+                      onHover={setHoveredCity}
+                    />
 
-                  <div className="mt-3 space-y-2">
-                    {(data?.city_stats ?? []).slice(0,5).map((c, i) => (
-                      <div key={c.city} className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className="text-white text-xs font-medium">{c.city}</span>
-                            <span className="text-[#6b6b8a] text-[10px]">{c.pct}%</span>
+                    {/* hover info badge */}
+                    <AnimatePresence>
+                      {hoveredCity && (() => {
+                        const idx = data!.city_stats.findIndex(c => c.city === hoveredCity)
+                        const c   = data!.city_stats[idx]
+                        if (!c) return null
+                        return (
+                          <motion.div
+                            key={hoveredCity}
+                            initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                            transition={{ duration: 0.12 }}
+                            className="absolute top-2 right-2 bg-[#16161f]/95 border border-[#2a2a3e] rounded-xl px-3 py-2 pointer-events-none"
+                          >
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="w-2 h-2 rounded-full" style={{ background: DONUT_COLORS[idx % DONUT_COLORS.length] }} />
+                              <p className="text-white text-xs font-bold">{c.city}</p>
+                            </div>
+                            <p className="text-[#6b6b8a] text-[10px]">
+                              <span className="text-white font-semibold">{c.orders}</span> commandes
+                            </p>
+                            <p className="text-[#6b6b8a] text-[10px]">
+                              <span className="text-white font-semibold">{fmtCFAFull(c.revenue)}</span>
+                            </p>
+                            <p className="text-[#4a4a6a] text-[10px]">{c.pct}% du total</p>
+                          </motion.div>
+                        )
+                      })()}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* ranked list */}
+                  <div className="space-y-1.5">
+                    {data!.city_stats.slice(0, 5).map((c, i) => {
+                      const val    = cityView === "orders" ? c.orders : c.revenue
+                      const maxVal = cityView === "orders"
+                        ? Math.max(...data!.city_stats.map(x => x.orders), 1)
+                        : Math.max(...data!.city_stats.map(x => x.revenue), 1)
+                      const barPct = Math.round((val / maxVal) * 100)
+                      const active = hoveredCity === c.city
+                      const color  = DONUT_COLORS[i % DONUT_COLORS.length]
+
+                      return (
+                        <div
+                          key={c.city}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors duration-150 ${active ? "bg-white/5" : "hover:bg-white/[0.03]"}`}
+                          onMouseEnter={() => setHoveredCity(c.city)}
+                          onMouseLeave={() => setHoveredCity(null)}
+                        >
+                          {/* rank */}
+                          <span className="text-[10px] text-[#4a4a6a] w-4 text-center shrink-0 font-bold tabular-nums">{i + 1}</span>
+
+                          {/* dot */}
+                          <span className="w-2 h-2 rounded-full shrink-0 transition-transform duration-150"
+                            style={{ background: color, transform: active ? "scale(1.4)" : "scale(1)" }} />
+
+                          {/* name */}
+                          <span className={`text-xs font-medium flex-1 min-w-0 truncate transition-colors ${active ? "text-white" : "text-[#9ca3af]"}`}>
+                            {c.city}
+                          </span>
+
+                          {/* bar */}
+                          <div className="w-20 h-1.5 bg-[#1e1e2e] rounded-full overflow-hidden shrink-0">
+                            <motion.div
+                              className="h-full rounded-full"
+                              style={{ background: color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${barPct}%` }}
+                              transition={{ delay: 0.4 + i * 0.07, duration: 0.55, ease: "easeOut" }}
+                            />
                           </div>
-                          <div className="h-1 bg-[#1e1e2e] rounded-full mt-1">
-                            <div className="h-1 rounded-full transition-all duration-700" style={{ width: `${c.pct}%`, background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
-                          </div>
+
+                          {/* pct */}
+                          <span className={`text-[10px] w-7 text-right tabular-nums shrink-0 ${active ? "text-white" : "text-[#4a4a6a]"}`}>
+                            {c.pct}%
+                          </span>
+
+                          {/* value */}
+                          <span className="text-white text-xs font-bold w-16 text-right tabular-nums shrink-0">
+                            {cityView === "orders" ? `${c.orders} cmd` : fmtCFA(c.revenue)}
+                          </span>
                         </div>
-                        <span className="text-[#6b6b8a] text-[10px] shrink-0">{c.orders} cmd</span>
-                      </div>
-                    ))}
+                      )
+                    })}
+                  </div>
+
+                  {/* totals footer */}
+                  <div className="pt-2 border-t border-[#1e1e2e] flex items-center justify-between text-[10px]">
+                    <span className="text-[#4a4a6a]">
+                      {data!.city_stats.length} ville{data!.city_stats.length > 1 ? "s" : ""} actives
+                    </span>
+                    <span className="text-[#6b6b8a]">
+                      Total : <span className="text-white font-bold">
+                        {cityView === "orders"
+                          ? `${data!.city_stats.reduce((s, c) => s + c.orders, 0)} commandes`
+                          : fmtCFAFull(data!.city_stats.reduce((s, c) => s + c.revenue, 0))
+                        }
+                      </span>
+                    </span>
                   </div>
                 </>
               )}
