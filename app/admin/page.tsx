@@ -117,6 +117,16 @@ const SYS_LABELS: Record<string, string> = {
   api_quickgo: "API QuickGo", api_cinetpay: "API CinetPay", database: "Base de données", storage: "Stockage", notifications: "Notifications",
 }
 
+const METHOD_CFG: Record<string, { color: string; bg: string; border: string }> = {
+  "Orange Money": { color: "text-orange-300", bg: "bg-orange-500/15", border: "border-orange-500/25" },
+  "Wave":         { color: "text-blue-300",   bg: "bg-blue-500/15",   border: "border-blue-500/25"   },
+  "MTN Money":    { color: "text-yellow-300", bg: "bg-yellow-500/15", border: "border-yellow-500/25" },
+  "CinetPay":     { color: "text-green-300",  bg: "bg-green-500/15",  border: "border-green-500/25"  },
+  "PayPal":       { color: "text-indigo-300", bg: "bg-indigo-500/15", border: "border-indigo-500/25" },
+  "Virement":     { color: "text-purple-300", bg: "bg-purple-500/15", border: "border-purple-500/25" },
+}
+const METHOD_DEFAULT = { color: "text-[#6b6b8a]", bg: "bg-[#1e1e2e]", border: "border-[#2a2a3e]" }
+
 // ── sparkline ────────────────────────────────────────────────────────────────
 function Spark({ data, color, id }: { data: number[]; color: string; id: string }) {
   const pts = data.map((v, i) => ({ v, i }))
@@ -389,8 +399,12 @@ export default function AdminDashboardPage() {
 
   const [hoveredSeg,   setHoveredSeg]   = useState<number | null>(null)
   const [chartSeries,  setChartSeries]  = useState<"both" | "revenue" | "orders">("both")
-  const [cityView,     setCityView]     = useState<"orders" | "revenue">("orders")
-  const [hoveredCity,  setHoveredCity]  = useState<string | null>(null)
+  const [cityView,       setCityView]       = useState<"orders" | "revenue">("orders")
+  const [hoveredCity,    setHoveredCity]    = useState<string | null>(null)
+  const [selectedPays,   setSelectedPays]   = useState<Set<string>>(new Set())
+  const [payingId,       setPayingId]       = useState<string | null>(null)
+  const [paidIds,        setPaidIds]        = useState<Set<string>>(new Set())
+  const [confirmPayout,  setConfirmPayout]  = useState<{ id: string; vendor_name: string; amount: number; method: string } | null>(null)
 
   // financial donut
   const donutData = fin ? [
@@ -1402,54 +1416,285 @@ export default function AdminDashboardPage() {
           {/* ── ROW 2: Payouts + Activities + AI Alerts ────────────────── */}
           <div className="grid lg:grid-cols-3 gap-6">
 
-            {/* Payouts en attente */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-white font-bold text-sm">Payouts en attente</h2>
-                  {(fin?.pending_payouts_count ?? 0) > 0 && (
-                    <p className="text-[#6b6b8a] text-[10px]">{fin!.pending_payouts_count} demande{fin!.pending_payouts_count > 1 ? "s" : ""} · {fmtCFAFull(fin!.pending_payouts_amount)}</p>
-                  )}
-                </div>
-                <Link href="/admin/payouts" className="text-blue-400 text-[10px] hover:underline flex items-center gap-1">
-                  Voir tout <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
+            {/* ── Payouts en attente ───────────────────────────────────── */}
+            {(() => {
+              const rows    = data?.pending_payouts ?? []
+              const unpaid  = rows.filter(p => !paidIds.has(p.id))
+              const allSel  = unpaid.length > 0 && unpaid.every(p => selectedPays.has(p.id))
+              const selAmt  = rows.filter(p => selectedPays.has(p.id) && !paidIds.has(p.id)).reduce((s, p) => s + p.amount, 0)
+              const selCount = [...selectedPays].filter(id => !paidIds.has(id)).length
 
-              {loading ? (
-                <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-white/5 animate-pulse rounded-xl" />)}</div>
-              ) : (data?.pending_payouts ?? []).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <CheckCircle className="w-8 h-8 text-green-400 mb-2" />
-                  <p className="text-[#6b6b8a] text-sm">Aucun payout en attente</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {data!.pending_payouts.map(p => (
-                    <div key={p.id} className="flex items-center gap-3 p-3 bg-[#1e1e2e] rounded-xl hover:bg-[#2a2a3e] transition-colors group">
-                      {p.vendor_logo ? (
-                        <Image src={p.vendor_logo} alt={p.vendor_name} width={32} height={32} className="w-8 h-8 rounded-lg object-cover" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center shrink-0">
-                          <Store className="w-4 h-4 text-blue-400" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-xs font-semibold truncate">{p.vendor_name}</p>
-                        <p className="text-[#6b6b8a] text-[10px]">{p.method}</p>
+              function toggleAll() {
+                if (allSel) setSelectedPays(new Set())
+                else setSelectedPays(new Set(unpaid.map(p => p.id)))
+              }
+              function toggleRow(id: string) {
+                setSelectedPays(prev => {
+                  const next = new Set(prev)
+                  next.has(id) ? next.delete(id) : next.add(id)
+                  return next
+                })
+              }
+              function handlePay(p: typeof rows[0]) {
+                setConfirmPayout({ id: p.id, vendor_name: p.vendor_name, amount: p.amount, method: p.method })
+              }
+              function handleBatchPay() {
+                const toConfirm = rows.filter(p => selectedPays.has(p.id) && !paidIds.has(p.id))
+                if (toConfirm.length === 1) handlePay(toConfirm[0])
+                else if (toConfirm.length > 1)
+                  setConfirmPayout({ id: "__batch__", vendor_name: `${toConfirm.length} vendeurs`, amount: selAmt, method: "Paiement groupé" })
+              }
+              function confirmAndPay() {
+                if (!confirmPayout) return
+                const id = confirmPayout.id
+                setConfirmPayout(null)
+                setPayingId(id)
+                setTimeout(() => {
+                  setPaidIds(prev => {
+                    const next = new Set(prev)
+                    if (id === "__batch__") {
+                      rows.filter(p => selectedPays.has(p.id)).forEach(p => next.add(p.id))
+                    } else {
+                      next.add(id)
+                    }
+                    return next
+                  })
+                  setSelectedPays(prev => {
+                    const next = new Set(prev)
+                    if (id === "__batch__") rows.filter(p => selectedPays.has(p.id)).forEach(p => next.delete(p.id))
+                    else next.delete(id)
+                    return next
+                  })
+                  setPayingId(null)
+                }, 1600)
+              }
+
+              return (
+                <>
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                    className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden flex flex-col"
+                  >
+                    {/* header */}
+                    <div className="flex items-start justify-between px-5 pt-5 pb-3">
+                      <div>
+                        <h2 className="text-white font-bold text-sm leading-none">Payouts en attente</h2>
+                        <p className="text-[#4a4a6a] text-[10px] mt-0.5">
+                          {loading ? "…" : `${unpaid.length} demande${unpaid.length !== 1 ? "s" : ""} · ${fmtCFAFull(fin?.pending_payouts_amount ?? 0)}`}
+                        </p>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-white font-bold text-sm">{fmtCFA(p.amount)}</p>
-                        <button className="text-[10px] text-blue-400 hidden group-hover:block hover:underline">Payer</button>
-                      </div>
+                      <Link href="/admin/payouts" className="flex items-center gap-1 text-blue-400 text-[10px] hover:underline mt-0.5">
+                        Voir tout <ChevronRight className="w-3 h-3" />
+                      </Link>
                     </div>
-                  ))}
-                </div>
-              )}
 
-            </motion.div>
+                    {/* table */}
+                    {loading ? (
+                      <div className="px-5 pb-5 space-y-2">
+                        {[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-xl" />)}
+                      </div>
+                    ) : unpaid.length === 0 && paidIds.size === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 gap-2">
+                        <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                          <CheckCircle className="w-5 h-5 text-green-400" />
+                        </div>
+                        <p className="text-[#6b6b8a] text-sm">Tous les payouts sont traités</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* col headers */}
+                        <div className="flex items-center gap-2 px-5 pb-1 border-b border-[#1e1e2e]">
+                          <button onClick={toggleAll}
+                            className={`w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
+                              allSel ? "bg-blue-500 border-blue-500" : "border-[#2a2a3e] hover:border-blue-500/50"
+                            }`}
+                          >
+                            {allSel && <svg viewBox="0 0 10 8" className="w-2.5 h-2.5" fill="none">
+                              <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>}
+                          </button>
+                          <span className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold flex-1">Vendeur</span>
+                          <span className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold w-20 text-right hidden sm:block">Méthode</span>
+                          <span className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold w-16 text-right">Montant</span>
+                          <span className="w-16 shrink-0" />
+                        </div>
+
+                        {/* rows */}
+                        <div className="flex-1 overflow-y-auto max-h-72">
+                          <AnimatePresence initial={false}>
+                            {rows.map(p => {
+                              const isPaid  = paidIds.has(p.id)
+                              const isSel   = selectedPays.has(p.id)
+                              const isPaying = payingId === p.id || (payingId === "__batch__" && selectedPays.has(p.id))
+                              const mcfg    = METHOD_CFG[p.method] ?? METHOD_DEFAULT
+
+                              return (
+                                <motion.div
+                                  key={p.id}
+                                  layout
+                                  initial={{ opacity: 1 }}
+                                  animate={{ opacity: isPaid ? 0.4 : 1 }}
+                                  className={`flex items-center gap-2 px-5 py-2.5 border-b border-[#1e1e2e] last:border-0 transition-colors ${
+                                    isSel && !isPaid ? "bg-blue-500/5" : "hover:bg-white/[0.02]"
+                                  }`}
+                                >
+                                  {/* checkbox */}
+                                  <button
+                                    disabled={isPaid}
+                                    onClick={() => toggleRow(p.id)}
+                                    className={`w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
+                                      isPaid   ? "border-[#2a2a3e] opacity-30 cursor-not-allowed" :
+                                      isSel    ? "bg-blue-500 border-blue-500" :
+                                               "border-[#2a2a3e] hover:border-blue-500/50"
+                                    }`}
+                                  >
+                                    {isSel && !isPaid && <svg viewBox="0 0 10 8" className="w-2.5 h-2.5" fill="none">
+                                      <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>}
+                                  </button>
+
+                                  {/* vendor */}
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    {p.vendor_logo ? (
+                                      <Image src={p.vendor_logo} alt={p.vendor_name} width={28} height={28}
+                                        className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                                    ) : (
+                                      <div className="w-7 h-7 rounded-lg bg-[#2a2a3e] flex items-center justify-center shrink-0">
+                                        <Store className="w-3.5 h-3.5 text-[#6b6b8a]" />
+                                      </div>
+                                    )}
+                                    <span className={`text-xs font-medium truncate ${isPaid ? "line-through text-[#4a4a6a]" : "text-white"}`}>
+                                      {p.vendor_name}
+                                    </span>
+                                  </div>
+
+                                  {/* method badge */}
+                                  <span className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded-md border text-[9px] font-semibold w-20 justify-center shrink-0 ${mcfg.bg} ${mcfg.color} ${mcfg.border}`}>
+                                    {p.method.length > 9 ? p.method.split(" ")[0] : p.method}
+                                  </span>
+
+                                  {/* amount */}
+                                  <span className={`text-xs font-bold w-16 text-right tabular-nums shrink-0 ${isPaid ? "text-green-400" : "text-white"}`}>
+                                    {isPaid ? "✓ Payé" : fmtCFA(p.amount)}
+                                  </span>
+
+                                  {/* action */}
+                                  <div className="w-16 shrink-0 flex justify-end">
+                                    {isPaid ? (
+                                      <span className="text-green-400 text-[10px] font-semibold">OK</span>
+                                    ) : isPaying ? (
+                                      <span className="flex items-center gap-1 text-blue-400 text-[10px]">
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                        <span>...</span>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => handlePay(p)}
+                                        disabled={!!payingId}
+                                        className="px-2 py-1 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-300 text-[10px] font-semibold hover:bg-orange-500/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                      >
+                                        Payer
+                                      </button>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )
+                            })}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* footer: batch action */}
+                        <div className="px-5 py-3 border-t border-[#1e1e2e] flex items-center justify-between gap-3">
+                          <span className="text-[#4a4a6a] text-[10px]">
+                            {selCount > 0
+                              ? <><span className="text-blue-400 font-semibold">{selCount}</span> sélectionné{selCount > 1 ? "s" : ""}</>
+                              : `${unpaid.length} en attente`
+                            }
+                          </span>
+                          {selCount > 0 ? (
+                            <button
+                              onClick={handleBatchPay}
+                              disabled={!!payingId}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-[11px] font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Wallet className="w-3 h-3" />
+                              Payer · {fmtCFAFull(selAmt)}
+                            </button>
+                          ) : (
+                            <Link href="/admin/payouts"
+                              className="flex items-center gap-1 text-[#6b6b8a] text-[10px] hover:text-white transition-colors"
+                            >
+                              Gérer tout <ChevronRight className="w-3 h-3" />
+                            </Link>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </motion.div>
+
+                  {/* confirm modal */}
+                  <AnimatePresence>
+                    {confirmPayout && (
+                      <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+                        onClick={() => setConfirmPayout(null)}
+                      >
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                          transition={{ duration: 0.15 }}
+                          className="bg-[#111118] border border-[#2a2a3e] rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-orange-500/15 flex items-center justify-center shrink-0">
+                              <Wallet className="w-5 h-5 text-orange-400" />
+                            </div>
+                            <div>
+                              <p className="text-white font-bold text-sm">Confirmer le paiement</p>
+                              <p className="text-[#4a4a6a] text-[10px]">Cette action est irréversible</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-[#1e1e2e] rounded-xl p-4 mb-4 space-y-2">
+                            <div className="flex justify-between text-xs">
+                              <span className="text-[#6b6b8a]">Bénéficiaire</span>
+                              <span className="text-white font-semibold">{confirmPayout.vendor_name}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                              <span className="text-[#6b6b8a]">Méthode</span>
+                              <span className={`font-semibold ${(METHOD_CFG[confirmPayout.method] ?? METHOD_DEFAULT).color}`}>
+                                {confirmPayout.method}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-xs border-t border-[#2a2a3e] pt-2">
+                              <span className="text-[#6b6b8a]">Montant</span>
+                              <span className="text-white font-extrabold text-sm">{fmtCFAFull(confirmPayout.amount)}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setConfirmPayout(null)}
+                              className="flex-1 py-2.5 rounded-xl bg-[#1e1e2e] border border-[#2a2a3e] text-[#6b6b8a] text-sm font-medium hover:text-white hover:border-[#3a3a4e] transition-colors"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              onClick={confirmAndPay}
+                              className="flex-1 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-bold transition-colors"
+                            >
+                              Confirmer
+                            </button>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
+              )
+            })()}
 
             {/* Activités récentes */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
