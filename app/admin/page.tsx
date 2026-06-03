@@ -104,11 +104,24 @@ const SEV_CFG: Record<string, { label: string; cls: string; dot: string }> = {
   medium: { label: "Moyen",    cls: "border-orange-500/30 bg-orange-500/10", dot: "bg-orange-400" },
   low:    { label: "Faible",   cls: "border-yellow-500/30 bg-yellow-500/10", dot: "bg-yellow-400" },
 }
-const ACT_CFG: Record<string, { color: string; Icon: typeof Package }> = {
-  order:    { color: "text-blue-400",   Icon: Package },
-  vendor:   { color: "text-green-400",  Icon: Store },
-  driver:   { color: "text-purple-400", Icon: Truck },
-  security: { color: "text-red-400",    Icon: Shield },
+const ACT_CFG: Record<string, { color: string; iconBg: string; label: string; dot: string; Icon: typeof Package }> = {
+  order:    { color: "text-blue-400",   iconBg: "bg-blue-500/15",   dot: "bg-blue-500",   label: "Commande", Icon: Package },
+  vendor:   { color: "text-green-400",  iconBg: "bg-green-500/15",  dot: "bg-green-500",  label: "Vendeur",  Icon: Store },
+  driver:   { color: "text-purple-400", iconBg: "bg-purple-500/15", dot: "bg-purple-500", label: "Livreur",  Icon: Truck },
+  security: { color: "text-red-400",    iconBg: "bg-red-500/15",    dot: "bg-red-500",    label: "Sécurité", Icon: Shield },
+}
+const ACT_FILTER_LABELS: Record<string, string> = { all: "Tout", order: "Commandes", vendor: "Vendeurs", driver: "Livreurs", security: "Sécurité" }
+const STATUS_PILL: Record<string, string> = {
+  pending:    "bg-yellow-500/15 text-yellow-300 border border-yellow-500/25",
+  confirmed:  "bg-blue-500/15 text-blue-300 border border-blue-500/25",
+  preparing:  "bg-violet-500/15 text-violet-300 border border-violet-500/25",
+  ready:      "bg-cyan-500/15 text-cyan-300 border border-cyan-500/25",
+  delivering: "bg-sky-500/15 text-sky-300 border border-sky-500/25",
+  delivered:  "bg-green-500/15 text-green-300 border border-green-500/25",
+  cancelled:  "bg-red-500/15 text-red-300 border border-red-500/25",
+  high:       "bg-red-500/15 text-red-300 border border-red-500/25",
+  medium:     "bg-orange-500/15 text-orange-300 border border-orange-500/25",
+  low:        "bg-yellow-500/15 text-yellow-300 border border-yellow-500/25",
 }
 const SYS_ICONS: Record<string, typeof Package> = {
   api_quickgo: Zap, api_cinetpay: CreditCard, database: FileText, storage: ShoppingBag, notifications: Bell,
@@ -401,6 +414,7 @@ export default function AdminDashboardPage() {
   const [chartSeries,  setChartSeries]  = useState<"both" | "revenue" | "orders">("both")
   const [cityView,       setCityView]       = useState<"orders" | "revenue">("orders")
   const [hoveredCity,    setHoveredCity]    = useState<string | null>(null)
+  const [actFilter,      setActFilter]      = useState<"all"|"order"|"vendor"|"driver"|"security">("all")
   const [selectedPays,   setSelectedPays]   = useState<Set<string>>(new Set())
   const [payingId,       setPayingId]       = useState<string | null>(null)
   const [paidIds,        setPaidIds]        = useState<Set<string>>(new Set())
@@ -1696,45 +1710,161 @@ export default function AdminDashboardPage() {
               )
             })()}
 
-            {/* Activités récentes */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Activités récentes</h2>
-                <Activity className="w-4 h-4 text-[#6b6b8a]" />
-              </div>
+            {/* ── Activités récentes ───────────────────────────────────── */}
+            {(() => {
+              const allActs    = data?.activities ?? []
+              const now        = Date.now()
+              const filtered   = actFilter === "all" ? allActs : allActs.filter(a => a.type === actFilter)
+              const typeCounts = (["order","vendor","driver","security"] as const).reduce<Record<string,number>>(
+                (acc, t) => ({ ...acc, [t]: allActs.filter(a => a.type === t).length }), {}
+              )
 
-              {loading ? (
-                <div className="space-y-4">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-xl" />)}</div>
-              ) : (data?.activities ?? []).length === 0 ? (
-                <p className="text-center text-[#6b6b8a] text-sm py-8">Aucune activité récente</p>
-              ) : (
-                <div className="relative space-y-4">
-                  <div className="absolute left-3.5 top-0 bottom-0 w-px bg-[#1e1e2e]" />
-                  {(data?.activities ?? []).map((act) => {
-                    const cfg = ACT_CFG[act.type] ?? ACT_CFG.order
-                    return (
-                      <div key={act.id} className="flex gap-3 relative">
-                        <div className={`w-7 h-7 rounded-full bg-[#1e1e2e] flex items-center justify-center shrink-0 z-10 ${cfg.color}`}>
-                          <cfg.Icon className="w-3.5 h-3.5" />
-                        </div>
-                        <div className="flex-1 min-w-0 pb-1">
-                          <p className="text-white text-xs font-medium leading-snug truncate">{act.title}</p>
-                          <p className="text-[#6b6b8a] text-[10px] truncate">{act.subtitle}</p>
-                          <p className="text-[#4a4a6a] text-[10px] mt-0.5">{fmtTime(act.timestamp)}</p>
-                        </div>
-                        {act.status && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#1e1e2e] text-[#6b6b8a] shrink-0 h-fit mt-0.5">
-                            {act.status}
-                          </span>
-                        )}
+              return (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+                  className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden flex flex-col"
+                >
+                  {/* header */}
+                  <div className="px-5 pt-5 pb-3">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h2 className="text-white font-bold text-sm leading-none">Activités récentes</h2>
+                        <p className="text-[#4a4a6a] text-[10px] mt-0.5">Fil en temps réel · {allActs.length} entrée{allActs.length !== 1 ? "s" : ""}</p>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </motion.div>
+                      <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-[#1e1e2e] border border-[#2a2a3e]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                        <span className="text-[#6b6b8a] text-[10px]">Live</span>
+                      </span>
+                    </div>
+
+                    {/* filter tabs */}
+                    <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+                      {(["all","order","vendor","driver","security"] as const).map(f => {
+                        const cnt = f === "all" ? allActs.length : (typeCounts[f] ?? 0)
+                        const cfg = f !== "all" ? ACT_CFG[f] : null
+                        return (
+                          <button key={f} onClick={() => setActFilter(f)}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition-all shrink-0 ${
+                              actFilter === f
+                                ? "bg-[#2a2a3e] text-white border border-[#3a3a5e]"
+                                : "text-[#4a4a6a] hover:text-[#6b6b8a] hover:bg-white/5"
+                            }`}
+                          >
+                            {cfg && <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />}
+                            {ACT_FILTER_LABELS[f]}
+                            {cnt > 0 && (
+                              <span className={`ml-0.5 px-1 rounded-full text-[9px] ${actFilter === f ? "bg-white/10 text-white" : "bg-[#1e1e2e] text-[#4a4a6a]"}`}>
+                                {cnt}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* timeline */}
+                  <div className="flex-1 overflow-y-auto max-h-96 px-5 pb-4">
+                    {loading ? (
+                      <div className="space-y-5 pt-1">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="flex gap-3">
+                            <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse shrink-0" />
+                            <div className="flex-1 space-y-1.5 pt-1">
+                              <div className="h-3 w-32 bg-white/5 animate-pulse rounded" />
+                              <div className="h-2.5 w-24 bg-white/5 animate-pulse rounded" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : filtered.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 gap-2">
+                        <Activity className="w-7 h-7 text-[#2a2a3e]" />
+                        <p className="text-[#6b6b8a] text-sm">Aucune activité {actFilter !== "all" ? `de type "${ACT_FILTER_LABELS[actFilter]}"` : "récente"}</p>
+                      </div>
+                    ) : (
+                      <div className="relative pt-1">
+                        {/* connecting gradient line */}
+                        <div className="absolute left-[15px] top-0 bottom-6 w-px"
+                          style={{ background: "linear-gradient(to bottom, #2a2a3e 0%, #2a2a3e 80%, transparent 100%)" }} />
+
+                        <div className="space-y-0">
+                          <AnimatePresence initial={false}>
+                            {filtered.map((act, i) => {
+                              const cfg      = ACT_CFG[act.type] ?? ACT_CFG.order
+                              const isNew    = (now - new Date(act.timestamp).getTime()) < 5 * 60 * 1000
+                              const statusCls = act.status ? (STATUS_PILL[act.status] ?? "bg-[#1e1e2e] text-[#6b6b8a] border border-[#2a2a3e]") : ""
+                              const statusLabel = act.status
+                                ? ({ pending:"En attente", confirmed:"Confirmé", preparing:"Préparation", ready:"Prêt",
+                                     delivering:"En livraison", delivered:"Livré", cancelled:"Annulé",
+                                     high:"Critique", medium:"Moyen", low:"Faible" } as Record<string,string>)[act.status] ?? act.status
+                                : null
+
+                              return (
+                                <motion.div
+                                  key={act.id}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: 8 }}
+                                  transition={{ delay: i * 0.06, duration: 0.25 }}
+                                  className="flex gap-3 relative group py-3"
+                                >
+                                  {/* icon bubble */}
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 ring-2 ring-[#16161f] ${cfg.iconBg} ${cfg.color}`}>
+                                    <cfg.Icon className="w-3.5 h-3.5" />
+                                    {isNew && (
+                                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-[#16161f]">
+                                        <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* content */}
+                                  <div className={`flex-1 min-w-0 pl-1 pr-1 py-1.5 rounded-r-xl transition-colors group-hover:bg-white/[0.02] border-l-2 border-transparent group-hover:border-l-2`}
+                                    style={{ borderLeftColor: "transparent" }}
+                                  >
+                                    <div className="flex items-start justify-between gap-2 mb-0.5">
+                                      <div className="flex items-center gap-1.5 min-w-0">
+                                        <span className={`text-[9px] font-bold uppercase tracking-wider shrink-0 ${cfg.color}`}>
+                                          {cfg.label}
+                                        </span>
+                                        {isNew && (
+                                          <span className="text-[8px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold shrink-0">NEW</span>
+                                        )}
+                                      </div>
+                                      <span className="text-[#4a4a6a] text-[10px] shrink-0 tabular-nums">{fmtTime(act.timestamp)}</span>
+                                    </div>
+
+                                    <p className="text-white text-xs font-semibold leading-snug truncate">{act.title}</p>
+                                    <p className="text-[#6b6b8a] text-[10px] truncate mt-0.5">{act.subtitle}</p>
+
+                                    {statusLabel && (
+                                      <span className={`inline-flex items-center mt-1.5 px-1.5 py-0.5 rounded-md text-[9px] font-semibold ${statusCls}`}>
+                                        {statusLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              )
+                            })}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* footer */}
+                  <div className="px-5 py-3 border-t border-[#1e1e2e] flex items-center justify-between">
+                    <span className="text-[#4a4a6a] text-[10px]">
+                      {filtered.length} activité{filtered.length !== 1 ? "s" : ""}
+                      {actFilter !== "all" && <> · <button onClick={() => setActFilter("all")} className="text-blue-400 hover:underline">Tout afficher</button></>}
+                    </span>
+                    <Link href="/admin/logs" className="flex items-center gap-1 text-[#6b6b8a] text-[10px] hover:text-white transition-colors">
+                      Voir les logs <ChevronRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </motion.div>
+              )
+            })()}
 
             {/* Détection IA */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
