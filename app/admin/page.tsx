@@ -12,6 +12,7 @@ import {
   Tag, Percent, CreditCard, AlertTriangle, CheckCircle, XCircle,
   Zap, UserPlus, LogOut, ChevronRight, MoreHorizontal, ArrowUpRight,
   ArrowDownRight, Clock, Globe, X, User, ExternalLink,
+  Navigation, Layers, Lock, Plug, Database, Headphones,
 } from "lucide-react"
 import {
   AreaChart, Area, BarChart, Bar,
@@ -68,33 +69,31 @@ interface AdminDashData {
 }
 
 // ── sidebar items ─────────────────────────────────────────────────────────────
-const NAV = [
-  { group: "Principal" },
-  { icon: LayoutDashboard, label: "Vue d'ensemble",  href: "/admin",               badgeKey: null,           active: true },
-  { icon: Package,         label: "Commandes",        href: "/admin/orders",        badgeKey: "orders" },
-  { icon: Truck,           label: "Livreurs",          href: "/admin/drivers",       badgeKey: "drivers" },
-  { icon: Store,           label: "Vendeurs",          href: "/admin/vendors",       badgeKey: "vendors" },
-  { icon: Users,           label: "Clients",           href: "/admin/users",         badgeKey: null },
-  { group: "Finances" },
-  { icon: BarChart3,       label: "Analyses",          href: "/admin/analytics",     badgeKey: null },
-  { icon: DollarSign,      label: "Finances",          href: "/admin/finances",      badgeKey: null },
-  { icon: Wallet,          label: "Payouts",           href: "/admin/payouts",       badgeKey: "payouts" },
-  { icon: Percent,         label: "Commissions",       href: "/admin/commissions",   badgeKey: null },
-  { icon: CreditCard,      label: "Transactions",      href: "/admin/transactions",  badgeKey: null },
-  { group: "Engagement" },
-  { icon: MessageCircle,   label: "CRM & Support",     href: "/admin/support",       badgeKey: "crm_support" },
-  { icon: Bell,            label: "Notifications",     href: "/admin/notifications", badgeKey: "notifications" },
-  { icon: Megaphone,       label: "Marketing",         href: "/admin/marketing",     badgeKey: null },
-  { icon: Star,            label: "Avis & Notes",      href: "/admin/reviews",       badgeKey: null },
-  { group: "Sécurité" },
-  { icon: Shield,          label: "IA & Sécurité",     href: "/admin/security",      badgeKey: null },
-  { icon: FileText,        label: "Logs système",      href: "/admin/logs",          badgeKey: null },
-  { group: "Catalogue" },
-  { icon: ShoppingBag,     label: "Produits",          href: "/admin/products",      badgeKey: null },
-  { icon: Tag,             label: "Catégories",        href: "/admin/categories",    badgeKey: null },
-  { icon: MapPin,          label: "Zones & Villes",    href: "/admin/zones",         badgeKey: null },
-  { group: "Système" },
-  { icon: Settings,        label: "Paramètres",        href: "/admin/settings",      badgeKey: null },
+type NavItem = { icon: typeof Package; label: string; href: string; badgeKey: string | null; active?: boolean; arrow?: boolean }
+const NAV: NavItem[] = [
+  { icon: LayoutDashboard, label: "Tableau de bord",     href: "/admin",               badgeKey: null,            active: true  },
+  { icon: DollarSign,      label: "Finances",             href: "/admin/finances",      badgeKey: null,            arrow: true   },
+  { icon: Store,           label: "Vendeurs",             href: "/admin/vendors",       badgeKey: "vendors"                      },
+  { icon: Truck,           label: "Chauffeurs",           href: "/admin/drivers",       badgeKey: "drivers"                      },
+  { icon: Package,         label: "Commandes",            href: "/admin/orders",        badgeKey: "orders"                       },
+  { icon: Navigation,      label: "Livraisons",           href: "/admin/deliveries",    badgeKey: "deliveries"                   },
+  { icon: Wallet,          label: "Wallets",              href: "/admin/wallets",       badgeKey: null                           },
+  { icon: CreditCard,      label: "Payouts",              href: "/admin/payouts",       badgeKey: "payouts"                      },
+  { icon: FileText,        label: "Transactions",         href: "/admin/transactions",  badgeKey: null                           },
+  { icon: Activity,        label: "Analytics IA",         href: "/admin/analytics",     badgeKey: null                           },
+  { icon: ShieldCheck,     label: "Sécurité",             href: "/admin/security",      badgeKey: null                           },
+  { icon: MessageCircle,   label: "CRM & Support",        href: "/admin/support",       badgeKey: "crm_support"                  },
+  { icon: Bell,            label: "Notifications",        href: "/admin/notifications", badgeKey: "notifications"                },
+  { icon: MapPin,          label: "Gestion des villes",   href: "/admin/zones",         badgeKey: null                           },
+  { icon: Settings,        label: "Paramètres",           href: "/admin/settings",      badgeKey: null                           },
+  { icon: Layers,          label: "CMS & Pages",          href: "/admin/cms",           badgeKey: null                           },
+  { icon: Globe,           label: "SEO Center",           href: "/admin/seo",           badgeKey: null                           },
+  { icon: Users,           label: "Utilisateurs",         href: "/admin/users",         badgeKey: null                           },
+  { icon: Lock,            label: "Permissions & Rôles",  href: "/admin/permissions",   badgeKey: null                           },
+  { icon: FileText,        label: "Logs système",         href: "/admin/logs",          badgeKey: null                           },
+  { icon: Plug,            label: "API & Intégrations",   href: "/admin/api",           badgeKey: null                           },
+  { icon: Database,        label: "Sauvegardes",          href: "/admin/backups",       badgeKey: null                           },
+  { icon: Headphones,      label: "Support technique",    href: "/admin/support-tech",  badgeKey: null                           },
 ]
 
 const DONUT_COLORS = ["#3b82f6", "#22d3ee", "#a3e635", "#f59e0b", "#f43f5e"]
@@ -499,28 +498,25 @@ export default function AdminDashboardPage() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-0.5">
-          {NAV.map((item, idx) => {
-            if ("group" in item) return (
-              <p key={`g-${idx}`} className="text-[10px] uppercase tracking-widest text-[#4a4a6a] font-semibold px-3 pt-4 pb-1 first:pt-2">
-                {item.group}
-              </p>
-            )
-            const navItem = item as { icon: typeof Package; label: string; href: string; badgeKey: string | null; active?: boolean }
-            const bdg = badge(navItem.badgeKey)
+          {NAV.map((item) => {
+            const bdg = badge(item.badgeKey)
             return (
-              <Link key={navItem.href} href={navItem.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
-                  navItem.active
+              <Link key={item.href} href={item.href}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group ${
+                  item.active
                     ? "bg-blue-500/20 text-blue-400"
                     : "text-[#6b6b8a] hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <navItem.icon className="w-4 h-4 shrink-0" />
-                <span className="text-sm font-medium flex-1">{navItem.label}</span>
+                <item.icon className="w-4 h-4 shrink-0" />
+                <span className="text-[13px] font-medium flex-1 truncate">{item.label}</span>
                 {bdg > 0 && (
-                  <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500/30 text-blue-300 text-[10px] font-bold flex items-center justify-center">
-                    {bdg > 99 ? "99+" : bdg}
+                  <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500/30 text-blue-300 text-[10px] font-bold flex items-center justify-center tabular-nums">
+                    {bdg > 999 ? (bdg / 1000).toFixed(1) + "k" : bdg > 99 ? "99+" : bdg}
                   </span>
+                )}
+                {item.arrow && (
+                  <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
                 )}
               </Link>
             )
@@ -530,15 +526,19 @@ export default function AdminDashboardPage() {
         {/* Profile footer */}
         <div className="px-3 pb-4 border-t border-[#1e1e2e] pt-3">
           <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shrink-0">
-              <span className="text-white font-bold text-xs">AD</span>
+            <div className="relative shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white font-bold text-xs">EA</span>
+              </div>
+              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#111118]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-white text-sm font-semibold truncate">Administrateur</p>
-              <p className="text-[10px] text-red-400">Super Admin</p>
+              <p className="text-white text-[13px] font-semibold truncate leading-none">Emmanuel Admin</p>
+              <p className="text-[10px] text-[#6b6b8a] mt-0.5 leading-none">Super Administrateur</p>
+              <p className="text-[10px] text-green-400 mt-0.5 leading-none font-medium">● En ligne</p>
             </div>
             <button className="p-1 hover:bg-white/10 rounded-lg transition-colors">
-              <LogOut className="w-4 h-4 text-[#6b6b8a]" />
+              <LogOut className="w-3.5 h-3.5 text-[#4a4a6a] hover:text-white transition-colors" />
             </button>
           </div>
         </div>
