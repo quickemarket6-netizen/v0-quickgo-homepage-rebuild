@@ -14,9 +14,10 @@ import {
   ArrowDownRight, Clock, Globe, X, User, ExternalLink,
 } from "lucide-react"
 import {
-  AreaChart, Area, LineChart, Line, BarChart, Bar,
+  AreaChart, Area, BarChart, Bar,
   PieChart, Pie, Cell, RadialBarChart, RadialBar,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ReferenceLine, CartesianGrid,
 } from "recharts"
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -166,6 +167,26 @@ function CountUp({ target, format }: { target: number; format: (n: number) => st
   return <>{format(val)}</>
 }
 
+// ── Chart24 custom tooltip ────────────────────────────────────────────────────
+interface TooltipPayloadItem { value: number; name: string; color: string }
+function Chart24Tooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="bg-[#111118] border border-[#2a2a3e] rounded-xl px-3 py-2.5 shadow-2xl">
+      <p className="text-[#6b6b8a] text-[10px] font-semibold mb-2 uppercase tracking-wider">{label}</p>
+      {payload.map(p => (
+        <div key={p.name} className="flex items-center gap-2 text-xs py-0.5">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
+          <span className="text-[#6b6b8a]">{p.name === "revenue" ? "Revenus" : "Commandes"}</span>
+          <span className="text-white font-bold ml-2 tabular-nums">
+            {p.name === "revenue" ? fmtCFAFull(p.value) : p.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function AdminDashboardPage() {
   const [data,       setData]       = useState<AdminDashData | null>(null)
   const [loading,    setLoading]    = useState(true)
@@ -282,7 +303,8 @@ export default function AdminDashboardPage() {
     },
   ]
 
-  const [hoveredSeg, setHoveredSeg] = useState<number | null>(null)
+  const [hoveredSeg,   setHoveredSeg]   = useState<number | null>(null)
+  const [chartSeries,  setChartSeries]  = useState<"both" | "revenue" | "orders">("both")
 
   // financial donut
   const donutData = fin ? [
@@ -962,53 +984,185 @@ export default function AdminDashboardPage() {
               )}
             </motion.div>
 
-            {/* Graphique 24H */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Ventes aujourd'hui (24H)</h2>
-                <span className="text-[10px] text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full">Temps réel</span>
-              </div>
+            {/* ── Graphique ventes 24H ─────────────────────────────────── */}
+            {(() => {
+              const currentHour = new Date().getHours()
+              const refHourLabel = `${String(currentHour).padStart(2, "0")}h`
+              const totalRev    = chart24.reduce((s, h) => s + h.revenue, 0)
+              const totalOrders = chart24.reduce((s, h) => s + h.orders, 0)
+              const peakRev     = chart24.reduce((best, h) => h.revenue > best.revenue ? h : best, chart24[0] ?? { hour: "--", revenue: 0, orders: 0 })
+              const peakOrd     = chart24.reduce((best, h) => h.orders  > best.orders  ? h : best, chart24[0] ?? { hour: "--", revenue: 0, orders: 0 })
+              const convRate    = totalRev > 0 ? (totalOrders / (totalRev / 10000)).toFixed(1) : "0"
 
-              {loading ? (
-                <div className="h-48 bg-white/5 animate-pulse rounded-xl" />
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <AreaChart data={chart24} margin={{ top: 5, right: 0, bottom: 0, left: -20 }}>
-                    <defs>
-                      <linearGradient id="grad24rev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="grad24ord" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#22d3ee" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#22d3ee" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="hour" tick={{ fill: "#6b6b8a", fontSize: 9 }} tickLine={false} axisLine={false}
-                      interval={3} />
-                    <YAxis tick={{ fill: "#6b6b8a", fontSize: 9 }} tickLine={false} axisLine={false}
-                      tickFormatter={v => fmtCFA(v)} />
-                    <Tooltip
-                      contentStyle={{ background: "#16161f", border: "1px solid #1e1e2e", borderRadius: 8, fontSize: 11 }}
-                      formatter={(v: number, name: string) => [name === "revenue" ? fmtCFAFull(v) : v, name === "revenue" ? "Revenus" : "Commandes"]}
-                    />
-                    <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} fill="url(#grad24rev)" dot={false} />
-                    <Area type="monotone" dataKey="orders"  stroke="#22d3ee" strokeWidth={1.5} fill="url(#grad24ord)" dot={false} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+              const seriesBtns: { key: "both"|"revenue"|"orders"; label: string }[] = [
+                { key: "both",    label: "Les deux" },
+                { key: "revenue", label: "Revenus" },
+                { key: "orders",  label: "Commandes" },
+              ]
 
-              <div className="flex items-center gap-4 mt-3">
-                <span className="flex items-center gap-1.5 text-xs text-[#6b6b8a]">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />Revenus
-                </span>
-                <span className="flex items-center gap-1.5 text-xs text-[#6b6b8a]">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400" />Commandes
-                </span>
-              </div>
-            </motion.div>
+              return (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                  className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-5 flex flex-col gap-4"
+                >
+                  {/* header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-white font-bold text-sm leading-none">Ventes aujourd'hui</h2>
+                      <p className="text-[#4a4a6a] text-[10px] mt-0.5">Évolution heure par heure · 24H</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <span className="flex items-center gap-1 mr-1 px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-semibold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                        Live
+                      </span>
+                      {seriesBtns.map(b => (
+                        <button key={b.key} onClick={() => setChartSeries(b.key)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-all ${
+                            chartSeries === b.key
+                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                              : "text-[#4a4a6a] hover:text-[#6b6b8a] hover:bg-white/5"
+                          }`}
+                        >{b.label}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* summary stat chips */}
+                  {loading ? (
+                    <div className="grid grid-cols-4 gap-2">
+                      {[...Array(4)].map((_, i) => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-xl" />)}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { label: "Revenus total",   value: fmtCFAFull(totalRev),   color: "#3b82f6", sub: "aujourd'hui" },
+                        { label: "Pic horaire",      value: fmtCFAFull(peakRev.revenue), color: "#a3e635", sub: `à ${peakRev.hour}` },
+                        { label: "Commandes total",  value: String(totalOrders),    color: "#22d3ee", sub: "aujourd'hui" },
+                        { label: "Meilleures cmd",   value: String(peakOrd.orders), color: "#f59e0b", sub: `à ${peakOrd.hour}` },
+                      ].map(s => (
+                        <div key={s.label} className="bg-[#1e1e2e] rounded-xl px-3 py-2.5 border border-[#2a2a3e]">
+                          <p className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold truncate">{s.label}</p>
+                          <p className="text-white font-extrabold text-sm leading-none mt-1 tabular-nums">{s.value}</p>
+                          <p className="text-[10px] mt-0.5 tabular-nums" style={{ color: s.color }}>{s.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* chart */}
+                  {loading ? (
+                    <div className="h-52 bg-white/5 animate-pulse rounded-xl" />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={chart24} margin={{ top: 6, right: chartSeries !== "revenue" ? 36 : 0, bottom: 0, left: -10 }}>
+                        <defs>
+                          <linearGradient id="c24rev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%"   stopColor="#3b82f6" stopOpacity={0.35} />
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="c24ord" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%"   stopColor="#22d3ee" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+
+                        <CartesianGrid vertical={false} stroke="#1e1e2e" strokeDasharray="0" />
+
+                        <XAxis dataKey="hour" tick={{ fill: "#4a4a6a", fontSize: 9 }} tickLine={false} axisLine={false} interval={3} />
+
+                        <YAxis
+                          yAxisId="left"
+                          tick={{ fill: "#4a4a6a", fontSize: 9 }}
+                          tickLine={false} axisLine={false}
+                          tickFormatter={v => fmtCFA(v)}
+                          hide={chartSeries === "orders"}
+                          width={chartSeries === "orders" ? 0 : 44}
+                        />
+
+                        {chartSeries !== "revenue" && (
+                          <YAxis
+                            yAxisId="right"
+                            orientation="right"
+                            tick={{ fill: "#4a4a6a", fontSize: 9 }}
+                            tickLine={false} axisLine={false}
+                            width={28}
+                          />
+                        )}
+
+                        <Tooltip content={<Chart24Tooltip />} cursor={{ stroke: "#2a2a3e", strokeWidth: 1 }} />
+
+                        <ReferenceLine
+                          yAxisId="left"
+                          x={refHourLabel}
+                          stroke="#4a4a6a"
+                          strokeDasharray="4 3"
+                          strokeWidth={1}
+                          label={{ value: "↑ maintenant", fill: "#4a4a6a", fontSize: 8, position: "insideTopRight", offset: 4 }}
+                        />
+
+                        {(chartSeries === "revenue" || chartSeries === "both") && (
+                          <Area
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="revenue"
+                            stroke="#3b82f6"
+                            strokeWidth={2}
+                            fill="url(#c24rev)"
+                            dot={false}
+                            activeDot={{ r: 4, fill: "#3b82f6", stroke: "#16161f", strokeWidth: 2 }}
+                            isAnimationActive
+                            animationDuration={900}
+                          />
+                        )}
+
+                        {(chartSeries === "orders" || chartSeries === "both") && (
+                          <Area
+                            yAxisId={chartSeries === "both" ? "right" : "left"}
+                            type="monotone"
+                            dataKey="orders"
+                            stroke="#22d3ee"
+                            strokeWidth={1.5}
+                            fill="url(#c24ord)"
+                            dot={false}
+                            activeDot={{ r: 4, fill: "#22d3ee", stroke: "#16161f", strokeWidth: 2 }}
+                            isAnimationActive
+                            animationDuration={900}
+                            animationBegin={120}
+                          />
+                        )}
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+
+                  {/* legend */}
+                  <div className="flex items-center justify-between pt-1 border-t border-[#1e1e2e]">
+                    <div className="flex items-center gap-4">
+                      {(chartSeries === "revenue" || chartSeries === "both") && (
+                        <button onClick={() => setChartSeries(chartSeries === "both" ? "orders" : "both")}
+                          className="flex items-center gap-2 group"
+                        >
+                          <span className="w-7 h-0.5 rounded-full bg-blue-500 group-hover:opacity-60 transition-opacity" />
+                          <span className="text-[#6b6b8a] text-xs group-hover:text-white transition-colors">Revenus</span>
+                          <span className="text-blue-400 text-xs font-bold tabular-nums">{fmtCFAFull(totalRev)}</span>
+                        </button>
+                      )}
+                      {(chartSeries === "orders" || chartSeries === "both") && (
+                        <button onClick={() => setChartSeries(chartSeries === "both" ? "revenue" : "both")}
+                          className="flex items-center gap-2 group"
+                        >
+                          <span className="w-7 h-0.5 rounded-full bg-cyan-400 group-hover:opacity-60 transition-opacity" />
+                          <span className="text-[#6b6b8a] text-xs group-hover:text-white transition-colors">Commandes</span>
+                          <span className="text-cyan-400 text-xs font-bold tabular-nums">{totalOrders}</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[#4a4a6a] text-[10px]">
+                      Heure actuelle : <span className="text-[#6b6b8a] font-medium">{refHourLabel}</span>
+                    </p>
+                  </div>
+                </motion.div>
+              )
+            })()}
 
             {/* City stats */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
