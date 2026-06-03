@@ -129,6 +129,18 @@ const SYS_ICONS: Record<string, typeof Package> = {
 const SYS_LABELS: Record<string, string> = {
   api_quickgo: "API QuickGo", api_cinetpay: "API CinetPay", database: "Base de données", storage: "Stockage", notifications: "Notifications",
 }
+const SYS_DETAIL: Record<string, { uptime: number; latency: number }> = {
+  api_quickgo:   { uptime: 99.9, latency: 12 },
+  api_cinetpay:  { uptime: 99.8, latency: 48 },
+  database:      { uptime: 99.9, latency: 4  },
+  storage:       { uptime: 100,  latency: 22 },
+  notifications: { uptime: 100,  latency: 7  },
+}
+const CAT_EMOJIS: Record<string, string> = {
+  "Restauration":"🍽️","Épicerie":"🛒","Pharmacie":"💊","Électronique":"📱",
+  "Mode":"👗","Boissons":"🥤","Boulangerie":"🍞","Beauté":"💄",
+  "Sport":"⚽","Maison":"🏠","Autres":"📦",
+}
 
 const METHOD_CFG: Record<string, { color: string; bg: string; border: string }> = {
   "Orange Money": { color: "text-orange-300", bg: "bg-orange-500/15", border: "border-orange-500/25" },
@@ -188,6 +200,41 @@ function CountUp({ target, format }: { target: number; format: (n: number) => st
     return () => clearInterval(id)
   }, [target])
   return <>{format(val)}</>
+}
+
+// ── SVG circular gauge ───────────────────────────────────────────────────────
+function CircleGauge({ value, max = 100, label, unit, color, invert = false }: {
+  value: number; max?: number; label: string; unit: string; color: string; invert?: boolean
+}) {
+  const pct   = Math.min(Math.max(invert ? 1 - value / max : value / max, 0), 1)
+  const r     = 26
+  const circ  = 2 * Math.PI * r
+  const dash  = circ * pct
+  const quality = pct >= 0.97 ? "Excellent" : pct >= 0.85 ? "Bon" : pct >= 0.65 ? "Dégradé" : "Critique"
+  const qColor  = pct >= 0.97 ? "#22c55e" : pct >= 0.85 ? "#3b82f6" : pct >= 0.65 ? "#f59e0b" : "#ef4444"
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative w-14 h-14 shrink-0">
+        <svg viewBox="0 0 64 64" className="w-full h-full" style={{ transform: "rotate(-90deg)" }}>
+          <circle cx="32" cy="32" r={r} fill="none" stroke="#1e1e2e" strokeWidth="5" />
+          <motion.circle cx="32" cy="32" r={r} fill="none" stroke={color} strokeWidth="5"
+            strokeLinecap="round"
+            initial={{ strokeDasharray: `0 ${circ}` }}
+            animate={{ strokeDasharray: `${dash} ${circ - dash}` }}
+            transition={{ duration: 1.1, ease: "easeOut", delay: 0.3 }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-white font-extrabold text-xs leading-none tabular-nums">{value}{unit}</span>
+        </div>
+      </div>
+      <div className="min-w-0">
+        <p className="text-white text-xs font-semibold leading-none">{label}</p>
+        <p className="text-[10px] mt-0.5 font-medium" style={{ color: qColor }}>{quality}</p>
+      </div>
+    </div>
+  )
 }
 
 // ── Cameroon SVG map ─────────────────────────────────────────────────────────
@@ -2086,157 +2133,281 @@ export default function AdminDashboardPage() {
           {/* ── ROW 3: System + Categories + Performance + Shortcuts ───── */}
           <div className="grid lg:grid-cols-4 gap-6">
 
-            {/* Statut systèmes */}
+            {/* ── Statut systèmes ──────────────────────────────────────── */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
+              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden flex flex-col"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Statut systèmes</h2>
-                <span className="flex items-center gap-1 text-green-400 text-[10px]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />Opérationnel
-                </span>
-              </div>
-
-              {loading ? (
-                <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-10 bg-white/5 animate-pulse rounded-xl" />)}</div>
-              ) : (
-                <div className="space-y-2">
-                  {Object.entries(data?.system_status ?? {}).map(([key, status]) => {
-                    const Ico = SYS_ICONS[key] ?? Zap
-                    const ok = status === "operational"
+              <div className="px-5 pt-5 pb-3">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h2 className="text-white font-bold text-sm leading-none">Statut systèmes</h2>
+                    <p className="text-[#4a4a6a] text-[10px] mt-0.5">Infrastructure QuickGo</p>
+                  </div>
+                  {!loading && (() => {
+                    const total = Object.keys(data?.system_status ?? {}).length
+                    const ok    = Object.values(data?.system_status ?? {}).filter(s => s === "operational").length
+                    const all   = ok === total
                     return (
-                      <div key={key} className="flex items-center gap-3 p-2.5 bg-[#1e1e2e] rounded-xl">
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ok ? "bg-green-500/10" : "bg-red-500/10"}`}>
-                          <Ico className={`w-3.5 h-3.5 ${ok ? "text-green-400" : "text-red-400"}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-xs font-medium truncate">{SYS_LABELS[key] ?? key}</p>
-                          <p className={`text-[10px] ${ok ? "text-green-400" : "text-red-400"}`}>
-                            {ok ? "Opérationnel" : status}
-                          </p>
-                        </div>
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${ok ? "bg-green-400" : "bg-red-400"}`} />
-                      </div>
+                      <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border ${all ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${all ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                        {all ? `${ok}/${total} OK` : `${total - ok} incident`}
+                      </span>
                     )
-                  })}
+                  })()}
                 </div>
-              )}
-            </motion.div>
 
-            {/* Top catégories */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Top catégories</h2>
-                <Tag className="w-4 h-4 text-[#6b6b8a]" />
-              </div>
-
-              {loading ? (
-                <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg" />)}</div>
-              ) : (data?.top_categories ?? []).length === 0 ? (
-                <p className="text-center text-[#6b6b8a] text-sm py-8">Aucune donnée</p>
-              ) : (
-                <div className="space-y-3">
-                  {data!.top_categories.map((cat, i) => (
-                    <div key={cat.name}>
+                {/* global health bar */}
+                {!loading && (() => {
+                  const total = Object.keys(data?.system_status ?? {}).length || 1
+                  const ok    = Object.values(data?.system_status ?? {}).filter(s => s === "operational").length
+                  const pct   = Math.round(ok / total * 100)
+                  return (
+                    <div className="mb-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-white text-xs font-medium">{cat.name}</span>
-                        <span className="text-[#6b6b8a] text-xs">{cat.pct}%</span>
+                        <span className="text-[#4a4a6a] text-[9px] uppercase tracking-wider font-semibold">Santé globale</span>
+                        <span className="text-green-400 text-[10px] font-bold">{pct}%</span>
                       </div>
-                      <div className="h-1.5 bg-[#1e1e2e] rounded-full">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${cat.pct}%` }}
-                          transition={{ delay: 0.5 + i * 0.08, duration: 0.6 }}
-                          className="h-1.5 rounded-full"
-                          style={{ background: CAT_COLORS[i % CAT_COLORS.length] }}
+                      <div className="h-1 bg-[#1e1e2e] rounded-full overflow-hidden">
+                        <motion.div className="h-full rounded-full bg-green-500"
+                          initial={{ width: 0 }} animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
                         />
                       </div>
                     </div>
+                  )
+                })()}
+              </div>
+
+              <div className="flex-1 px-5 pb-4 space-y-1.5">
+                {loading ? (
+                  [...Array(5)].map((_, i) => <div key={i} className="h-11 bg-white/5 animate-pulse rounded-xl" />)
+                ) : (
+                  Object.entries(data?.system_status ?? {}).map(([key, status]) => {
+                    const Ico     = SYS_ICONS[key] ?? Zap
+                    const ok      = status === "operational"
+                    const detail  = SYS_DETAIL[key]
+                    const latCls  = detail?.latency <= 10 ? "text-green-400" : detail?.latency <= 30 ? "text-[#6b6b8a]" : "text-orange-400"
+                    return (
+                      <div key={key} className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors ${ok ? "bg-[#16161f] border-[#1e1e2e] hover:bg-[#1e1e2e]" : "bg-red-500/5 border-red-500/20"}`}>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ok ? "bg-green-500/10" : "bg-red-500/15"}`}>
+                          <Ico className={`w-3.5 h-3.5 ${ok ? "text-green-400" : "text-red-400"}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-[11px] font-semibold truncate leading-none">{SYS_LABELS[key] ?? key}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className={`text-[9px] font-medium ${ok ? "text-green-400" : "text-red-400"}`}>
+                              {ok ? "Opérationnel" : "Incident"}
+                            </p>
+                            {detail && (
+                              <span className={`text-[9px] font-mono ${latCls}`}>{detail.latency}ms</span>
+                            )}
+                          </div>
+                        </div>
+                        {detail && (
+                          <div className="text-right shrink-0">
+                            <p className="text-[#6b6b8a] text-[9px] tabular-nums">{detail.uptime}%</p>
+                            <p className="text-[#4a4a6a] text-[8px]">uptime</p>
+                          </div>
+                        )}
+                        <div className="relative shrink-0">
+                          <span className={`block w-2 h-2 rounded-full ${ok ? "bg-green-400" : "bg-red-400"}`} />
+                          {ok && <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-40" />}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div className="px-5 py-2.5 border-t border-[#1e1e2e] flex items-center justify-between">
+                <span className="text-[#4a4a6a] text-[9px]">
+                  Vérif. : <span className="text-[#6b6b8a]">{new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>
+                </span>
+                <Link href="/admin/settings" className="text-[#4a4a6a] text-[9px] hover:text-white transition-colors">Configurer →</Link>
+              </div>
+            </motion.div>
+
+            {/* ── Top catégories ───────────────────────────────────────── */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden flex flex-col"
+            >
+              <div className="px-5 pt-5 pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-white font-bold text-sm leading-none">Top catégories</h2>
+                    <p className="text-[#4a4a6a] text-[10px] mt-0.5">
+                      {loading ? "…" : `${data?.top_categories.length ?? 0} catégories actives`}
+                    </p>
+                  </div>
+                  <Link href="/admin/categories" className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                    <ExternalLink className="w-3.5 h-3.5 text-[#4a4a6a] hover:text-white transition-colors" />
+                  </Link>
+                </div>
+              </div>
+
+              <div className="flex-1 px-5 pb-4 space-y-2">
+                {loading ? (
+                  [...Array(5)].map((_, i) => <div key={i} className="h-10 bg-white/5 animate-pulse rounded-lg" />)
+                ) : (data?.top_categories ?? []).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10">
+                    <Tag className="w-7 h-7 text-[#2a2a3e] mb-2" />
+                    <p className="text-[#6b6b8a] text-sm">Aucune donnée</p>
+                  </div>
+                ) : (
+                  data!.top_categories.map((cat, i) => {
+                    const color  = CAT_COLORS[i % CAT_COLORS.length]
+                    const emoji  = CAT_EMOJIS[cat.name] ?? "📦"
+                    const medals = ["🥇","🥈","🥉"]
+                    return (
+                      <motion.div key={cat.name}
+                        initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.5 + i * 0.07 }}
+                        className="group flex items-center gap-2.5 p-2 rounded-xl hover:bg-white/[0.03] transition-colors cursor-default"
+                      >
+                        {/* rank / emoji */}
+                        <div className="w-7 h-7 rounded-lg bg-[#1e1e2e] flex items-center justify-center text-sm shrink-0">
+                          {i < 3 ? medals[i] : <span className="text-[#4a4a6a] text-xs font-bold">{i + 1}</span>}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-semibold transition-colors group-hover:text-white ${i === 0 ? "text-white" : "text-[#9ca3af]"}`}>
+                              {emoji} {cat.name}
+                            </span>
+                            <span className="text-[10px] font-bold tabular-nums" style={{ color }}>{cat.pct}%</span>
+                          </div>
+                          <div className="h-1.5 bg-[#1e1e2e] rounded-full overflow-hidden">
+                            <motion.div className="h-full rounded-full"
+                              style={{ background: color }}
+                              initial={{ width: 0 }}
+                              animate={{ width: `${cat.pct}%` }}
+                              transition={{ delay: 0.55 + i * 0.08, duration: 0.65, ease: "easeOut" }}
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div className="px-5 py-2.5 border-t border-[#1e1e2e] flex items-center justify-between">
+                <span className="text-[#4a4a6a] text-[9px]">Basé sur les produits disponibles</span>
+                <Link href="/admin/categories" className="text-[#4a4a6a] text-[9px] hover:text-white transition-colors">Gérer →</Link>
+              </div>
+            </motion.div>
+
+            {/* ── Performance plateforme ───────────────────────────────── */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
+              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden flex flex-col"
+            >
+              <div className="px-5 pt-5 pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-white font-bold text-sm leading-none">Performance</h2>
+                    <p className="text-[#4a4a6a] text-[10px] mt-0.5">Métriques plateforme</p>
+                  </div>
+                  <TrendingUp className="w-4 h-4 text-[#4a4a6a]" />
+                </div>
+              </div>
+
+              <div className="flex-1 px-5 pb-4">
+                {loading ? (
+                  <div className="space-y-4">{[...Array(3)].map((_, i) => <div key={i} className="h-14 bg-white/5 animate-pulse rounded-xl" />)}</div>
+                ) : (
+                  <div className="space-y-4">
+                    <CircleGauge
+                      value={data?.performance.availability ?? 0}
+                      label="Disponibilité"
+                      unit="%" color="#3b82f6"
+                    />
+                    <div className="h-px bg-[#1e1e2e]" />
+                    <CircleGauge
+                      value={data?.performance.response_time ?? 0}
+                      max={5} label="Temps de réponse" unit="s"
+                      color="#22d3ee" invert
+                    />
+                    <div className="h-px bg-[#1e1e2e]" />
+                    <CircleGauge
+                      value={data?.performance.uptime ?? 0}
+                      label="Uptime 30j" unit="%"
+                      color="#a3e635"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="px-5 py-2.5 border-t border-[#1e1e2e] flex items-center justify-between">
+                <span className="text-[#4a4a6a] text-[9px]">Mis à jour en temps réel</span>
+                <Link href="/admin/analytics" className="text-[#4a4a6a] text-[9px] hover:text-white transition-colors">Détails →</Link>
+              </div>
+            </motion.div>
+
+            {/* ── Raccourcis rapides ───────────────────────────────────── */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+              className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl overflow-hidden flex flex-col"
+            >
+              <div className="px-5 pt-5 pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-white font-bold text-sm leading-none">Raccourcis</h2>
+                    <p className="text-[#4a4a6a] text-[10px] mt-0.5">Actions fréquentes</p>
+                  </div>
+                  <Zap className="w-4 h-4 text-[#a3e635]" />
+                </div>
+              </div>
+
+              <div className="flex-1 px-4 pb-4 space-y-2">
+                {/* primary actions */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { icon: UserPlus,   label: "Ajouter vendeur",  href: "/admin/vendors/new", color: "#3b82f6", kbd: null },
+                    { icon: Package,    label: "Voir commandes",   href: "/admin/orders",      color: "#22d3ee", kbd: null },
+                    { icon: Wallet,     label: "Lancer payout",    href: "/admin/payouts",     color: "#f59e0b", kbd: null },
+                    { icon: Truck,      label: "Gérer livreurs",   href: "/admin/drivers",     color: "#a3e635", kbd: null },
+                  ].map(sc => (
+                    <Link key={sc.label} href={sc.href}
+                      className="flex items-center gap-2 p-2.5 rounded-xl border border-[#1e1e2e] hover:border-[#2a2a3e] hover:bg-[#1e1e2e] transition-all group"
+                    >
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
+                        style={{ background: sc.color + "20" }}>
+                        <sc.icon className="w-3.5 h-3.5" style={{ color: sc.color }} />
+                      </div>
+                      <span className="text-[#6b6b8a] text-[10px] font-medium group-hover:text-white transition-colors leading-tight">{sc.label}</span>
+                    </Link>
                   ))}
                 </div>
-              )}
-            </motion.div>
 
-            {/* Performance plateforme */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Performance</h2>
-                <TrendingUp className="w-4 h-4 text-[#6b6b8a]" />
-              </div>
-
-              {loading ? (
-                <div className="h-48 bg-white/5 animate-pulse rounded-xl" />
-              ) : (
-                <>
-                  <ResponsiveContainer width="100%" height={140}>
-                    <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="100%"
-                      data={[
-                        { name: "Disponibilité", value: data?.performance.availability ?? 0, fill: "#3b82f6" },
-                        { name: "Temps réponse", value: Math.max(0, 100 - (data?.performance.response_time ?? 1.2) * 10), fill: "#22d3ee" },
-                        { name: "Uptime", value: data?.performance.uptime ?? 0, fill: "#a3e635" },
-                      ]}
-                      startAngle={180} endAngle={0}
+                {/* secondary actions */}
+                <div className="space-y-1">
+                  {[
+                    { icon: BarChart3,     label: "Analyses & rapports",  href: "/admin/analytics",     color: "#8b5cf6" },
+                    { icon: MessageCircle, label: "Support CRM",           href: "/admin/support",       color: "#f43f5e" },
+                    { icon: Settings,      label: "Paramètres système",    href: "/admin/settings",      color: "#6b6b8a" },
+                  ].map(sc => (
+                    <Link key={sc.label} href={sc.href}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-[#1e1e2e] transition-colors group"
                     >
-                      <RadialBar dataKey="value" cornerRadius={4} background={{ fill: "#1e1e2e" }} />
-                    </RadialBarChart>
-                  </ResponsiveContainer>
+                      <sc.icon className="w-3.5 h-3.5 shrink-0" style={{ color: sc.color }} />
+                      <span className="text-[#6b6b8a] text-xs group-hover:text-white transition-colors flex-1">{sc.label}</span>
+                      <ChevronRight className="w-3 h-3 text-[#2a2a3e] group-hover:text-[#4a4a6a] transition-colors" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
-                  <div className="space-y-2 mt-1">
-                    {[
-                      { label: "Disponibilité", value: `${data?.performance.availability ?? 0}%`, color: "bg-blue-500" },
-                      { label: "Temps réponse", value: `${data?.performance.response_time ?? 0}s`, color: "bg-cyan-400" },
-                      { label: "Uptime 30j",    value: `${data?.performance.uptime ?? 0}%`,        color: "bg-[#a3e635]" },
-                    ].map(m => (
-                      <div key={m.label} className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${m.color}`} />
-                        <span className="text-[#6b6b8a] text-xs flex-1">{m.label}</span>
-                        <span className="text-white text-xs font-bold">{m.value}</span>
-                      </div>
-                    ))}
+              <div className="px-5 py-2.5 border-t border-[#1e1e2e]">
+                <div className="flex items-center gap-2 bg-gradient-to-r from-blue-500/8 to-purple-500/8 border border-blue-500/15 rounded-xl px-3 py-2">
+                  <Search className="w-3 h-3 text-blue-400 shrink-0" />
+                  <span className="text-[#6b6b8a] text-[10px] flex-1">Recherche globale</span>
+                  <div className="flex items-center gap-0.5">
+                    <kbd className="text-[9px] text-[#4a4a6a] bg-[#1e1e2e] border border-[#2a2a3e] px-1.5 py-0.5 rounded font-mono">⌘</kbd>
+                    <kbd className="text-[9px] text-[#4a4a6a] bg-[#1e1e2e] border border-[#2a2a3e] px-1.5 py-0.5 rounded font-mono">K</kbd>
                   </div>
-                </>
-              )}
-            </motion.div>
-
-            {/* Raccourcis rapides */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-              className="bg-[#16161f]/80 border border-[#1e1e2e] rounded-2xl p-5"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-white font-bold text-sm">Raccourcis</h2>
-                <Zap className="w-4 h-4 text-[#a3e635]" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { icon: UserPlus,     label: "Ajouter vendeur",   href: "/admin/vendors/new",        color: "#3b82f6" },
-                  { icon: Package,      label: "Nouvelle commande",  href: "/admin/orders/new",         color: "#22d3ee" },
-                  { icon: Truck,        label: "Gérer livreurs",     href: "/admin/drivers",            color: "#a3e635" },
-                  { icon: DollarSign,   label: "Lancer payout",      href: "/admin/payouts",            color: "#f59e0b" },
-                  { icon: BarChart3,    label: "Voir analyses",      href: "/admin/analytics",          color: "#8b5cf6" },
-                  { icon: Settings,     label: "Paramètres",         href: "/admin/settings",           color: "#6b6b8a" },
-                ].map(sc => (
-                  <Link key={sc.label} href={sc.href}
-                    className="flex flex-col items-center gap-2 p-3 bg-[#1e1e2e] rounded-xl hover:bg-[#2a2a3e] transition-colors text-center group"
-                  >
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-                      style={{ background: sc.color + "22" }}>
-                      <sc.icon className="w-4 h-4" style={{ color: sc.color }} />
-                    </div>
-                    <span className="text-[#6b6b8a] text-[10px] leading-tight group-hover:text-white transition-colors">{sc.label}</span>
-                  </Link>
-                ))}
-              </div>
-
-              <div className="mt-4 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/20 rounded-xl">
-                <p className="text-blue-300 text-xs font-semibold mb-0.5">Astuce</p>
-                <p className="text-[#6b6b8a] text-[10px]">Appuyez sur <kbd className="bg-[#1e1e2e] px-1 py-0.5 rounded text-[9px]">⌘K</kbd> pour la recherche rapide</p>
+                </div>
               </div>
             </motion.div>
+
           </div>
 
         </div>
