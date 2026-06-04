@@ -13,6 +13,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface Log { id: string; level: string; service: string; message: string; ip: string; user: string; duration_ms: number; ts: string }
@@ -141,7 +142,9 @@ export default function LogsPage() {
   const filterKey = `${levelFilter}-${serviceFilter}-${search}`
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white">
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
@@ -355,6 +358,7 @@ export default function LogsPage() {
             </motion.div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

@@ -14,6 +14,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface WalletItem {
@@ -195,7 +196,9 @@ export default function WalletsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white">
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.header
@@ -732,6 +735,7 @@ export default function WalletsPage() {
             </div>
           </motion.div>
         </div>
+      </div>
       </div>
     </div>
   )

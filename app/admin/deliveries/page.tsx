@@ -13,6 +13,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface DeliveryItem {
@@ -314,7 +315,9 @@ export default function LivraisonsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white">
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.header
@@ -938,6 +941,7 @@ export default function LivraisonsPage() {
             </div>
           </motion.div>
         </div>
+      </div>
       </div>
     </div>
   )

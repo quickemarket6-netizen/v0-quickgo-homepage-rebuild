@@ -20,6 +20,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   ReferenceLine, CartesianGrid,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function fmtCFA(n: number) {
@@ -481,68 +482,7 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-[#0a0a0f] flex">
 
       {/* ── SIDEBAR ────────────────────────────────────────────────────────── */}
-      <aside className="hidden lg:flex w-64 flex-col bg-[#111118] border-r border-[#1e1e2e] shrink-0 h-screen sticky top-0 overflow-y-auto">
-        {/* Logo */}
-        <div className="px-5 py-4 border-b border-[#1e1e2e]">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shrink-0">
-              <span className="text-white font-extrabold text-base">Q</span>
-            </div>
-            <div className="leading-none">
-              <span className="text-white font-extrabold text-lg">QUICK</span>
-              <span className="text-[#a3e635] font-extrabold text-lg">GO</span>
-              <p className="text-[9px] text-red-400 uppercase tracking-widest font-bold">Super Admin</p>
-            </div>
-          </Link>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-3 space-y-0.5">
-          {NAV.map((item) => {
-            const bdg = badge(item.badgeKey)
-            return (
-              <Link key={item.href} href={item.href}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all group ${
-                  item.active
-                    ? "bg-blue-500/20 text-blue-400"
-                    : "text-[#6b6b8a] hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                <item.icon className="w-4 h-4 shrink-0" />
-                <span className="text-[13px] font-medium flex-1 truncate">{item.label}</span>
-                {bdg > 0 && (
-                  <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500/30 text-blue-300 text-[10px] font-bold flex items-center justify-center tabular-nums">
-                    {bdg > 999 ? (bdg / 1000).toFixed(1) + "k" : bdg > 99 ? "99+" : bdg}
-                  </span>
-                )}
-                {item.arrow && (
-                  <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
-                )}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* Profile footer */}
-        <div className="px-3 pb-4 border-t border-[#1e1e2e] pt-3">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/5">
-            <div className="relative shrink-0">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <span className="text-white font-bold text-xs">EA</span>
-              </div>
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#111118]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-[13px] font-semibold truncate leading-none">Emmanuel Admin</p>
-              <p className="text-[10px] text-[#6b6b8a] mt-0.5 leading-none">Super Administrateur</p>
-              <p className="text-[10px] text-green-400 mt-0.5 leading-none font-medium">● En ligne</p>
-            </div>
-            <button className="p-1 hover:bg-white/10 rounded-lg transition-colors">
-              <LogOut className="w-3.5 h-3.5 text-[#4a4a6a] hover:text-white transition-colors" />
-            </button>
-          </div>
-        </div>
-      </aside>
+      <AdminSidebar />
 
       {/* ── MAIN ───────────────────────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 overflow-auto">

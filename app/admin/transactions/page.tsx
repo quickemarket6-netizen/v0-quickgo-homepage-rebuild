@@ -13,6 +13,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface TransactionItem {
@@ -208,7 +209,9 @@ export default function TransactionsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white" onClick={() => setShowMethodMenu(false)}>
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white" onClick={() => setShowMethodMenu(false)}>
 
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
@@ -697,6 +700,7 @@ export default function TransactionsPage() {
           </motion.div>
 
         </div>
+      </div>
       </div>
     </div>
   )

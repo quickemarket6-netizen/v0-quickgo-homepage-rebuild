@@ -13,6 +13,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface Page { id: string; title: string; slug: string; type: string; status: string; views_today: number; views_month: number; last_edited: string; author: string; seo_score: number }
@@ -154,7 +155,9 @@ export default function CmsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white">
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
@@ -429,6 +432,7 @@ export default function CmsPage() {
             </motion.div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

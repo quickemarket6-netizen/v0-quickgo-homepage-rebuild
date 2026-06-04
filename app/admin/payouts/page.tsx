@@ -13,6 +13,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface PayoutItem {
@@ -242,7 +243,9 @@ export default function PayoutsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white">
 
       {/* Confirm modal */}
       <AnimatePresence>
@@ -695,6 +698,7 @@ export default function PayoutsPage() {
             </div>
           </motion.div>
         </div>
+      </div>
       </div>
     </div>
   )

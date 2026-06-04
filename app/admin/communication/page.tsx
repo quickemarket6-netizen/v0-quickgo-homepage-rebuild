@@ -27,6 +27,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 const channels = [
   { id: 'push', label: 'Push', icon: Bell, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
@@ -147,7 +148,9 @@ export default function CommunicationDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -548,6 +551,7 @@ export default function CommunicationDashboard() {
           </motion.div>
         </div>
       )}
+      </div>
     </div>
   )
 }

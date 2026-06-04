@@ -11,6 +11,7 @@ import Link from "next/link"
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface Service { id: string; name: string; status: string; uptime: number; response_ms: number; cpu_pct: number; ram_pct: number; last_incident: string | null; region: string }
@@ -143,7 +144,9 @@ export default function SupportTechPage() {
   const filterKey = statusFilter
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white">
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
@@ -408,6 +411,7 @@ export default function SupportTechPage() {
             </motion.div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

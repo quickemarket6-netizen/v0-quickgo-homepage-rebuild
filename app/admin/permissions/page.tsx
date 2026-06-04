@@ -9,6 +9,7 @@ import {
   TrendingUp, KeyRound,
 } from "lucide-react"
 import Link from "next/link"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface Role { id: string; name: string; slug: string; color: string; users_count: number; description: string; permissions: string[]; created_at: string }
@@ -108,7 +109,9 @@ export default function PermissionsPage() {
   const modules = [...new Set(data!.permissions.map(p => p.module))]
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto text-white">
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
@@ -427,6 +430,7 @@ export default function PermissionsPage() {
             </motion.div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
