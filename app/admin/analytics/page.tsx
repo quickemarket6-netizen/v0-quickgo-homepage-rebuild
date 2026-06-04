@@ -1,66 +1,49 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
-import { Navbar } from "@/components/navbar"
-import { Button } from "@/components/ui/button"
 import {
-  LayoutDashboard,
-  Package,
-  Users,
-  Truck,
-  BarChart3,
-  Settings,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  ShoppingCart,
-  Clock,
-  MapPin,
-  Calendar,
-  Download,
-  ArrowUpRight,
-  ArrowDownRight,
+  TrendingUp, TrendingDown, DollarSign, ShoppingCart,
+  Clock, MapPin, Calendar, Download, ArrowUpRight, ArrowDownRight,
 } from "lucide-react"
-
+import { Button } from "@/components/ui/button"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 const kpiCards = [
-  { 
-    label: "Chiffre d'affaires", 
-    value: "45.8M CFA", 
-    change: "+23%", 
+  {
+    label: "Chiffre d'affaires",
+    value: "45.8M CFA",
+    change: "+23%",
     trend: "up",
     icon: DollarSign,
     color: "from-green-500/20 to-emerald-500/20",
-    iconColor: "text-green-400"
+    iconColor: "text-green-400",
   },
-  { 
-    label: "Commandes totales", 
-    value: "12 458", 
-    change: "+18%", 
+  {
+    label: "Commandes totales",
+    value: "12 458",
+    change: "+18%",
     trend: "up",
     icon: ShoppingCart,
     color: "from-blue-500/20 to-cyan-500/20",
-    iconColor: "text-blue-400"
+    iconColor: "text-blue-400",
   },
-  { 
-    label: "Temps moyen livraison", 
-    value: "24 min", 
-    change: "-12%", 
+  {
+    label: "Temps moyen livraison",
+    value: "24 min",
+    change: "-12%",
     trend: "up",
     icon: Clock,
     color: "from-purple-500/20 to-pink-500/20",
-    iconColor: "text-purple-400"
+    iconColor: "text-purple-400",
   },
-  { 
-    label: "Taux de satisfaction", 
-    value: "4.8/5", 
-    change: "+0.2", 
+  {
+    label: "Taux de satisfaction",
+    value: "4.8/5",
+    change: "+0.2",
     trend: "up",
     icon: TrendingUp,
     color: "from-yellow-500/20 to-orange-500/20",
-    iconColor: "text-yellow-400"
+    iconColor: "text-yellow-400",
   },
 ]
 
@@ -75,247 +58,236 @@ const weeklyData = [
 ]
 
 const topCities = [
-  { name: "Yaounde", orders: 5420, percentage: 43 },
-  { name: "Douala", orders: 4890, percentage: 39 },
-  { name: "Bafoussam", orders: 1240, percentage: 10 },
-  { name: "Bamenda", orders: 650, percentage: 5 },
-  { name: "Autres", orders: 258, percentage: 3 },
+  { name: "Yaounde",    orders: 5420, percentage: 43 },
+  { name: "Douala",     orders: 4890, percentage: 39 },
+  { name: "Bafoussam",  orders: 1240, percentage: 10 },
+  { name: "Bamenda",    orders:  650, percentage:  5 },
+  { name: "Autres",     orders:  258, percentage:  3 },
 ]
 
 const topCategories = [
-  { name: "Restaurants", orders: 4520, revenue: "18.2M CFA", growth: "+28%" },
-  { name: "Supermarches", orders: 3210, revenue: "14.8M CFA", growth: "+15%" },
-  { name: "Pharmacies", orders: 2180, revenue: "6.5M CFA", growth: "+32%" },
-  { name: "Mode", orders: 1540, revenue: "4.2M CFA", growth: "+8%" },
-  { name: "Electronique", orders: 1008, revenue: "2.1M CFA", growth: "-3%" },
+  { name: "Restaurants",   orders: 4520, revenue: "18.2M CFA", growth: "+28%" },
+  { name: "Supermarches",  orders: 3210, revenue: "14.8M CFA", growth: "+15%" },
+  { name: "Pharmacies",    orders: 2180, revenue: "6.5M CFA",  growth: "+32%" },
+  { name: "Mode",          orders: 1540, revenue: "4.2M CFA",  growth: "+8%"  },
+  { name: "Electronique",  orders: 1008, revenue: "2.1M CFA",  growth: "-3%"  },
 ]
 
 const maxOrders = Math.max(...weeklyData.map(d => d.orders))
 
 export default function AdminAnalyticsPage() {
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
       <AdminSidebar />
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6 lg:p-8">
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"
+      <div className="flex-1 overflow-auto p-6 lg:p-8 text-white">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"
+        >
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white mb-1">
+              Analyses et Statistiques
+            </h1>
+            <p className="text-[#6b6b8a]">Données en temps réel · Mai 2024</p>
+          </div>
+          <div className="flex items-center gap-3 mt-4 sm:mt-0">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#16161f] border border-[#1e1e2e]">
+              <Calendar className="h-4 w-4 text-[#6b6b8a]" />
+              <span className="text-sm text-white">30 derniers jours</span>
+            </div>
+            <Button variant="outline" className="gap-2 border-[#1e1e2e] bg-[#16161f] text-white hover:bg-[#1e1e2e]">
+              <Download className="h-4 w-4" />
+              Rapport
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* KPI Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        >
+          {kpiCards.map((kpi) => (
+            <div
+              key={kpi.label}
+              className={`p-6 rounded-2xl bg-gradient-to-br ${kpi.color} border border-[#1e1e2e]`}
             >
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl bg-[#0a0a0f]/50 ${kpi.iconColor}`}>
+                  <kpi.icon className="h-6 w-6" />
+                </div>
+                <span className={`flex items-center gap-1 text-sm font-medium ${
+                  kpi.trend === "up" ? "text-green-400" : "text-red-400"
+                }`}>
+                  {kpi.trend === "up"
+                    ? <ArrowUpRight className="h-4 w-4" />
+                    : <ArrowDownRight className="h-4 w-4" />}
+                  {kpi.change}
+                </span>
+              </div>
+              <p className="text-3xl font-bold text-white mb-1">{kpi.value}</p>
+              <p className="text-sm text-[#6b6b8a]">{kpi.label}</p>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Charts Row */}
+        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+          {/* Weekly Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="lg:col-span-2 p-6 rounded-2xl bg-[#16161f] border border-[#1e1e2e]"
+          >
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
-                  Analyses et Statistiques
-                </h1>
-                <p className="text-muted-foreground">
-                  Donnees en temps reel - Mai 2024
-                </p>
+                <h3 className="text-lg font-bold text-white">Commandes hebdomadaires</h3>
+                <p className="text-sm text-[#6b6b8a]">Cette semaine vs semaine précédente</p>
               </div>
-              <div className="flex items-center gap-3 mt-4 sm:mt-0">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/50">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">30 derniers jours</span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-blue-500" />
+                  <span className="text-xs text-[#6b6b8a]">Commandes</span>
                 </div>
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Rapport
-                </Button>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-xs text-[#6b6b8a]">Revenus</span>
+                </div>
               </div>
-            </motion.div>
-
-            {/* KPI Cards */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-            >
-              {kpiCards.map((kpi) => (
-                <div
-                  key={kpi.label}
-                  className={`p-6 rounded-2xl bg-gradient-to-br ${kpi.color} border border-border/50`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl bg-background/50 ${kpi.iconColor}`}>
-                      <kpi.icon className="h-6 w-6" />
-                    </div>
-                    <span className={`flex items-center gap-1 text-sm font-medium ${
-                      kpi.trend === "up" ? "text-green-400" : "text-red-400"
-                    }`}>
-                      {kpi.trend === "up" ? (
-                        <ArrowUpRight className="h-4 w-4" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4" />
-                      )}
-                      {kpi.change}
-                    </span>
-                  </div>
-                  <p className="text-3xl font-bold text-foreground mb-1">
-                    {kpi.value}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {kpi.label}
-                  </p>
-                </div>
-              ))}
-            </motion.div>
-
-            {/* Charts Row */}
-            <div className="grid lg:grid-cols-3 gap-6 mb-8">
-              {/* Weekly Chart */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="lg:col-span-2 p-6 rounded-2xl bg-card border border-border/50"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">Commandes hebdomadaires</h3>
-                    <p className="text-sm text-muted-foreground">Cette semaine vs semaine precedente</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-primary" />
-                      <span className="text-xs text-muted-foreground">Commandes</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-green-500" />
-                      <span className="text-xs text-muted-foreground">Revenus</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Bar Chart */}
-                <div className="flex items-end justify-between gap-2 h-48">
-                  {weeklyData.map((data, index) => (
-                    <div key={data.day} className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full flex flex-col items-center gap-1">
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${(data.orders / maxOrders) * 100}%` }}
-                          transition={{ delay: 0.2 + index * 0.05, duration: 0.5 }}
-                          className="w-full max-w-[40px] bg-gradient-to-t from-primary to-primary/50 rounded-t-lg"
-                          style={{ minHeight: 20 }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground">{data.day}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Summary */}
-                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border/50">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">12 890</p>
-                    <p className="text-xs text-muted-foreground">Total commandes</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-400">64.3M CFA</p>
-                    <p className="text-xs text-muted-foreground">Revenus totaux</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-foreground">1 841</p>
-                    <p className="text-xs text-muted-foreground">Moyenne/jour</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Top Cities */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="p-6 rounded-2xl bg-card border border-border/50"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-bold text-foreground">Top Villes</h3>
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
-                </div>
-                
-                <div className="space-y-4">
-                  {topCities.map((city, index) => (
-                    <div key={city.name}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-foreground">{city.name}</span>
-                        <span className="text-sm text-muted-foreground">{city.orders} cmd</span>
-                      </div>
-                      <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${city.percentage}%` }}
-                          transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
-                          className={`h-full rounded-full ${
-                            index === 0 ? "bg-primary" :
-                            index === 1 ? "bg-blue-500" :
-                            index === 2 ? "bg-green-500" :
-                            index === 3 ? "bg-yellow-500" : "bg-gray-500"
-                          }`}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{city.percentage}%</p>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
             </div>
 
-            {/* Categories Table */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="p-6 rounded-2xl bg-card border border-border/50"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-foreground">Performance par Categorie</h3>
-                <Button variant="ghost" size="sm" className="text-primary">
-                  Voir tout
-                </Button>
+            {/* Bar Chart */}
+            <div className="flex items-end justify-between gap-2 h-48">
+              {weeklyData.map((data, index) => (
+                <div key={data.day} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full flex flex-col items-center gap-1">
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(data.orders / maxOrders) * 100}%` }}
+                      transition={{ delay: 0.2 + index * 0.05, duration: 0.5 }}
+                      className="w-full max-w-[40px] bg-gradient-to-t from-blue-500 to-blue-500/50 rounded-t-lg"
+                      style={{ minHeight: 20 }}
+                    />
+                  </div>
+                  <span className="text-xs text-[#6b6b8a]">{data.day}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-[#1e1e2e]">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white">12 890</p>
+                <p className="text-xs text-[#6b6b8a]">Total commandes</p>
               </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/30">
-                    <tr>
-                      <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Categorie</th>
-                      <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Commandes</th>
-                      <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Revenus</th>
-                      <th className="text-left p-4 text-sm font-semibold text-muted-foreground">Croissance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/50">
-                    {topCategories.map((cat) => (
-                      <tr key={cat.name} className="hover:bg-muted/20 transition-colors">
-                        <td className="p-4">
-                          <span className="font-medium text-foreground">{cat.name}</span>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-foreground">{cat.orders.toLocaleString()}</span>
-                        </td>
-                        <td className="p-4">
-                          <span className="font-medium text-foreground">{cat.revenue}</span>
-                        </td>
-                        <td className="p-4">
-                          <span className={`flex items-center gap-1 text-sm font-medium ${
-                            cat.growth.startsWith("+") ? "text-green-400" : "text-red-400"
-                          }`}>
-                            {cat.growth.startsWith("+") ? (
-                              <TrendingUp className="h-4 w-4" />
-                            ) : (
-                              <TrendingDown className="h-4 w-4" />
-                            )}
-                            {cat.growth}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-400">64.3M CFA</p>
+                <p className="text-xs text-[#6b6b8a]">Revenus totaux</p>
               </div>
-            </motion.div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-white">1 841</p>
+                <p className="text-xs text-[#6b6b8a]">Moyenne/jour</p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Top Cities */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="p-6 rounded-2xl bg-[#16161f] border border-[#1e1e2e]"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-white">Top Villes</h3>
+              <MapPin className="h-5 w-5 text-[#6b6b8a]" />
+            </div>
+
+            <div className="space-y-4">
+              {topCities.map((city, index) => (
+                <div key={city.name}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-white">{city.name}</span>
+                    <span className="text-sm text-[#6b6b8a]">{city.orders} cmd</span>
+                  </div>
+                  <div className="h-2 bg-[#1e1e2e] rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${city.percentage}%` }}
+                      transition={{ delay: 0.3 + index * 0.1, duration: 0.5 }}
+                      className={`h-full rounded-full ${
+                        index === 0 ? "bg-blue-500" :
+                        index === 1 ? "bg-cyan-500" :
+                        index === 2 ? "bg-green-500" :
+                        index === 3 ? "bg-yellow-500" : "bg-[#6b6b8a]"
+                      }`}
+                    />
+                  </div>
+                  <p className="text-xs text-[#6b6b8a] mt-1">{city.percentage}%</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Categories Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="p-6 rounded-2xl bg-[#16161f] border border-[#1e1e2e]"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-white">Performance par Catégorie</h3>
+            <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300">
+              Voir tout
+            </Button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#0a0a0f]">
+                <tr>
+                  <th className="text-left p-4 text-sm font-semibold text-[#6b6b8a]">Catégorie</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#6b6b8a]">Commandes</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#6b6b8a]">Revenus</th>
+                  <th className="text-left p-4 text-sm font-semibold text-[#6b6b8a]">Croissance</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1e1e2e]">
+                {topCategories.map((cat) => (
+                  <tr key={cat.name} className="hover:bg-[#0a0a0f]/50 transition-colors">
+                    <td className="p-4">
+                      <span className="font-medium text-white">{cat.name}</span>
+                    </td>
+                    <td className="p-4">
+                      <span className="text-white">{cat.orders.toLocaleString()}</span>
+                    </td>
+                    <td className="p-4">
+                      <span className="font-medium text-white">{cat.revenue}</span>
+                    </td>
+                    <td className="p-4">
+                      <span className={`flex items-center gap-1 text-sm font-medium ${
+                        cat.growth.startsWith("+") ? "text-green-400" : "text-red-400"
+                      }`}>
+                        {cat.growth.startsWith("+")
+                          ? <TrendingUp className="h-4 w-4" />
+                          : <TrendingDown className="h-4 w-4" />}
+                        {cat.growth}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
       </div>
     </div>
   )
