@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   phone TEXT,
   avatar_url TEXT,
   city TEXT DEFAULT 'Yaoundé',
-  role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'vendor', 'driver', 'admin')),
+  role TEXT DEFAULT 'customer' CHECK (role IN ('customer', 'vendor', 'driver', 'admin', 'super_admin')),
   is_verified BOOLEAN DEFAULT FALSE,
   cashback_balance NUMERIC(10, 2) DEFAULT 0,
   loyalty_points INTEGER DEFAULT 0,
