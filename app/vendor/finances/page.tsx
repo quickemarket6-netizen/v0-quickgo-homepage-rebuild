@@ -8,7 +8,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, Plus,
   ChevronRight, CreditCard, Banknote, Smartphone, Lock,
   Shield, Bell, Package, BarChart3, Store, Settings,
-  LayoutDashboard, ShoppingBag, Users, Activity, Info,
+  LayoutDashboard, ShoppingBag, Users, UserCog, Activity, Info,
   X, Eye, Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"

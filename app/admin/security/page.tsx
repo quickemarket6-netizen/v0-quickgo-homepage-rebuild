@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 import { 
   THREAT_LEVEL_CONFIG, 
   THREAT_TYPE_LABELS,
@@ -151,7 +152,9 @@ export default function SecurityDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="min-h-screen bg-background flex">
+      <AdminSidebar />
+      <div className="flex-1 overflow-auto p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -485,6 +488,7 @@ export default function SecurityDashboardPage() {
             </Card>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )

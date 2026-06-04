@@ -29,16 +29,7 @@ import {
   XCircle,
 } from "lucide-react"
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/admin" },
-  { icon: Package, label: "Produits", href: "/admin/products" },
-  { icon: Users, label: "Utilisateurs", href: "/admin/users" },
-  { icon: Truck, label: "Livraisons", href: "/admin/deliveries" },
-  { icon: Store, label: "Vendeurs", href: "/admin/vendors" },
-  { icon: BarChart3, label: "Analytiques", href: "/admin/analytics" },
-  { icon: Shield, label: "Rôles", href: "/admin/roles", active: true },
-  { icon: Settings, label: "Paramètres", href: "/admin/settings" },
-]
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 interface UserWithRole {
   id: string
@@ -244,32 +235,10 @@ export default function AdminRolesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-background flex">
+      <AdminSidebar />
 
-      <div className="flex pt-20">
-        {/* FIX #5: Sidebar now actually rendered */}
-        <aside className="w-64 min-h-screen border-r px-4 py-6 flex flex-col gap-1 shrink-0">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4 px-2">
-            Administration
-          </p>
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                item.active
-                  ? "bg-primary text-primary-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
-            </Link>
-          ))}
-        </aside>
-
-        <main className="flex-1 px-8 py-8 max-w-5xl">
+      <main className="flex-1 overflow-auto px-8 py-8">
           <h1 className="text-3xl font-bold mb-2">Gestion des rôles</h1>
           <p className="text-muted-foreground mb-8">
             Attribuez des rôles et des permissions aux utilisateurs.
@@ -429,7 +398,6 @@ export default function AdminRolesPage() {
             )}
           </AnimatePresence>
         </main>
-      </div>
 
       {/* FIX #4: Toast notification */}
       <AnimatePresence>

@@ -10,17 +10,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-const sidebarItems = [
-  { icon: LayoutDashboard, label: "Vue d'ensemble", href: "/admin" },
-  { icon: Package,         label: "Commandes",       href: "/admin/orders" },
-  { icon: Truck,           label: "Livreurs",         href: "/admin/drivers" },
-  { icon: Users,           label: "Clients",          href: "/admin/users" },
-  { icon: Store,           label: "Vendeurs",         href: "/admin/vendors", active: true },
-  { icon: BarChart3,       label: "Analyses",         href: "/admin/analytics" },
-  { icon: Wallet,          label: "Finances",         href: "/admin/finances" },
-  { icon: Settings,        label: "Paramètres",       href: "/admin/settings" },
-]
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   active:    { label: "Actif",       className: "bg-green-500/20 text-green-400" },
@@ -95,33 +85,7 @@ export default function AdminVendorsPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col border-r border-border/30 bg-card/30">
-        <div className="p-6 border-b border-border/30">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center">
-              <span className="text-white font-bold text-lg">Q</span>
-            </div>
-            <div>
-              <span className="text-xl font-bold text-white">QUICK</span>
-              <span className="text-xl font-bold text-quickgo-lime">GO</span>
-              <p className="text-[10px] text-red-400 uppercase tracking-wider font-semibold">Admin</p>
-            </div>
-          </Link>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {sidebarItems.map((item) => (
-            <Link key={item.label} href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                item.active ? "bg-quickgo-blue/20 text-quickgo-blue" : "text-muted-foreground hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-sm font-medium">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-      </aside>
+      <AdminSidebar />
 
       <main className="flex-1 overflow-auto">
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">

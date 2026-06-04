@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── Types ───────────────────────────────────────────────────────
 interface DeliveryWallet {
@@ -48,18 +49,6 @@ interface WalletData {
   deliveries: OrderDelivery[]
   pending_payment: number
 }
-
-// ─── Sidebar ────────────────────────────────────────────────────
-const sidebarItems = [
-  { icon: LayoutDashboard, label: "Vue d'ensemble",  href: "/admin" },
-  { icon: Package,         label: "Commandes",        href: "/admin/orders" },
-  { icon: Truck,           label: "Livreurs",         href: "/admin/drivers", active: true },
-  { icon: Users,           label: "Clients",          href: "/admin/users" },
-  { icon: Store,           label: "Vendeurs",         href: "/admin/vendors" },
-  { icon: BarChart3,       label: "Analyses",         href: "/admin/analytics" },
-  { icon: Wallet,          label: "Finances",         href: "/admin/finances" },
-  { icon: Settings,        label: "Paramètres",       href: "/admin/settings" },
-]
 
 // ─── Helpers ────────────────────────────────────────────────────
 function formatCFA(n: number) {
@@ -278,47 +267,9 @@ export default function AdminDeliveryWalletPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-100 flex flex-col fixed h-full z-20 shadow-sm">
-        <div className="p-6 border-b border-gray-100">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-quickgo-blue to-quickgo-cyan rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">Q</span>
-            </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-quickgo-blue to-quickgo-cyan bg-clip-text text-transparent">QuickGo</span>
-          </Link>
-          <span className="text-xs text-gray-500 mt-1 block">Administration</span>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {sidebarItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                item.active
-                  ? "bg-gradient-to-r from-quickgo-blue/10 to-quickgo-cyan/10 text-quickgo-blue font-semibold"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            >
-              <item.icon size={18} />
-              <span className="text-sm flex-1">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        {/* Quick links */}
-        <div className="p-4 border-t border-gray-100 space-y-1">
-          <Link href="/admin/delivery-rates" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-            <Truck size={15} />
-            Grille tarifaire
-          </Link>
-          <Link href="/admin/finances" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-            <Wallet size={15} />
-            Finances vendeurs
-          </Link>
-        </div>
-      </div>
+      <AdminSidebar />
 
-      <div className="ml-64 flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div>

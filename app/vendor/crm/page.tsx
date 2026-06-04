@@ -4,10 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import {
-  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, UserCog, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, ChevronRight,
   RefreshCw, Search, Phone, Award, Crown, Zap, LogOut, User, Truck,
-  Boxes, ShoppingCart, TrendingDown, UserPlus, Activity,
+  Boxes, ShoppingCart, TrendingDown, UserPlus, Activity, Ticket, MessageSquare,
 } from "lucide-react"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -68,7 +68,10 @@ const SIDEBAR_ITEMS = [
   { icon: Users,      label: "Clients CRM", href: "/vendor/crm", active: true },
   { icon: BarChart3,  label: "Analyses",    href: "/vendor/analytics" },
   { icon: Tag,        label: "Promotions",  href: "/vendor/promotions" },
-  { icon: Star,       label: "Avis",        href: "/vendor/reviews" },
+  { icon: Ticket,     label: "Coupons",     href: "/vendor/coupons" },
+  { icon: Star,         label: "Avis",     href: "/vendor/reviews" },
+  { icon: MessageSquare,label: "Messages", href: "/vendor/messages" },
+  { icon: Bell,         label: "Notifications",href: "/vendor/notifications" },
   { icon: Settings,   label: "Paramètres",  href: "/vendor/settings" },
   { icon: HelpCircle, label: "Aide",        href: "/vendor/help" },
 ]

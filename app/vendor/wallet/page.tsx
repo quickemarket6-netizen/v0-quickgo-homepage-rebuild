@@ -4,10 +4,10 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import {
-  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, BarChart3,
+  LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, UserCog, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, ChevronDown, RefreshCw,
   Zap, ChevronRight, LogOut, User, Boxes, Truck, Plus, X,
-  ArrowDownCircle, Phone, BadgeCheck, Loader2, CheckCircle, AlertCircle, Trash2,
+  ArrowDownCircle, Phone, BadgeCheck, Loader2, CheckCircle, AlertCircle, Trash2, Ticket, MessageSquare,
 } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -54,8 +54,12 @@ const SIDEBAR_ITEMS = [
     ],
   },
   { icon: Users,      label: "Clients CRM", href: "/vendor/crm" },
+  { icon: UserCog,          label: "Employés",         href: "/vendor/employees"     },
   { icon: Tag,        label: "Promotions",  href: "/vendor/promotions" },
-  { icon: Star,       label: "Avis",        href: "/vendor/reviews" },
+  { icon: Ticket,     label: "Coupons",     href: "/vendor/coupons" },
+  { icon: Star,         label: "Avis",     href: "/vendor/reviews" },
+  { icon: MessageSquare,label: "Messages", href: "/vendor/messages" },
+  { icon: Bell,         label: "Notifications",href: "/vendor/notifications" },
   { icon: Settings,   label: "Paramètres",  href: "/vendor/settings" },
   { icon: HelpCircle, label: "Aide",        href: "/vendor/help" },
 ]

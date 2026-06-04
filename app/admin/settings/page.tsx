@@ -30,14 +30,7 @@ import {
   MessageCircle,
 } from "lucide-react"
 
-const sidebarItems = [
-  { icon: LayoutDashboard, label: "Vue d'ensemble", href: "/admin" },
-  { icon: Package, label: "Commandes", href: "/admin/orders" },
-  { icon: Truck, label: "Livreurs", href: "/admin/drivers" },
-  { icon: Users, label: "Clients", href: "/admin/users" },
-  { icon: BarChart3, label: "Analyses", href: "/admin/analytics" },
-  { icon: Settings, label: "Paramètres", href: "/admin/settings", active: true },
-]
+import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 const settingsSections = [
   { id: "general", label: "General", icon: Settings },
@@ -153,45 +146,11 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
-      <Navbar />
-      
-      <div className="pt-20 lg:pt-24">
-        <div className="flex">
-          {/* Sidebar */}
-          <aside className="hidden lg:block w-64 min-h-[calc(100vh-6rem)] border-r border-border/50 p-6">
-            <div className="mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                  <LayoutDashboard className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">Admin Panel</p>
-                  <p className="text-xs text-muted-foreground">QuickGo</p>
-                </div>
-              </div>
-            </div>
-            
-            <nav className="space-y-1">
-              {sidebarItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                    item.active
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              ))}
-            </nav>
-          </aside>
-          
-          {/* Main Content */}
-          <div className="flex-1 p-6 lg:p-8">
+    <div className="min-h-screen bg-background flex">
+      <AdminSidebar />
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto p-6 lg:p-8">
             {/* Header */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -568,9 +527,7 @@ export default function AdminSettingsPage() {
                 </div>
               </motion.div>
             </div>
-          </div>
-        </div>
       </div>
-    </main>
+    </div>
   )
 }
