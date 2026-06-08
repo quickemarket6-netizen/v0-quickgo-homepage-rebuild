@@ -125,7 +125,7 @@ export async function GET(req: NextRequest) {
     // ── 7. Livreur ─────────────────────────────────────────────────────────
     await sb.from("drivers").delete().eq("user_id", driverId)
     const { data: dr, error: drErr } = await sb.from("drivers").insert({
-      user_id: driverId, status: "online", vehicle_type: "motorcycle",
+      user_id: driverId, status: "online", vehicle_type: "moto", is_verified: true,
       rating: 4.6, total_deliveries: 342, total_earnings: 512000,
     }).select().single()
     if (drErr) fail("drivers", drErr.message); else ok("1 livreur")

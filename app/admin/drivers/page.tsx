@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import Link from "next/link"
 import {
-  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
-  Settings, Search, Star, Phone, CheckCircle, Clock, Ban,
-  Eye, ChevronLeft, ChevronRight, Download, UserPlus, Bike, Car, Wallet,
+  Truck, Search, Star, Phone, CheckCircle, Clock, Ban,
+  Eye, ChevronLeft, ChevronRight, Download, UserPlus, Bike, Car,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -85,11 +83,11 @@ export default function AdminDriversPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
       <AdminSidebar />
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
+        <header className="sticky top-0 z-40 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">Gestion des Livreurs</h1>

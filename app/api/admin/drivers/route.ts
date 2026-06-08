@@ -2,6 +2,14 @@ import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin } from "@/lib/payments/security"
 
+const VALID_STATUSES = ["online", "delivering", "offline", "suspended"]
+
+const DRIVER_SELECT = `
+  id, status, vehicle_type, vehicle_brand, vehicle_model, license_plate,
+  rating, total_deliveries, total_earnings, city, is_verified, created_at,
+  user:profiles!user_id(id, full_name, phone, email, avatar_url)
+`
+
 export async function GET(req: NextRequest) {
   const admin = await verifyAdmin()
   if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
@@ -10,44 +18,48 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const status = searchParams.get("status") ?? "all"
   const search = searchParams.get("search") ?? ""
-  const page = parseInt(searchParams.get("page") ?? "1")
-  const limit = parseInt(searchParams.get("limit") ?? "20")
+  const page   = Math.max(1, parseInt(searchParams.get("page")  ?? "1"))
+  const limit  = Math.min(100, parseInt(searchParams.get("limit") ?? "20"))
   const offset = (page - 1) * limit
 
-  let query = supabase
-    .from("drivers")
-    .select(`
-      id, status, vehicle_type, vehicle_brand, vehicle_model, license_plate,
-      rating, total_deliveries, total_earnings, city, created_at,
-      user:profiles(id, full_name, phone, email, avatar_url)
-    `, { count: "exact" })
+  // ── Summary counts (always across all statuses) ────────────────────────────
+  const { data: allForSummary } = await supabase.from("drivers").select("status")
+  const summary: Record<string, number> = {}
+  for (const d of allForSummary ?? []) summary[d.status] = (summary[d.status] ?? 0) + 1
+
+  // ── Build base query ───────────────────────────────────────────────────────
+  let base = supabase.from("drivers").select(DRIVER_SELECT, { count: "exact" })
+  if (status !== "all") base = base.eq("status", status)
+
+  // ── Search: fetch all matching rows then filter + paginate client-side ──────
+  if (search.trim()) {
+    const { data, error } = await base.order("total_deliveries", { ascending: false })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const q = search.toLowerCase()
+    const filtered = (data ?? []).filter(d => {
+      const u = d.user as { full_name?: string; email?: string } | null
+      return (
+        (u?.full_name?.toLowerCase().includes(q) ?? false) ||
+        (u?.email?.toLowerCase().includes(q)     ?? false)
+      )
+    })
+
+    return NextResponse.json({
+      drivers: filtered.slice(offset, offset + limit),
+      total:   filtered.length,
+      summary,
+    })
+  }
+
+  // ── Normal paginated query ─────────────────────────────────────────────────
+  const { data, error, count } = await base
     .order("total_deliveries", { ascending: false })
     .range(offset, offset + limit - 1)
 
-  if (status !== "all") query = query.eq("status", status)
-
-  const { data, error, count } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  if (search) {
-    const filtered = (data ?? []).filter((d) => {
-      const name = (d.user as { full_name?: string } | null)?.full_name?.toLowerCase() ?? ""
-      const email = (d.user as { email?: string } | null)?.email?.toLowerCase() ?? ""
-      const q = search.toLowerCase()
-      return name.includes(q) || email.includes(q)
-    })
-    return NextResponse.json({ drivers: filtered, total: filtered.length, summary: buildSummary(data ?? []) })
-  }
-
-  return NextResponse.json({ drivers: data ?? [], total: count ?? 0, summary: buildSummary(data ?? []) })
-}
-
-function buildSummary(drivers: { status: string }[]) {
-  const counts: Record<string, number> = {}
-  for (const d of drivers) {
-    counts[d.status] = (counts[d.status] ?? 0) + 1
-  }
-  return counts
+  return NextResponse.json({ drivers: data ?? [], total: count ?? 0, summary })
 }
 
 export async function PATCH(req: NextRequest) {
@@ -56,7 +68,8 @@ export async function PATCH(req: NextRequest) {
 
   const supabase = await createClient()
   const { id, status } = await req.json()
-  if (!id || !status) return NextResponse.json({ error: "id et status requis" }, { status: 400 })
+  if (!id || !status)                  return NextResponse.json({ error: "id et status requis" }, { status: 400 })
+  if (!VALID_STATUSES.includes(status)) return NextResponse.json({ error: "status invalide"    }, { status: 400 })
 
   const { data, error } = await supabase
     .from("drivers")
