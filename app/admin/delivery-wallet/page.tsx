@@ -1,19 +1,17 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
-  Settings, Wallet, RefreshCw, CheckCircle2, Clock, X,
+  Truck, RefreshCw, CheckCircle2, X,
   Phone, DollarSign, AlertTriangle, TrendingDown,
-  TrendingUp, Banknote, Filter, Search,
+  TrendingUp, Banknote, Search,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
-// ─── Types ───────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface DeliveryWallet {
   total_collected: number
   total_paid_to_drivers: number
@@ -50,48 +48,36 @@ interface WalletData {
   pending_payment: number
 }
 
-// ─── Helpers ────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function formatCFA(n: number) {
   return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " F"
 }
 function formatDate(s: string) {
-  return new Date(s).toLocaleDateString("fr-FR", {
-    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-  })
+  return new Date(s).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
 }
 
-const METHOD_LABELS: Record<string, string> = {
-  orange_money: "Orange Money",
-  mtn_momo:     "MTN MoMo",
-  cash:         "Espèces",
-}
-const METHOD_EMOJI: Record<string, string> = {
-  orange_money: "🟠",
-  mtn_momo:     "💛",
-  cash:         "💵",
-}
+const METHOD_LABELS: Record<string, string> = { orange_money: "Orange Money", mtn_momo: "MTN MoMo", cash: "Espèces" }
+const METHOD_EMOJI:  Record<string, string> = { orange_money: "🟠", mtn_momo: "💛", cash: "💵" }
 
-// ─── Pay Driver Modal ────────────────────────────────────────────
+const inputCls = "bg-[#0a0a0f] border border-[#1e1e2e] text-white placeholder:text-[#6b6b8a] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+
+// ─── Pay Driver Modal ─────────────────────────────────────────────────────────
 function PayDriverModal({
-  delivery,
-  walletBalance,
-  onClose,
-  onPaid,
+  delivery, walletBalance, onClose, onPaid,
 }: {
   delivery: OrderDelivery
   walletBalance: number
   onClose: () => void
   onPaid: () => void
 }) {
-  const [method, setMethod] = useState<"orange_money" | "mtn_momo" | "cash">("orange_money")
+  const [method, setMethod]       = useState<"orange_money" | "mtn_momo" | "cash">("orange_money")
   const [reference, setReference] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]     = useState(false)
   const amount = delivery.delivery_fee
 
   async function handlePay() {
-    if (!delivery.driver) { toast.error("Aucun chauffeur assigné"); return }
+    if (!delivery.driver)   { toast.error("Aucun chauffeur assigné"); return }
     if (walletBalance < amount) { toast.error("Solde livraison insuffisant"); return }
-
     setLoading(true)
     try {
       const res = await fetch("/api/admin/delivery-wallet", {
@@ -108,8 +94,7 @@ function PayDriverModal({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Erreur")
       toast.success(`${formatCFA(amount)} versés à ${delivery.driver.full_name}`)
-      onPaid()
-      onClose()
+      onPaid(); onClose()
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur serveur")
     } finally {
@@ -118,59 +103,59 @@ function PayDriverModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+        className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl shadow-2xl w-full max-w-md"
       >
         {/* Header */}
-        <div className="p-6 bg-green-50 border-b border-green-100 rounded-t-2xl flex items-center justify-between">
+        <div className="p-6 bg-green-500/10 border-b border-green-500/20 rounded-t-2xl flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="text-green-600" size={24} />
-            <h2 className="text-lg font-bold text-gray-900">Rémunérer le chauffeur</h2>
+            <CheckCircle2 className="text-green-400" size={24} />
+            <h2 className="text-lg font-bold text-white">Rémunérer le chauffeur</h2>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-white/60">
+          <button onClick={onClose} className="text-[#6b6b8a] hover:text-white p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <div className="p-6 space-y-5">
           {/* Driver + order info */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+          <div className="bg-[#0a0a0f] rounded-xl p-4 space-y-2 text-sm border border-[#1e1e2e]">
             <div className="flex justify-between">
-              <span className="text-gray-500">Chauffeur</span>
-              <span className="font-semibold text-gray-900">{delivery.driver?.full_name ?? "—"}</span>
+              <span className="text-[#6b6b8a]">Chauffeur</span>
+              <span className="font-semibold text-white">{delivery.driver?.full_name ?? "—"}</span>
             </div>
             {delivery.driver?.phone && (
               <div className="flex justify-between">
-                <span className="text-gray-500">Téléphone</span>
-                <a href={`tel:${delivery.driver.phone}`} className="text-quickgo-blue font-medium flex items-center gap-1">
+                <span className="text-[#6b6b8a]">Téléphone</span>
+                <a href={`tel:${delivery.driver.phone}`} className="text-blue-400 font-medium flex items-center gap-1 hover:underline">
                   <Phone size={12} />
                   {delivery.driver.phone}
                 </a>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-gray-500">Commande</span>
-              <span className="text-gray-700">#{delivery.order?.order_number}</span>
+              <span className="text-[#6b6b8a]">Commande</span>
+              <span className="text-white">#{delivery.order?.order_number}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Type</span>
-              <span className="text-gray-700 capitalize">{delivery.delivery_type}</span>
+              <span className="text-[#6b6b8a]">Type</span>
+              <span className="text-white capitalize">{delivery.delivery_type}</span>
             </div>
-            <div className="border-t border-gray-200 pt-2 flex justify-between font-bold">
-              <span className="text-gray-700">Montant à verser</span>
-              <span className="text-xl text-green-700">{formatCFA(amount)}</span>
+            <div className="border-t border-[#1e1e2e] pt-2 flex justify-between font-bold">
+              <span className="text-[#6b6b8a]">Montant à verser</span>
+              <span className="text-xl text-green-400">{formatCFA(amount)}</span>
             </div>
           </div>
 
-          {/* Wallet balance check */}
+          {/* Wallet balance warning */}
           {walletBalance < amount && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-2">
-              <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={16} />
-              <p className="text-sm text-red-700">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex gap-2">
+              <AlertTriangle className="text-red-400 shrink-0 mt-0.5" size={16} />
+              <p className="text-sm text-red-300">
                 Solde insuffisant — disponible : <b>{formatCFA(walletBalance)}</b>
               </p>
             </div>
@@ -178,7 +163,7 @@ function PayDriverModal({
 
           {/* Payment method */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Méthode de paiement</label>
+            <label className="text-sm font-medium text-white mb-2 block">Méthode de paiement</label>
             <div className="grid grid-cols-3 gap-2">
               {(["orange_money", "mtn_momo", "cash"] as const).map((m) => (
                 <button
@@ -186,8 +171,8 @@ function PayDriverModal({
                   onClick={() => setMethod(m)}
                   className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all text-sm ${
                     method === m
-                      ? "border-quickgo-blue bg-blue-50 text-quickgo-blue font-semibold"
-                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                      ? "border-blue-500 bg-blue-500/10 text-blue-400 font-semibold"
+                      : "border-[#1e1e2e] text-[#6b6b8a] hover:border-[#2e2e3e]"
                   }`}
                 >
                   <span className="text-xl">{METHOD_EMOJI[m]}</span>
@@ -197,30 +182,31 @@ function PayDriverModal({
             </div>
           </div>
 
-          {/* Reference (optional) */}
+          {/* Reference */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-              Référence de transaction <span className="text-gray-400 font-normal">(optionnel)</span>
+            <label className="text-sm font-medium text-white mb-1.5 block">
+              Référence de transaction <span className="text-[#6b6b8a] font-normal">(optionnel)</span>
             </label>
             <input
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               placeholder="Ex: TXN-20260526-001"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-quickgo-blue/20"
+              className={`w-full ${inputCls}`}
             />
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-100 flex gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">Annuler</Button>
+        <div className="p-6 border-t border-[#1e1e2e] flex gap-3">
+          <Button variant="outline" onClick={onClose}
+            className="flex-1 border-[#1e1e2e] bg-transparent text-white hover:bg-[#1e1e2e]">
+            Annuler
+          </Button>
           <Button
             onClick={handlePay}
             disabled={loading || walletBalance < amount}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white gap-2"
           >
-            {loading
-              ? <RefreshCw size={15} className="animate-spin" />
-              : <CheckCircle2 size={15} />}
+            {loading ? <RefreshCw size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
             Confirmer le paiement
           </Button>
         </div>
@@ -229,12 +215,12 @@ function PayDriverModal({
   )
 }
 
-// ─── Main page ───────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function AdminDeliveryWalletPage() {
-  const [data, setData] = useState<WalletData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<"unpaid" | "paid" | "all">("unpaid")
-  const [search, setSearch] = useState("")
+  const [data, setData]                         = useState<WalletData | null>(null)
+  const [loading, setLoading]                   = useState(true)
+  const [filter, setFilter]                     = useState<"unpaid" | "paid" | "all">("unpaid")
+  const [search, setSearch]                     = useState("")
   const [selectedDelivery, setSelectedDelivery] = useState<OrderDelivery | null>(null)
 
   const fetchData = useCallback(async () => {
@@ -243,11 +229,8 @@ export default function AdminDeliveryWalletPage() {
       const res = await fetch(`/api/admin/delivery-wallet?filter=${filter}`)
       if (res.ok) setData(await res.json())
       else toast.error("Erreur de chargement")
-    } catch {
-      toast.error("Erreur réseau")
-    } finally {
-      setLoading(false)
-    }
+    } catch { toast.error("Erreur réseau") }
+    finally { setLoading(false) }
   }, [filter])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -262,30 +245,30 @@ export default function AdminDeliveryWalletPage() {
       d.order?.vendor?.name?.toLowerCase().includes(q)
     )
   })
-
   const unpaidCount = (data?.deliveries ?? []).filter((d) => !d.driver_paid && d.driver_status === "delivered").length
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
       <AdminSidebar />
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col text-white">
         {/* Header */}
-        <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <header className="bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Compte livraison — Rémunération chauffeurs</h1>
-            <p className="text-sm text-gray-500">Gestion du wallet livraison séparé</p>
+            <h1 className="text-xl font-bold text-white">Compte livraison — Rémunération chauffeurs</h1>
+            <p className="text-sm text-[#6b6b8a]">Gestion du wallet livraison séparé</p>
           </div>
           <div className="flex items-center gap-3">
             {unpaidCount > 0 && (
-              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-                <AlertTriangle size={15} className="text-amber-600" />
-                <span className="text-sm font-medium text-amber-800">
+              <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                <AlertTriangle size={15} className="text-amber-400" />
+                <span className="text-sm font-medium text-amber-300">
                   {unpaidCount} chauffeur{unpaidCount > 1 ? "s" : ""} à payer
                 </span>
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
+            <Button variant="outline" size="sm" onClick={fetchData}
+              className="gap-2 border-[#1e1e2e] bg-transparent text-white hover:bg-[#1e1e2e]">
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               Actualiser
             </Button>
@@ -293,89 +276,68 @@ export default function AdminDeliveryWalletPage() {
         </header>
 
         <main className="flex-1 p-8 space-y-6">
-
           {/* Wallet balance cards */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              {
-                label: "Total collecté",
-                value: wallet?.total_collected ?? 0,
-                icon: TrendingUp,
-                gradient: "from-green-500 to-emerald-600",
-                sub: "Frais de livraison reçus",
-              },
-              {
-                label: "Versé aux chauffeurs",
-                value: wallet?.total_paid_to_drivers ?? 0,
-                icon: TrendingDown,
-                gradient: "from-blue-500 to-cyan-600",
-                sub: "Total rémunérations",
-              },
-              {
-                label: "Solde disponible",
-                value: wallet?.available_balance ?? 0,
-                icon: Banknote,
-                gradient: (wallet?.available_balance ?? 0) > 0 ? "from-quickgo-blue to-quickgo-cyan" : "from-gray-400 to-gray-500",
-                sub: "Prêt à distribuer",
-                highlight: true,
-              },
+              { label: "Total collecté",         value: wallet?.total_collected       ?? 0, icon: TrendingUp,  gradient: "from-green-500 to-emerald-600", sub: "Frais de livraison reçus"  },
+              { label: "Versé aux chauffeurs",   value: wallet?.total_paid_to_drivers ?? 0, icon: TrendingDown, gradient: "from-blue-500 to-cyan-600",    sub: "Total rémunérations"       },
+              { label: "Solde disponible",       value: wallet?.available_balance     ?? 0, icon: Banknote,
+                gradient: (wallet?.available_balance ?? 0) > 0 ? "from-quickgo-blue to-quickgo-cyan" : "from-[#6b6b8a] to-[#4a4a5a]",
+                sub: "Prêt à distribuer", highlight: true },
             ].map((c, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                className={`bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden ${c.highlight ? "ring-2 ring-quickgo-blue/20" : ""}`}
+                className={`bg-[#16161f] rounded-2xl p-5 border ${(c as { highlight?: boolean }).highlight ? "border-blue-500/30" : "border-[#1e1e2e]"} relative overflow-hidden`}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.gradient} flex items-center justify-center shadow-sm`}>
                     <c.icon className="text-white" size={18} />
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mb-1">{c.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCFA(c.value)}</p>
-                <p className="text-xs text-gray-400 mt-1">{c.sub}</p>
+                <p className="text-xs text-[#6b6b8a] mb-1">{c.label}</p>
+                <p className="text-2xl font-bold text-white">{formatCFA(c.value)}</p>
+                <p className="text-xs text-[#6b6b8a] mt-1">{c.sub}</p>
               </motion.div>
             ))}
           </div>
 
           {/* Pending payment alert */}
           {(data?.pending_payment ?? 0) > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4">
-              <AlertTriangle className="text-amber-600 shrink-0" size={22} />
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
+              <AlertTriangle className="text-amber-400 shrink-0" size={22} />
               <div>
-                <p className="font-semibold text-amber-900">
+                <p className="font-semibold text-amber-300">
                   {formatCFA(data!.pending_payment)} de rémunérations en attente
                 </p>
-                <p className="text-sm text-amber-700">
+                <p className="text-sm text-amber-400/80">
                   Des livraisons ont été effectuées mais les chauffeurs n&apos;ont pas encore été payés.
                 </p>
               </div>
-              <Button
-                size="sm"
-                onClick={() => setFilter("unpaid")}
-                className="ml-auto bg-amber-600 hover:bg-amber-700 text-white shrink-0"
-              >
+              <Button size="sm" onClick={() => setFilter("unpaid")}
+                className="ml-auto bg-amber-600 hover:bg-amber-700 text-white shrink-0">
                 Traiter maintenant
               </Button>
             </div>
           )}
 
           {/* Deliveries table */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-[#16161f] rounded-2xl border border-[#1e1e2e] overflow-hidden">
             {/* Toolbar */}
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
-              <Truck size={18} className="text-quickgo-blue" />
-              <h2 className="font-semibold text-gray-900 flex-1">Livraisons</h2>
+            <div className="px-6 py-4 border-b border-[#1e1e2e] flex items-center gap-3">
+              <Truck size={18} className="text-blue-400" />
+              <h2 className="font-semibold text-white flex-1">Livraisons</h2>
 
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6b6b8a]" size={14} />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Chauffeur, commande, vendeur..."
-                  className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-quickgo-blue/20 w-52"
+                  className={`pl-8 w-52 ${inputCls}`}
                 />
               </div>
 
@@ -387,8 +349,8 @@ export default function AdminDeliveryWalletPage() {
                     onClick={() => setFilter(f)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                       filter === f
-                        ? "bg-quickgo-blue text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        ? "bg-blue-600 text-white"
+                        : "bg-[#1e1e2e] text-[#6b6b8a] hover:bg-[#2a2a3a] hover:text-white"
                     }`}
                   >
                     {f === "unpaid" ? "À payer" : f === "paid" ? "Payés" : "Tous"}
@@ -400,69 +362,65 @@ export default function AdminDeliveryWalletPage() {
             {/* List */}
             {loading ? (
               <div className="p-12 flex items-center justify-center">
-                <RefreshCw className="animate-spin text-quickgo-blue" size={28} />
+                <RefreshCw className="animate-spin text-blue-400" size={28} />
               </div>
             ) : filtered.length === 0 ? (
               <div className="p-12 text-center">
-                <Truck className="mx-auto text-gray-300 mb-3" size={40} />
-                <p className="text-gray-500 font-medium">
+                <Truck className="mx-auto text-[#1e1e2e] mb-3" size={40} />
+                <p className="text-[#6b6b8a] font-medium">
                   {filter === "unpaid" ? "Aucune rémunération en attente" : "Aucune livraison trouvée"}
                 </p>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-[#6b6b8a]/60 mt-1">
                   {filter === "unpaid" ? "Tous les chauffeurs sont à jour ✓" : "Modifiez les filtres"}
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#1e1e2e]">
                 {filtered.map((delivery, i) => (
                   <motion.div
                     key={delivery.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.02 }}
-                    className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors"
+                    className="flex items-center gap-4 px-6 py-4 hover:bg-[#1e1e2e]/40 transition-colors"
                   >
                     {/* Driver avatar */}
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-quickgo-blue/20 to-quickgo-cyan/20 flex items-center justify-center text-quickgo-blue font-bold text-sm shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-sm shrink-0">
                       {delivery.driver?.full_name?.charAt(0) ?? "?"}
                     </div>
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900 truncate">
+                        <p className="font-semibold text-white truncate">
                           {delivery.driver?.full_name ?? "Chauffeur non assigné"}
                         </p>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                           delivery.driver_paid
-                            ? "bg-green-100 text-green-700"
+                            ? "bg-green-500/20 text-green-400"
                             : delivery.driver_status === "delivered"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-gray-100 text-gray-500"
+                            ? "bg-amber-500/20 text-amber-400"
+                            : "bg-[#1e1e2e] text-[#6b6b8a]"
                         }`}>
-                          {delivery.driver_paid
-                            ? "✓ Payé"
-                            : delivery.driver_status === "delivered"
-                            ? "En attente"
-                            : delivery.driver_status}
+                          {delivery.driver_paid ? "✓ Payé" : delivery.driver_status === "delivered" ? "En attente" : delivery.driver_status}
                         </span>
                         {delivery.delivery_type === "express" && (
-                          <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">Express</span>
+                          <span className="bg-orange-500/20 text-orange-400 text-xs px-2 py-0.5 rounded-full">Express</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 mt-1 text-xs text-[#6b6b8a]">
                         <span>Cmd #{delivery.order?.order_number ?? "—"}</span>
                         {delivery.order?.vendor?.name && <span>· {delivery.order.vendor.name}</span>}
                         <span>· {formatDate(delivery.created_at)}</span>
                         {delivery.driver?.phone && (
-                          <a href={`tel:${delivery.driver.phone}`} className="flex items-center gap-0.5 text-quickgo-blue hover:underline">
+                          <a href={`tel:${delivery.driver.phone}`} className="flex items-center gap-0.5 text-blue-400 hover:underline">
                             <Phone size={11} />
                             {delivery.driver.phone}
                           </a>
                         )}
                       </div>
                       {delivery.driver_paid && delivery.driver_payment_method && (
-                        <p className="text-xs text-green-600 mt-1">
+                        <p className="text-xs text-green-400 mt-1">
                           {METHOD_EMOJI[delivery.driver_payment_method]} {METHOD_LABELS[delivery.driver_payment_method]}
                           {delivery.driver_payment_reference && ` · ${delivery.driver_payment_reference}`}
                           {delivery.driver_paid_at && ` · ${formatDate(delivery.driver_paid_at)}`}
@@ -472,25 +430,22 @@ export default function AdminDeliveryWalletPage() {
 
                     {/* Amount */}
                     <div className="text-right shrink-0">
-                      <p className="font-bold text-gray-900 text-lg">{formatCFA(delivery.delivery_fee)}</p>
+                      <p className="font-bold text-white text-lg">{formatCFA(delivery.delivery_fee)}</p>
                       {delivery.delivery_rate?.name && (
-                        <p className="text-xs text-gray-400 mt-0.5">{delivery.delivery_rate.name}</p>
+                        <p className="text-xs text-[#6b6b8a] mt-0.5">{delivery.delivery_rate.name}</p>
                       )}
                     </div>
 
                     {/* Action */}
                     {!delivery.driver_paid && delivery.driver_status === "delivered" && delivery.driver && (
-                      <Button
-                        size="sm"
-                        onClick={() => setSelectedDelivery(delivery)}
-                        className="ml-2 bg-green-600 hover:bg-green-700 text-white gap-1.5 shrink-0"
-                      >
+                      <Button size="sm" onClick={() => setSelectedDelivery(delivery)}
+                        className="ml-2 bg-green-600 hover:bg-green-700 text-white gap-1.5 shrink-0">
                         <DollarSign size={14} />
                         Payer
                       </Button>
                     )}
                     {delivery.driver_paid && (
-                      <CheckCircle2 size={20} className="text-green-500 ml-2 shrink-0" />
+                      <CheckCircle2 size={20} className="text-green-400 ml-2 shrink-0" />
                     )}
                   </motion.div>
                 ))}
@@ -500,7 +455,6 @@ export default function AdminDeliveryWalletPage() {
         </main>
       </div>
 
-      {/* Pay modal */}
       <AnimatePresence>
         {selectedDelivery && (
           <PayDriverModal
