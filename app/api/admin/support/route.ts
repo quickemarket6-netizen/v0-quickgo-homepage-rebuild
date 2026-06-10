@@ -1,81 +1,228 @@
-import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
+import { NextRequest, NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
-function ts(minutesOffset: number) {
-  return new Date(Date.now() + minutesOffset * 60_000).toISOString()
+// ── helpers ────────────────────────────────────────────────────────────────
+
+function startOfDay(offsetDays = 0) {
+  const d = new Date()
+  d.setUTCHours(0, 0, 0, 0)
+  d.setUTCDate(d.getUTCDate() - offsetDays)
+  return d.toISOString()
 }
 
-const TICKETS = [
-  { id:"TKT-1142", subject:"Commande non livrée",         category:"livraison", priority:"urgent",  status:"open",       customer_name:"Marie Ngo",        customer_type:"client", assigned_to:"Sylvie K.",  created_at:ts(-12),  updated_at:ts(-5),   messages:5 },
-  { id:"TKT-1141", subject:"Paiement débité deux fois",   category:"paiement",  priority:"urgent",  status:"open",       customer_name:"Xavier Boutique",  customer_type:"vendor", assigned_to:null,         created_at:ts(-28),  updated_at:ts(-28),  messages:2 },
-  { id:"TKT-1140", subject:"Problème de connexion app",   category:"technique", priority:"normal",  status:"in_progress",customer_name:"Jean Mballa",      customer_type:"client", assigned_to:"Armand D.",  created_at:ts(-45),  updated_at:ts(-15),  messages:8 },
-  { id:"TKT-1139", subject:"Livreur irrespectueux",        category:"plainte",   priority:"high",    status:"open",       customer_name:"Sophie Ateba",     customer_type:"client", assigned_to:null,         created_at:ts(-62),  updated_at:ts(-62),  messages:1 },
-  { id:"TKT-1138", subject:"Retrait Orange Money bloqué", category:"paiement",  priority:"high",    status:"in_progress",customer_name:"Paul Tchamba",     customer_type:"driver", assigned_to:"Sylvie K.",  created_at:ts(-78),  updated_at:ts(-30),  messages:6 },
-  { id:"TKT-1137", subject:"Article manquant dans colis", category:"commande",  priority:"normal",  status:"open",       customer_name:"Alain Nguema",     customer_type:"client", assigned_to:null,         created_at:ts(-95),  updated_at:ts(-95),  messages:3 },
-  { id:"TKT-1136", subject:"Remboursement non reçu",      category:"paiement",  priority:"high",    status:"in_progress",customer_name:"Vanessa Abena",    customer_type:"client", assigned_to:"Armand D.",  created_at:ts(-120), updated_at:ts(-45),  messages:9 },
-  { id:"TKT-1135", subject:"Compte suspendu injustement", category:"compte",    priority:"urgent",  status:"escalated",  customer_name:"Davy Store",       customer_type:"vendor", assigned_to:"Manager",    created_at:ts(-180), updated_at:ts(-60),  messages:14},
-  { id:"TKT-1134", subject:"GPS livreur bloqué",          category:"technique", priority:"normal",  status:"resolved",   customer_name:"Eric Fouda",       customer_type:"driver", assigned_to:"Armand D.",  created_at:ts(-240), updated_at:ts(-120), messages:7 },
-  { id:"TKT-1133", subject:"Mauvaise adresse facturée",   category:"commande",  priority:"low",     status:"resolved",   customer_name:"Sandrine Mvouma",  customer_type:"client", assigned_to:"Sylvie K.",  created_at:ts(-300), updated_at:ts(-200), messages:4 },
-  { id:"TKT-1132", subject:"Produit endommagé livré",     category:"livraison", priority:"high",    status:"escalated",  customer_name:"Henriette Owona",  customer_type:"client", assigned_to:"Manager",    created_at:ts(-360), updated_at:ts(-180), messages:11},
-  { id:"TKT-1131", subject:"Notification push désactivée",category:"technique", priority:"low",     status:"resolved",   customer_name:"Roger Talla",      customer_type:"client", assigned_to:"Armand D.",  created_at:ts(-420), updated_at:ts(-300), messages:3 },
-  { id:"TKT-1130", subject:"Facture incorrecte",          category:"paiement",  priority:"normal",  status:"resolved",   customer_name:"Grace Market",     customer_type:"vendor", assigned_to:"Sylvie K.",  created_at:ts(-480), updated_at:ts(-360), messages:6 },
-  { id:"TKT-1129", subject:"App plante sur Android 14",   category:"technique", priority:"high",    status:"resolved",   customer_name:"Bruno Akono",      customer_type:"client", assigned_to:"Armand D.",  created_at:ts(-600), updated_at:ts(-480), messages:8 },
-  { id:"TKT-1128", subject:"Délai de livraison excessif", category:"livraison", priority:"normal",  status:"closed",     customer_name:"Laure Mbassi",     customer_type:"client", assigned_to:"Sylvie K.",  created_at:ts(-720), updated_at:ts(-600), messages:5 },
-]
-
-const AGENTS = [
-  { id:"AGT-01", name:"Sylvie K.",  avatar:"SK", online:true,  tickets_open:4, tickets_resolved_today:8,  avg_response_min:4.2  },
-  { id:"AGT-02", name:"Armand D.",  avatar:"AD", online:true,  tickets_open:3, tickets_resolved_today:11, avg_response_min:3.8  },
-  { id:"AGT-03", name:"Manager",    avatar:"MG", online:true,  tickets_open:2, tickets_resolved_today:3,  avg_response_min:7.5  },
-  { id:"AGT-04", name:"Céline N.",  avatar:"CN", online:false, tickets_open:0, tickets_resolved_today:6,  avg_response_min:5.1  },
-]
-
-const open      = TICKETS.filter(t => t.status === "open")
-const inProg    = TICKETS.filter(t => t.status === "in_progress")
-const escalated = TICKETS.filter(t => t.status === "escalated")
-const resolved  = TICKETS.filter(t => ["resolved","closed"].includes(t.status))
-const urgent    = TICKETS.filter(t => t.priority === "urgent")
-
-const catCount: Record<string, number> = {}
-TICKETS.forEach(t => { catCount[t.category] = (catCount[t.category] ?? 0) + 1 })
-
-const catColors: Record<string, string> = {
+const CAT_COLORS: Record<string, string> = {
   livraison: "#3b82f6", paiement: "#f97316", technique: "#8b5cf6",
-  commande:  "#22c55e", plainte:  "#ef4444",  compte:    "#eab308",
+  commande:  "#22c55e", plainte:  "#ef4444", compte:    "#eab308",
+  general:   "#6b6b8a",
 }
+
+// ── GET ────────────────────────────────────────────────────────────────────
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const supabase = await createClient()
+
+  // 1. All tickets (last 200, ordered newest-first)
+  const { data: ticketsRaw, error: tErr } = await supabase
+    .from("support_tickets")
+    .select("id, ticket_number, subject, category, priority, status, customer_type, customer_name, assigned_to, created_at, updated_at")
+    .order("created_at", { ascending: false })
+    .limit(200)
+
+  if (tErr) return NextResponse.json({ error: tErr.message }, { status: 500 })
+
+  // 2. Message counts per ticket
+  const ticketIds = (ticketsRaw ?? []).map((t) => t.id)
+  const { data: msgCounts } = ticketIds.length
+    ? await supabase
+        .from("ticket_messages")
+        .select("ticket_id")
+        .in("ticket_id", ticketIds)
+    : { data: [] }
+
+  const msgMap: Record<string, number> = {}
+  for (const m of msgCounts ?? []) {
+    msgMap[m.ticket_id] = (msgMap[m.ticket_id] ?? 0) + 1
+  }
+
+  const tickets = (ticketsRaw ?? []).map((t) => ({
+    id:            t.ticket_number ?? t.id,
+    subject:       t.subject,
+    category:      t.category,
+    priority:      t.priority,
+    status:        t.status,
+    customer_name: t.customer_name ?? "—",
+    customer_type: t.customer_type ?? "client",
+    assigned_to:   t.assigned_to ?? null,
+    created_at:    t.created_at,
+    updated_at:    t.updated_at,
+    messages:      msgMap[t.id] ?? 0,
+  }))
+
+  // 3. KPI
+  const today = startOfDay()
+  const open       = tickets.filter((t) => t.status === "open")
+  const inProg     = tickets.filter((t) => t.status === "in_progress")
+  const escalated  = tickets.filter((t) => t.status === "escalated")
+  const resolvedToday = tickets.filter(
+    (t) => ["resolved", "closed"].includes(t.status) && t.updated_at >= today,
+  )
+  const urgent = tickets.filter((t) => t.priority === "urgent")
+
+  // 4. Agents (admin/super_admin profiles)
+  const { data: agentProfiles } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .in("role", ["admin", "super_admin"])
+    .limit(20)
+
+  const agents = (agentProfiles ?? []).map((p) => {
+    const name = p.full_name ?? "Admin"
+    const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+    const assigned = tickets.filter((t) => t.assigned_to === name)
+    return {
+      id:                    p.id,
+      name,
+      avatar:                initials,
+      online:                true,
+      tickets_open:          assigned.filter((t) => ["open", "in_progress"].includes(t.status)).length,
+      tickets_resolved_today: assigned.filter(
+        (t) => ["resolved", "closed"].includes(t.status) && t.updated_at >= today,
+      ).length,
+      avg_response_min: 5,
+    }
+  })
+
+  // 5. Category distribution
+  const catCount: Record<string, number> = {}
+  for (const t of tickets) catCount[t.category] = (catCount[t.category] ?? 0) + 1
+
+  const category_distribution = Object.entries(catCount).map(([cat, count]) => ({
+    category: cat,
+    count,
+    pct:   Math.round((count / Math.max(tickets.length, 1)) * 100),
+    color: CAT_COLORS[cat] ?? "#6b6b8a",
+  }))
+
+  // 6. Status distribution
+  const status_distribution = [
+    { status: "Ouverts",   count: open.length,      color: "#ef4444" },
+    { status: "En cours",  count: inProg.length,    color: "#f59e0b" },
+    { status: "Escaladés", count: escalated.length, color: "#8b5cf6" },
+    { status: "Résolus",   count: resolvedToday.length, color: "#22c55e" },
+  ]
+
+  // 7. Volume trend (last 7 days)
+  const volume_trend = Array.from({ length: 7 }).map((_, i) => {
+    const dayStart = startOfDay(6 - i)
+    const dayEnd   = startOfDay(5 - i)
+    const DAYS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+    const d = new Date(dayStart)
+    return {
+      day:      i === 6 ? "Auj" : DAYS[d.getUTCDay()],
+      opened:   tickets.filter((t) => t.created_at >= dayStart && t.created_at < dayEnd).length,
+      resolved: tickets.filter(
+        (t) => ["resolved", "closed"].includes(t.status) && t.updated_at >= dayStart && t.updated_at < dayEnd,
+      ).length,
+    }
+  })
+
   return NextResponse.json({
     kpi: {
-      open_tickets:       open.length + inProg.length,
-      urgent_count:       urgent.length,
-      escalated_count:    escalated.length,
-      resolved_today:     resolved.length,
-      avg_response_min:   4.2,
-      satisfaction_rate:  87,
-      yesterday_open:     12,
+      open_tickets:      open.length + inProg.length,
+      urgent_count:      urgent.length,
+      escalated_count:   escalated.length,
+      resolved_today:    resolvedToday.length,
+      avg_response_min:  5,
+      satisfaction_rate: 87,
+      yesterday_open:    tickets.filter(
+        (t) => t.created_at >= startOfDay(1) && t.created_at < today,
+      ).length,
     },
-    tickets: TICKETS,
-    agents: AGENTS,
-    category_distribution: Object.entries(catCount).map(([cat, count]) => ({
-      category: cat,
-      count,
-      pct: Math.round(count / TICKETS.length * 100),
-      color: catColors[cat] ?? "#6b6b8a",
-    })),
-    status_distribution: [
-      { status:"Ouverts",      count: open.length,      color:"#ef4444" },
-      { status:"En cours",     count: inProg.length,    color:"#f59e0b" },
-      { status:"Escaladés",    count: escalated.length, color:"#8b5cf6" },
-      { status:"Résolus",      count: resolved.length,  color:"#22c55e" },
-    ],
-    volume_trend: [
-      { day:"Lun", opened:8,  resolved:7  },
-      { day:"Mar", opened:12, resolved:9  },
-      { day:"Mer", opened:6,  resolved:11 },
-      { day:"Jeu", opened:15, resolved:12 },
-      { day:"Ven", opened:18, resolved:14 },
-      { day:"Sam", opened:9,  resolved:8  },
-      { day:"Auj", opened:open.length + inProg.length, resolved: resolved.length },
-    ],
+    tickets,
+    agents,
+    category_distribution,
+    status_distribution,
+    volume_trend,
   })
+}
+
+// ── PATCH — update status / assign / reply ─────────────────────────────────
+
+export async function PATCH(req: NextRequest) {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const supabase = await createClient()
+  const body = await req.json() as {
+    ticket_number?: string
+    action: "update_status" | "assign" | "reply"
+    status?: string
+    assigned_to?: string
+    assigned_to_id?: string
+    message?: string
+    is_internal?: boolean
+  }
+
+  const { ticket_number, action } = body
+  if (!ticket_number) return NextResponse.json({ error: "ticket_number requis" }, { status: 400 })
+
+  // Resolve UUID from ticket_number
+  const { data: ticket } = await supabase
+    .from("support_tickets")
+    .select("id")
+    .eq("ticket_number", ticket_number)
+    .single()
+
+  if (!ticket) return NextResponse.json({ error: "Ticket introuvable" }, { status: 404 })
+  const ticketId = ticket.id
+
+  if (action === "update_status") {
+    const VALID = ["open", "in_progress", "escalated", "resolved", "closed"]
+    if (!body.status || !VALID.includes(body.status)) {
+      return NextResponse.json({ error: "status invalide" }, { status: 400 })
+    }
+    const patch: Record<string, unknown> = { status: body.status }
+    if (body.status === "resolved") patch.resolved_at = new Date().toISOString()
+    if (body.status === "closed")   patch.closed_at   = new Date().toISOString()
+
+    const { error } = await supabase.from("support_tickets").update(patch).eq("id", ticketId)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
+  if (action === "assign") {
+    const { error } = await supabase.from("support_tickets").update({
+      assigned_to:    body.assigned_to ?? null,
+      assigned_to_id: body.assigned_to_id ?? null,
+      status:         "in_progress",
+    }).eq("id", ticketId)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
+  if (action === "reply") {
+    if (!body.message?.trim()) return NextResponse.json({ error: "message requis" }, { status: 400 })
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", admin.adminId)
+      .single()
+
+    const { error } = await supabase.from("ticket_messages").insert({
+      ticket_id:   ticketId,
+      sender_id:   admin.adminId,
+      sender_name: profile?.full_name ?? "Admin",
+      body:        body.message.trim(),
+      is_internal: body.is_internal ?? false,
+    })
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
+  return NextResponse.json({ error: "action invalide" }, { status: 400 })
 }
