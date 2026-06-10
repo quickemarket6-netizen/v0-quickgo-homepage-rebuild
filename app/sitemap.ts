@@ -1,88 +1,95 @@
-import { MetadataRoute } from 'next'
+import { MetadataRoute } from "next"
+import { createClient } from "@/lib/supabase/server"
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://www.quickgo.cm'
-  
-  // Pages principales
-  const mainRoutes = [
-    { url: '', priority: 1, changeFrequency: 'daily' as const },
-    { url: '/marketplace', priority: 0.9, changeFrequency: 'daily' as const },
-    { url: '/delivery', priority: 0.9, changeFrequency: 'weekly' as const },
-    { url: '/driver', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/vendors', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/wallet', priority: 0.7, changeFrequency: 'weekly' as const },
-    { url: '/support', priority: 0.7, changeFrequency: 'monthly' as const },
-    { url: '/tracking', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/ai-assistant', priority: 0.7, changeFrequency: 'weekly' as const },
+export const revalidate = 3600  // refresh sitemap every hour
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = "https://www.quickgo.cm"
+
+  // Fetch published blog posts for dynamic entries
+  let blogEntries: MetadataRoute.Sitemap = []
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from("blog_posts")
+      .select("slug, updated_at, published_at")
+      .eq("status", "published")
+      .order("published_at", { ascending: false })
+
+    blogEntries = (data ?? []).map(post => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: new Date(post.updated_at ?? post.published_at ?? new Date()),
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }))
+  } catch {
+    // silently skip blog entries if DB unavailable
+  }
+
+  const mainRoutes: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}`,                 lastModified: new Date(), changeFrequency: "daily",   priority: 1   },
+    { url: `${baseUrl}/marketplace`,     lastModified: new Date(), changeFrequency: "daily",   priority: 0.9 },
+    { url: `${baseUrl}/delivery`,        lastModified: new Date(), changeFrequency: "weekly",  priority: 0.9 },
+    { url: `${baseUrl}/blog`,            lastModified: new Date(), changeFrequency: "daily",   priority: 0.8 },
+    { url: `${baseUrl}/faq`,             lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
+    { url: `${baseUrl}/about`,           lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/contact`,         lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/driver`,          lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
+    { url: `${baseUrl}/vendors`,         lastModified: new Date(), changeFrequency: "weekly",  priority: 0.8 },
+    { url: `${baseUrl}/ai-assistant`,    lastModified: new Date(), changeFrequency: "weekly",  priority: 0.7 },
+    { url: `${baseUrl}/auth/login`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
+    { url: `${baseUrl}/auth/register`,   lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
   ]
 
-  // Pages d'authentification
-  const authRoutes = [
-    { url: '/auth/login', priority: 0.6, changeFrequency: 'monthly' as const },
-    { url: '/auth/register', priority: 0.6, changeFrequency: 'monthly' as const },
+  const localSeoRoutes: MetadataRoute.Sitemap = [
+    // Major cities
+    { url: `${baseUrl}/livraison/yaounde`,  lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/livraison/douala`,   lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
+    { url: `${baseUrl}/livraison/bafoussam`,lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/livraison/garoua`,   lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/livraison/bamenda`,  lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
+    { url: `${baseUrl}/livraison/maroua`,   lastModified: new Date(), changeFrequency: "weekly", priority: 0.8 },
+    // Yaoundé neighbourhoods
+    { url: `${baseUrl}/livraison/yaounde/bastos`,      lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
+    { url: `${baseUrl}/livraison/yaounde/mvog-mbi`,    lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/mvan`,        lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/elig-essono`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/ngousso`,     lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/nlongkak`,    lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/messa`,       lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/omnisport`,   lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/essos`,       lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/yaounde/biyem-assi`,  lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    // Douala neighbourhoods
+    { url: `${baseUrl}/livraison/douala/akwa`,         lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
+    { url: `${baseUrl}/livraison/douala/bonanjo`,      lastModified: new Date(), changeFrequency: "weekly", priority: 0.85 },
+    { url: `${baseUrl}/livraison/douala/deido`,        lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/douala/bonapriso`,    lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/douala/makepe`,       lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/douala/ndokoti`,      lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
+    { url: `${baseUrl}/livraison/douala/bali`,         lastModified: new Date(), changeFrequency: "weekly", priority: 0.8  },
   ]
 
-  // Pages SEO locales - TRES IMPORTANT pour le referencement local
-  const localSeoRoutes = [
-    // Grandes villes
-    { url: '/livraison/yaounde', priority: 0.9, changeFrequency: 'weekly' as const },
-    { url: '/livraison/douala', priority: 0.9, changeFrequency: 'weekly' as const },
-    { url: '/livraison/bafoussam', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/garoua', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/bamenda', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/maroua', priority: 0.8, changeFrequency: 'weekly' as const },
-    
-    // Quartiers populaires Yaounde
-    { url: '/livraison/yaounde/bastos', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/mvog-mbi', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/mvan', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/elig-essono', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/ngousso', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/nlongkak', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/messa', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/omnisport', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/essos', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/yaounde/biyem-assi', priority: 0.8, changeFrequency: 'weekly' as const },
-    
-    // Quartiers populaires Douala
-    { url: '/livraison/douala/akwa', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/livraison/douala/bonanjo', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/livraison/douala/deido', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/douala/bonapriso', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/douala/makepe', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/douala/ndokoti', priority: 0.8, changeFrequency: 'weekly' as const },
-    { url: '/livraison/douala/bali', priority: 0.8, changeFrequency: 'weekly' as const },
+  const serviceRoutes: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/services/restaurant`,   lastModified: new Date(), changeFrequency: "weekly",  priority: 0.85 },
+    { url: `${baseUrl}/services/pharmacie`,    lastModified: new Date(), changeFrequency: "weekly",  priority: 0.85 },
+    { url: `${baseUrl}/services/supermarche`,  lastModified: new Date(), changeFrequency: "weekly",  priority: 0.85 },
+    { url: `${baseUrl}/services/courses`,      lastModified: new Date(), changeFrequency: "weekly",  priority: 0.85 },
+    { url: `${baseUrl}/services/colis`,        lastModified: new Date(), changeFrequency: "weekly",  priority: 0.85 },
+    { url: `${baseUrl}/services/dl-solutions`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7  },
   ]
 
-  // Pages services
-  const serviceRoutes = [
-    { url: '/services/restaurant', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/services/pharmacie', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/services/supermarche', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/services/courses', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/services/colis', priority: 0.85, changeFrequency: 'weekly' as const },
-    { url: '/services/dl-solutions', priority: 0.7, changeFrequency: 'monthly' as const },
+  const legalRoutes: MetadataRoute.Sitemap = [
+    { url: `${baseUrl}/legal/privacy`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}/legal/terms`,   lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
+    { url: `${baseUrl}/legal/cookies`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.3 },
   ]
 
-  // Pages legales
-  const legalRoutes = [
-    { url: '/legal/privacy', priority: 0.3, changeFrequency: 'yearly' as const },
-    { url: '/legal/terms', priority: 0.3, changeFrequency: 'yearly' as const },
-    { url: '/legal/cookies', priority: 0.3, changeFrequency: 'yearly' as const },
-  ]
-
-  const allRoutes = [
+  return [
     ...mainRoutes,
-    ...authRoutes,
     ...localSeoRoutes,
     ...serviceRoutes,
     ...legalRoutes,
+    ...blogEntries,
   ]
-
-  return allRoutes.map((route) => ({
-    url: `${baseUrl}${route.url}`,
-    lastModified: new Date(),
-    changeFrequency: route.changeFrequency,
-    priority: route.priority,
-  }))
 }

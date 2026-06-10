@@ -1,73 +1,126 @@
-import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
+import { NextRequest, NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
-function ts(minutesOffset: number) {
-  return new Date(Date.now() + minutesOffset * 60_000).toISOString()
-}
-
-const PAGES = [
-  { id:"PG-001", title:"Page d'accueil",        slug:"/",                 type:"landing",  status:"published", views_today:1_842, views_month:52_400, last_edited:ts(-120),  author:"Emmanuel Admin", seo_score:92 },
-  { id:"PG-002", title:"À propos de QuickGo",   slug:"/about",            type:"static",   status:"published", views_today:312,   views_month:8_920,  last_edited:ts(-2880), author:"Marie N.",       seo_score:85 },
-  { id:"PG-003", title:"Devenir vendeur",        slug:"/become-vendor",   type:"landing",  status:"published", views_today:584,   views_month:16_200, last_edited:ts(-1440), author:"Emmanuel Admin", seo_score:88 },
-  { id:"PG-004", title:"Devenir livreur",        slug:"/become-driver",   type:"landing",  status:"published", views_today:421,   views_month:12_800, last_edited:ts(-720),  author:"Jean M.",        seo_score:90 },
-  { id:"PG-005", title:"FAQ Clients",            slug:"/faq",              type:"faq",      status:"published", views_today:198,   views_month:5_620,  last_edited:ts(-4320), author:"Marie N.",       seo_score:78 },
-  { id:"PG-006", title:"Conditions d'utilisation",slug:"/terms",          type:"legal",    status:"published", views_today:87,    views_month:2_450,  last_edited:ts(-8760), author:"Emmanuel Admin", seo_score:72 },
-  { id:"PG-007", title:"Politique de confidentialité",slug:"/privacy",    type:"legal",    status:"published", views_today:65,    views_month:1_890,  last_edited:ts(-8760), author:"Emmanuel Admin", seo_score:70 },
-  { id:"PG-008", title:"Promotions Juin 2026",   slug:"/promo/juin-2026", type:"promo",    status:"published", views_today:932,   views_month:4_200,  last_edited:ts(-48),   author:"Jean M.",        seo_score:81 },
-  { id:"PG-009", title:"Contactez-nous",         slug:"/contact",          type:"static",   status:"published", views_today:143,   views_month:4_100,  last_edited:ts(-5040), author:"Marie N.",       seo_score:76 },
-  { id:"PG-010", title:"Guide vendeur v2",       slug:"/guide-vendor",    type:"guide",    status:"draft",     views_today:0,     views_month:0,      last_edited:ts(-60),   author:"Emmanuel Admin", seo_score:55 },
-  { id:"PG-011", title:"Blog — Livraison rapide",slug:"/blog/fast-delivery",type:"blog",  status:"draft",     views_today:0,     views_month:0,      last_edited:ts(-180),  author:"Jean M.",        seo_score:42 },
-  { id:"PG-012", title:"Page maintenance",       slug:"/maintenance",      type:"system",   status:"archived",  views_today:0,     views_month:12,     last_edited:ts(-17520),author:"Emmanuel Admin", seo_score:0  },
-]
-
-const BLOCKS = [
-  { id:"BLK-01", name:"Hero Banner",         page:"Page d'accueil",   type:"hero",    enabled:true,  last_edited:ts(-48)   },
-  { id:"BLK-02", name:"Features Section",    page:"Page d'accueil",   type:"grid",    enabled:true,  last_edited:ts(-96)   },
-  { id:"BLK-03", name:"App Download CTA",    page:"Page d'accueil",   type:"cta",     enabled:true,  last_edited:ts(-240)  },
-  { id:"BLK-04", name:"Testimonials",        page:"Page d'accueil",   type:"social",  enabled:false, last_edited:ts(-720)  },
-  { id:"BLK-05", name:"Promo Banner Juin",   page:"Promotions Juin",  type:"banner",  enabled:true,  last_edited:ts(-12)   },
-  { id:"BLK-06", name:"Vendor Sign-up Form", page:"Devenir vendeur",  type:"form",    enabled:true,  last_edited:ts(-1440) },
-]
-
-const published = PAGES.filter(p => p.status === "published")
-const draft     = PAGES.filter(p => p.status === "draft")
-const archived  = PAGES.filter(p => p.status === "archived")
-
-const totalViews  = PAGES.reduce((s, p) => s + p.views_today, 0)
-const avgSeoScore = Math.round(published.reduce((s, p) => s + p.seo_score, 0) / published.length)
-
-const typeCount: Record<string, number> = {}
-PAGES.forEach(p => { typeCount[p.type] = (typeCount[p.type] ?? 0) + 1 })
-
-const typeColors: Record<string, string> = {
-  landing:"#3b82f6", static:"#22c55e", legal:"#6b6b8a", promo:"#f97316",
-  faq:"#8b5cf6", guide:"#eab308", blog:"#ec4899", system:"#6b6b8a",
-}
+// GET  /api/admin/cms — pages + blocks + KPI + views trend
+// POST /api/admin/cms — create page
 
 export async function GET() {
-  return NextResponse.json({
-    kpi: {
-      published_count: published.length,
-      draft_count:     draft.length,
-      archived_count:  archived.length,
-      total_views_today: totalViews,
-      avg_seo_score:   avgSeoScore,
-      blocks_active:   BLOCKS.filter(b => b.enabled).length,
-    },
-    pages: PAGES,
-    blocks: BLOCKS,
-    type_distribution: Object.entries(typeCount).map(([type, count]) => ({
-      type, count, pct: Math.round(count / PAGES.length * 100),
-      color: typeColors[type] ?? "#6b6b8a",
-    })),
-    top_pages: [...PAGES].sort((a, b) => b.views_today - a.views_today).slice(0, 6).map(p => ({
-      title: p.title.length > 22 ? p.title.slice(0, 22) + "…" : p.title,
-      views: p.views_today,
-      seo:   p.seo_score,
-    })),
-    views_trend: [
-      { day:"Lun", views:3_200 }, { day:"Mar", views:3_850 }, { day:"Mer", views:2_900 },
-      { day:"Jeu", views:4_100 }, { day:"Ven", views:5_200 }, { day:"Sam", views:6_400 },
-      { day:"Auj", views:totalViews },
-    ],
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const supabase = await createClient()
+
+  const [{ data: pages, error: pagesErr }, { data: blocks }] = await Promise.all([
+    supabase.from("cms_pages").select("*").order("updated_at", { ascending: false }),
+    supabase.from("content_blocks").select("id,name,page_id,page_name,type,enabled,updated_at").order("sort_order"),
+  ])
+
+  if (pagesErr) return NextResponse.json({ error: pagesErr.message }, { status: 500 })
+
+  // 7-day views trend from page_views
+  const now = new Date()
+  const sevenDaysAgo = new Date(now)
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+  sevenDaysAgo.setHours(0, 0, 0, 0)
+
+  const { data: viewRows } = await supabase
+    .from("page_views")
+    .select("viewed_at")
+    .gte("viewed_at", sevenDaysAgo.toISOString())
+
+  const DAYS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+  const trendMap: Record<string, { label: string; views: number }> = {}
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    trendMap[key] = { label: i === 0 ? "Auj" : DAYS_FR[d.getDay()], views: 0 }
+  }
+  ;(viewRows ?? []).forEach(r => {
+    const key = (r.viewed_at as string).slice(0, 10)
+    if (key in trendMap) trendMap[key].views++
   })
+  const views_trend = Object.values(trendMap).map(({ label, views }) => ({ day: label, views }))
+
+  // KPI
+  const allPages = pages ?? []
+  const published = allPages.filter(p => p.status === "published")
+  const draft     = allPages.filter(p => p.status === "draft")
+  const archived  = allPages.filter(p => p.status === "archived")
+  const scored    = published.filter(p => p.seo_score > 0)
+
+  const kpi = {
+    published_count:   published.length,
+    draft_count:       draft.length,
+    archived_count:    archived.length,
+    total_views_today: allPages.reduce((s, p) => s + (p.views_today ?? 0), 0),
+    avg_seo_score:     scored.length
+      ? Math.round(scored.reduce((s, p) => s + p.seo_score, 0) / scored.length)
+      : 0,
+    blocks_active:     (blocks ?? []).filter(b => b.enabled).length,
+  }
+
+  // Type distribution
+  const TYPE_COLORS: Record<string, string> = {
+    landing: "#3b82f6", static: "#22c55e", legal: "#6b6b8a", promo: "#f97316",
+    faq: "#8b5cf6", guide: "#eab308", blog: "#ec4899", system: "#6b6b8a",
+  }
+  const typeCount: Record<string, number> = {}
+  allPages.forEach(p => { typeCount[p.type] = (typeCount[p.type] ?? 0) + 1 })
+  const type_distribution = Object.entries(typeCount).map(([type, count]) => ({
+    type, count, pct: Math.round(count / Math.max(allPages.length, 1) * 100),
+    color: TYPE_COLORS[type] ?? "#6b6b8a",
+  }))
+
+  // Top pages by today's views
+  const top_pages = [...allPages]
+    .sort((a, b) => (b.views_today ?? 0) - (a.views_today ?? 0))
+    .slice(0, 6)
+    .map(p => ({
+      title: p.title.length > 22 ? p.title.slice(0, 22) + "…" : p.title,
+      views: p.views_today ?? 0,
+      seo:   p.seo_score ?? 0,
+    }))
+
+  return NextResponse.json({ kpi, pages: allPages, blocks: blocks ?? [], type_distribution, top_pages, views_trend })
+}
+
+export async function POST(req: NextRequest) {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const supabase = await createClient()
+  const body = await req.json() as {
+    title?: string
+    slug?: string
+    type?: string
+    status?: string
+    seo_title?: string
+    meta_description?: string
+    og_image?: string
+    content?: Record<string, unknown>
+  }
+
+  if (!body.title?.trim()) return NextResponse.json({ error: "title requis" }, { status: 400 })
+  if (!body.slug?.trim())  return NextResponse.json({ error: "slug requis" }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from("cms_pages")
+    .insert({
+      title:            body.title.trim(),
+      slug:             body.slug.trim().toLowerCase().replace(/[^a-z0-9\-\/]/g, "-"),
+      type:             body.type ?? "static",
+      status:           body.status ?? "draft",
+      seo_title:        body.seo_title ?? null,
+      meta_description: body.meta_description ?? null,
+      og_image:         body.og_image ?? null,
+      content:          body.content ?? {},
+      author_id:        admin.adminId,
+    })
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data, { status: 201 })
 }
