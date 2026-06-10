@@ -6,6 +6,8 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LiveMap } from "@/components/ui/live-map"
+import { useOrderTracking } from "@/lib/realtime/tracking"
 import {
   Search,
   Package,
@@ -18,6 +20,8 @@ import {
   Star,
   RefreshCw,
   PackageOpen,
+  Wifi,
+  WifiOff,
 } from "lucide-react"
 
 type Order = {
@@ -36,9 +40,9 @@ type Order = {
 const STATUS_STEPS = [
   { keys: ["pending", "confirmed"],    label: "Commande reçue",           emoji: "📋" },
   { keys: ["preparing", "ready"],      label: "En préparation",            emoji: "👨‍🍳" },
-  { keys: ["picked_up"],              label: "Récupérée par le livreur",  emoji: "🛵" },
-  { keys: ["in_transit"],             label: "En route vers vous",        emoji: "🚀" },
-  { keys: ["delivered"],             label: "Livrée",                    emoji: "✅" },
+  { keys: ["picked_up"],               label: "Récupérée par le livreur",  emoji: "🛵" },
+  { keys: ["in_transit"],              label: "En route vers vous",        emoji: "🚀" },
+  { keys: ["delivered"],               label: "Livrée",                    emoji: "✅" },
 ]
 
 const ACTIVE_STATUSES = ["pending", "confirmed", "preparing", "ready", "picked_up", "in_transit"]
@@ -75,49 +79,60 @@ function initials(name: string | null | undefined) {
   return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
 }
 
-export default function TrackingPage() {
-  const [orders, setOrders]               = useState<Order[]>([])
-  const [selected, setSelected]           = useState<Order | null>(null)
-  const [loading, setLoading]             = useState(true)
-  const [refreshing, setRefreshing]       = useState(false)
-  const [search, setSearch]               = useState("")
+// ── Yaoundé default centre (Cameroon) ────────────────────────────────────────
+const YAOUNDE: [number, number] = [3.848, 11.5021]
 
+export default function TrackingPage() {
+  const [orders, setOrders]         = useState<Order[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [loading, setLoading]       = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [search, setSearch]         = useState("")
+
+  // ── Real-time subscription for selected order ────────────────────────────────
+  const tracking = useOrderTracking(selectedId)
+
+  // ── Load orders list (once on mount, no polling) ─────────────────────────────
   const loadOrders = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
-    else setRefreshing(true)
+    else         setRefreshing(true)
+
     const res = await fetch("/api/orders")
     if (res.ok) {
       const data: Order[] = await res.json()
       const active = data.filter(o => ACTIVE_STATUSES.includes(o.status))
       setOrders(active)
-      if (!selected && active.length > 0) setSelected(active[0])
-      else if (selected) {
-        const updated = active.find(o => o.id === selected.id)
-        if (updated) setSelected(updated)
-      }
+      if (!selectedId && active.length > 0) setSelectedId(active[0].id)
     }
     setLoading(false)
     setRefreshing(false)
-  }, [selected])
+  }, [selectedId])
 
+  useEffect(() => { loadOrders() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Propagate realtime status updates back into local orders list
   useEffect(() => {
-    loadOrders()
-    const iv = setInterval(() => loadOrders(true), 30000)
-    return () => clearInterval(iv)
-  }, [])
+    if (tracking.status && selectedId) {
+      setOrders(prev =>
+        prev.map(o => o.id === selectedId ? { ...o, status: tracking.status! } : o)
+      )
+    }
+  }, [tracking.status, selectedId])
 
-  const displayOrder = search
+  const selectedOrder = orders.find(o => o.id === selectedId) ?? null
+  const displayOrder  = search
     ? orders.find(o => o.order_number.toLowerCase().includes(search.toLowerCase()))
-    : selected
+    : selectedOrder
 
-  const currentStep = displayOrder ? getCurrentStep(displayOrder.status) : -1
+  const effectiveStatus = (displayOrder?.id === selectedId ? tracking.status : null) ?? displayOrder?.status ?? ""
+  const currentStep     = displayOrder ? getCurrentStep(effectiveStatus) : -1
 
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
 
       <div className="pt-20 lg:pt-24">
-        {/* ── Search / header ──────────────────────────────────── */}
+        {/* ── Search / header ──────────────────────────────────────────────── */}
         <section className="py-12 lg:py-16 bg-gradient-to-b from-primary/10 to-background relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <motion.div
@@ -180,7 +195,6 @@ export default function TrackingPage() {
               </motion.div>
             </motion.div>
 
-            {/* Order selector chips */}
             {orders.length > 1 && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -190,9 +204,9 @@ export default function TrackingPage() {
                 {orders.map(o => (
                   <button
                     key={o.id}
-                    onClick={() => { setSelected(o); setSearch("") }}
+                    onClick={() => { setSelectedId(o.id); setSearch("") }}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                      selected?.id === o.id
+                      selectedId === o.id
                         ? "bg-primary/20 border-primary/50 text-primary"
                         : "bg-card border-border/30 text-muted-foreground hover:border-primary/30"
                     }`}
@@ -205,11 +219,10 @@ export default function TrackingPage() {
           </div>
         </section>
 
-        {/* ── Main content ─────────────────────────────────────── */}
+        {/* ── Main content ─────────────────────────────────────────────────── */}
         <section className="py-12 lg:py-16">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {/* Loading skeleton */}
             {loading && (
               <div className="grid lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 h-[460px] rounded-2xl bg-card animate-pulse" />
@@ -220,7 +233,6 @@ export default function TrackingPage() {
               </div>
             )}
 
-            {/* Empty state */}
             {!loading && orders.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -243,7 +255,6 @@ export default function TrackingPage() {
               </motion.div>
             )}
 
-            {/* Order not found from search */}
             {!loading && search && !displayOrder && orders.length > 0 && (
               <motion.p
                 initial={{ opacity: 0 }}
@@ -254,7 +265,6 @@ export default function TrackingPage() {
               </motion.p>
             )}
 
-            {/* Tracking view */}
             <AnimatePresence mode="wait">
               {!loading && displayOrder && (
                 <motion.div
@@ -264,64 +274,29 @@ export default function TrackingPage() {
                   exit={{ opacity: 0 }}
                   className="grid lg:grid-cols-3 gap-8"
                 >
-                  {/* Map panel */}
+                  {/* ── Map panel ─────────────────────────────────────────────── */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ type: "spring", stiffness: 100, damping: 18 }}
                     className="lg:col-span-2"
                   >
-                    <div
-                      className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden border border-border/50"
-                      style={{ background: "linear-gradient(135deg, #0d1117, #161b22)" }}
-                    >
-                      {/* SVG mini-map */}
-                      <svg viewBox="0 0 800 500" className="absolute inset-0 w-full h-full">
-                        <defs>
-                          <pattern id="tgrid" width="30" height="30" patternUnits="userSpaceOnUse">
-                            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#1e2030" strokeWidth="0.6" />
-                          </pattern>
-                        </defs>
-                        <rect width="800" height="500" fill="url(#tgrid)" />
-                        {/* Animated route path */}
-                        <motion.path
-                          d="M100,420 Q200,200 380,300 Q520,380 680,140"
-                          stroke="#3b82f6"
-                          strokeWidth="3"
-                          fill="none"
-                          strokeDasharray="12 6"
-                          initial={{ pathLength: 0, opacity: 0 }}
-                          animate={{ pathLength: 1, opacity: 1 }}
-                          transition={{ duration: 2.5, ease: "easeInOut", delay: 0.3 }}
-                        />
-                        {/* Origin pin */}
-                        <circle cx="100" cy="420" r="10" fill="#8b5cf6" stroke="#fff" strokeWidth="2.5" />
-                        <text x="112" y="435" fontSize="11" fill="#8b5cf6" fontWeight="600">
-                          📦 {displayOrder.vendor?.name ?? "Vendeur"}
-                        </text>
-                        {/* Destination pin */}
-                        <circle cx="680" cy="140" r="10" fill="#22c55e" stroke="#fff" strokeWidth="2.5" />
-                        <text x="585" y="128" fontSize="11" fill="#22c55e" fontWeight="600">🏠 Destination</text>
-                        {/* Rider position */}
-                        <circle cx="380" cy="295" r="18" fill="#3b82f6" stroke="#fff" strokeWidth="3" />
-                        <text x="371" y="302" fontSize="16">🛵</text>
-                      </svg>
-
-                      {/* Rider glow pulse */}
-                      <motion.div
-                        animate={{ boxShadow: ["0 0 0px #3b82f6", "0 0 30px #3b82f6", "0 0 0px #3b82f6"] }}
-                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute rounded-full w-10 h-10 pointer-events-none"
-                        style={{ left: "calc(47% - 20px)", top: "calc(59% - 20px)" }}
+                    <div className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden border border-border/50">
+                      {/* Real Leaflet map with live driver position */}
+                      <LiveMap
+                        center={tracking.driverPosition ?? YAOUNDE}
+                        zoom={tracking.driverPosition ? 15 : 13}
+                        driverPosition={tracking.driverPosition}
+                        className="h-full w-full"
                       />
 
                       {/* Status overlay – top */}
-                      <div className="absolute top-4 left-4 right-4">
+                      <div className="absolute top-4 left-4 right-4 z-[900]">
                         <motion.div
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ type: "spring", stiffness: 120, delay: 0.4 }}
-                          className="backdrop-blur-md bg-black/50 border border-white/10 rounded-xl p-4"
+                          className="backdrop-blur-md bg-black/60 border border-white/10 rounded-xl p-4"
                         >
                           <div className="flex items-center justify-between">
                             <div>
@@ -332,13 +307,26 @@ export default function TrackingPage() {
                                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
                                 </span>
                                 <p className="text-lg font-bold text-green-400">
-                                  {STATUS_LABELS[displayOrder.status] ?? displayOrder.status}
+                                  {STATUS_LABELS[effectiveStatus] ?? effectiveStatus}
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="text-xs text-white/50">Arrivée estimée</p>
-                              <p className="text-lg font-bold text-white">{etaLabel(displayOrder)}</p>
+                            <div className="flex items-center gap-3">
+                              {/* Realtime connection badge */}
+                              <div className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold ${
+                                tracking.connected
+                                  ? "bg-green-500/20 border border-green-500/30 text-green-400"
+                                  : "bg-yellow-500/20 border border-yellow-500/30 text-yellow-400"
+                              }`}>
+                                {tracking.connected
+                                  ? <Wifi className="h-3 w-3" />
+                                  : <WifiOff className="h-3 w-3" />}
+                                {tracking.connected ? "En direct" : "Connexion…"}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-white/50">Arrivée estimée</p>
+                                <p className="text-lg font-bold text-white">{etaLabel(displayOrder)}</p>
+                              </div>
                             </div>
                           </div>
                         </motion.div>
@@ -350,9 +338,9 @@ export default function TrackingPage() {
                           initial={{ opacity: 0, y: 30 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ type: "spring", stiffness: 100, damping: 18, delay: 0.6 }}
-                          className="absolute bottom-4 left-4 right-4"
+                          className="absolute bottom-4 left-4 right-4 z-[900]"
                         >
-                          <div className="backdrop-blur-md bg-black/50 border border-white/10 rounded-xl p-4">
+                          <div className="backdrop-blur-md bg-black/60 border border-white/10 rounded-xl p-4">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#3b82f6] to-[#06b6d4] flex items-center justify-center text-white font-bold text-sm">
@@ -373,25 +361,14 @@ export default function TrackingPage() {
                               </div>
                               <div className="flex items-center gap-2">
                                 {displayOrder.driver.user?.phone && (
-                                  <motion.a
-                                    href={`tel:${displayOrder.driver.user.phone}`}
-                                    whileHover={{ scale: 1.1 }}
-                                  >
-                                    <Button
-                                      size="icon"
-                                      variant="outline"
-                                      className="rounded-full border-white/20 hover:bg-white/10"
-                                    >
+                                  <motion.a href={`tel:${displayOrder.driver.user.phone}`} whileHover={{ scale: 1.1 }}>
+                                    <Button size="icon" variant="outline" className="rounded-full border-white/20 hover:bg-white/10">
                                       <Phone className="h-4 w-4" />
                                     </Button>
                                   </motion.a>
                                 )}
                                 <motion.div whileHover={{ scale: 1.1 }}>
-                                  <Button
-                                    size="icon"
-                                    variant="outline"
-                                    className="rounded-full border-white/20 hover:bg-white/10"
-                                  >
+                                  <Button size="icon" variant="outline" className="rounded-full border-white/20 hover:bg-white/10">
                                     <MessageSquare className="h-4 w-4" />
                                   </Button>
                                 </motion.div>
@@ -403,7 +380,7 @@ export default function TrackingPage() {
                     </div>
                   </motion.div>
 
-                  {/* Details sidebar */}
+                  {/* ── Details sidebar ───────────────────────────────────────── */}
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -428,12 +405,18 @@ export default function TrackingPage() {
                       </div>
                       <div className="flex items-center justify-between mt-3">
                         <span className="text-xs text-white/40">{displayOrder.order_number}</span>
-                        <div className="flex items-center gap-1.5 bg-green-500/20 border border-green-500/30 rounded-full px-2.5 py-1">
+                        <div className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 ${
+                          tracking.connected
+                            ? "bg-green-500/20 border border-green-500/30"
+                            : "bg-yellow-500/20 border border-yellow-500/30"
+                        }`}>
                           <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${tracking.connected ? "bg-green-400" : "bg-yellow-400"}`} />
+                            <span className={`relative inline-flex rounded-full h-2 w-2 ${tracking.connected ? "bg-green-500" : "bg-yellow-500"}`} />
                           </span>
-                          <span className="text-green-400 text-[10px] font-semibold">En direct</span>
+                          <span className={`text-[10px] font-semibold ${tracking.connected ? "text-green-400" : "text-yellow-400"}`}>
+                            {tracking.connected ? "En direct" : "Reconnexion…"}
+                          </span>
                         </div>
                       </div>
                     </motion.div>
@@ -443,7 +426,7 @@ export default function TrackingPage() {
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-foreground">{displayOrder.order_number}</h3>
                         <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                          {STATUS_LABELS[displayOrder.status] ?? displayOrder.status}
+                          {STATUS_LABELS[effectiveStatus] ?? effectiveStatus}
                         </span>
                       </div>
 
