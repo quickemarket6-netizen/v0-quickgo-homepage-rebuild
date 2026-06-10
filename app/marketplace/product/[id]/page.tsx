@@ -89,6 +89,11 @@ export default function ProductPage() {
         vendorName: product.vendor?.name,
       })
     }
+    fetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: product.id, quantity }),
+    }).catch(() => {})
     toast.success(`${quantity}× ${product.name} ajouté au panier`, {
       action: { label: "Voir le panier", onClick: () => router.push("/marketplace/cart") },
     })

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -9,6 +9,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCart } from "@/lib/store/cart"
+import type { CartItem } from "@/lib/store/cart"
 import {
   ShoppingCart,
   Plus,
@@ -22,26 +23,108 @@ import {
   Check,
   Zap,
   PackageOpen,
+  Loader2,
 } from "lucide-react"
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("fr-FR").format(price) + " FCFA"
 }
 
+interface ApiCartItem {
+  id: string
+  product_id: string
+  quantity: number
+  product: {
+    id: string
+    name: string
+    price: number
+    image_url: string | null
+    vendor: { id: string; name: string } | null
+  } | null
+}
+
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, clearCart, getTotalPrice } = useCart()
-  const [promoCode, setPromoCode] = useState("")
-  const [promoApplied, setPromoApplied] = useState(false)
+  const { items, removeItem, updateQuantity, clearCart, setItems, getTotalPrice } = useCart()
+  const [promoCode, setPromoCode]           = useState("")
+  const [promoApplied, setPromoApplied]     = useState(false)
+  const [promoDiscount, setPromoDiscount]   = useState(0)
+  const [promoDescription, setPromoDescription] = useState("")
+  const [promoLoading, setPromoLoading]     = useState(false)
+  const [promoError, setPromoError]         = useState("")
 
-  const subtotal = getTotalPrice()
+  // Load cart from DB on mount — sets cartItemDbId so mutations can call the API
+  useEffect(() => {
+    fetch("/api/cart")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: ApiCartItem[] | null) => {
+        if (!data || data.length === 0) return
+        const mapped: CartItem[] = data
+          .filter((d) => d.product != null)
+          .map((d) => ({
+            id:           d.product!.id,
+            cartItemDbId: d.id,
+            name:         d.product!.name,
+            price:        d.product!.price,
+            quantity:     d.quantity,
+            image:        d.product!.image_url ?? undefined,
+            vendorId:     d.product!.vendor?.id,
+            vendorName:   d.product!.vendor?.name,
+          }))
+        setItems(mapped)
+      })
+      .catch(() => {})
+  }, [setItems])
+
+  const subtotal    = getTotalPrice()
   const deliveryFee = subtotal > 500000 ? 0 : 2500
-  const discount = promoApplied ? Math.round(subtotal * 0.1) : 0
-  const total = subtotal + deliveryFee - discount
+  const total       = subtotal + deliveryFee - promoDiscount
 
-  const applyPromo = () => {
-    if (promoCode.toLowerCase() === "quickgo10") {
-      setPromoApplied(true)
+  const applyPromo = async () => {
+    if (!promoCode) return
+    setPromoLoading(true)
+    setPromoError("")
+    try {
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode, subtotal }),
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setPromoApplied(true)
+        setPromoDiscount(data.discount ?? 0)
+        setPromoDescription(data.description ?? `Code ${promoCode.toUpperCase()} appliqué`)
+      } else {
+        setPromoError("Code promo invalide ou expiré")
+      }
+    } catch {
+      setPromoError("Erreur lors de la validation du code")
+    } finally {
+      setPromoLoading(false)
     }
+  }
+
+  const handleRemove = (item: CartItem) => {
+    if (item.cartItemDbId) {
+      fetch(`/api/cart?id=${item.cartItemDbId}`, { method: "DELETE" }).catch(() => {})
+    }
+    removeItem(item.id)
+  }
+
+  const handleUpdateQuantity = (item: CartItem, qty: number) => {
+    if (item.cartItemDbId) {
+      fetch("/api/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.cartItemDbId, quantity: qty }),
+      }).catch(() => {})
+    }
+    updateQuantity(item.id, qty)
+  }
+
+  const handleClearCart = () => {
+    fetch("/api/cart?clearAll=true", { method: "DELETE" }).catch(() => {})
+    clearCart()
   }
 
   return (
@@ -126,12 +209,14 @@ export default function CartPage() {
                                 {item.color && (
                                   <p className="text-sm text-muted-foreground mt-1">Couleur: {item.color}</p>
                                 )}
-                                {item.vendor && (
-                                  <p className="text-xs text-muted-foreground mt-1">Vendeur: {item.vendor}</p>
+                                {(item.vendor ?? item.vendorName) && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Vendeur: {item.vendor ?? item.vendorName}
+                                  </p>
                                 )}
                               </div>
                               <button
-                                onClick={() => removeItem(item.id)}
+                                onClick={() => handleRemove(item)}
                                 className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -141,14 +226,14 @@ export default function CartPage() {
                             <div className="flex items-end justify-between mt-4">
                               <div className="flex items-center border border-border rounded-xl">
                                 <button
-                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
                                   className="p-2 hover:bg-muted transition-colors rounded-l-xl"
                                 >
                                   <Minus className="w-4 h-4" />
                                 </button>
                                 <span className="w-10 text-center font-medium text-sm">{item.quantity}</span>
                                 <button
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
                                   className="p-2 hover:bg-muted transition-colors rounded-r-xl"
                                 >
                                   <Plus className="w-4 h-4" />
@@ -166,7 +251,7 @@ export default function CartPage() {
 
                   {/* Clear Cart */}
                   <button
-                    onClick={clearCart}
+                    onClick={handleClearCart}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <X className="w-4 h-4" />
@@ -193,20 +278,24 @@ export default function CartPage() {
                           <Input
                             placeholder="Entrez votre code"
                             value={promoCode}
-                            onChange={(e) => setPromoCode(e.target.value)}
+                            onChange={(e) => { setPromoCode(e.target.value); setPromoError("") }}
                             className="pl-10"
                             disabled={promoApplied}
+                            onKeyDown={(e) => e.key === "Enter" && !promoApplied && applyPromo()}
                           />
                         </div>
-                        <Button variant="outline" onClick={applyPromo} disabled={promoApplied || !promoCode}>
-                          {promoApplied ? <Check className="w-4 h-4" /> : "Appliquer"}
+                        <Button variant="outline" onClick={applyPromo} disabled={promoApplied || !promoCode || promoLoading}>
+                          {promoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : promoApplied ? <Check className="w-4 h-4" /> : "Appliquer"}
                         </Button>
                       </div>
                       {promoApplied && (
                         <p className="text-sm text-secondary mt-2 flex items-center gap-1">
                           <Check className="w-4 h-4" />
-                          Code QUICKGO10 appliqué (-10%)
+                          {promoDescription}
                         </p>
+                      )}
+                      {promoError && (
+                        <p className="text-sm text-destructive mt-2">{promoError}</p>
                       )}
                     </div>
 
@@ -222,10 +311,10 @@ export default function CartPage() {
                           {deliveryFee === 0 ? "Gratuite" : formatPrice(deliveryFee)}
                         </span>
                       </div>
-                      {discount > 0 && (
+                      {promoDiscount > 0 && (
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Réduction</span>
-                          <span className="text-secondary">-{formatPrice(discount)}</span>
+                          <span className="text-secondary">-{formatPrice(promoDiscount)}</span>
                         </div>
                       )}
                     </div>

@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Package, Users, Truck, Store, BarChart3,
   Settings, Search, CheckCircle, XCircle, Clock, Eye, Edit2,
   ChevronLeft, ChevronRight, Plus, ShieldCheck, Wallet,
+  UserCheck, UserX, Ban,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -72,6 +73,15 @@ export default function AdminVendorsPage() {
     setSearch(val)
     if (searchTimer.current) clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(() => { setPage(1); fetchVendors(val, statusFilter, 1) }, 350)
+  }
+
+  const patchVendor = async (id: string, updates: Record<string, unknown>) => {
+    const res = await fetch("/api/admin/vendors", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...updates }),
+    })
+    if (res.ok) fetchVendors(search, statusFilter, page)
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -209,11 +219,44 @@ export default function AdminVendorsPage() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-1">
+                            {vendor.status === "pending" && (
+                              <button
+                                title="Approuver"
+                                onClick={() => patchVendor(vendor.id, { status: "active", is_verified: true })}
+                                className="p-1.5 hover:bg-green-500/20 rounded-lg transition-colors"
+                              >
+                                <UserCheck className="w-4 h-4 text-green-400" />
+                              </button>
+                            )}
+                            {vendor.status === "pending" && (
+                              <button
+                                title="Rejeter"
+                                onClick={() => patchVendor(vendor.id, { status: "suspended" })}
+                                className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+                              >
+                                <UserX className="w-4 h-4 text-red-400" />
+                              </button>
+                            )}
+                            {vendor.status === "active" && (
+                              <button
+                                title="Suspendre"
+                                onClick={() => patchVendor(vendor.id, { status: "suspended" })}
+                                className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+                              >
+                                <Ban className="w-4 h-4 text-red-400" />
+                              </button>
+                            )}
+                            {vendor.status === "suspended" && (
+                              <button
+                                title="Réactiver"
+                                onClick={() => patchVendor(vendor.id, { status: "active" })}
+                                className="p-1.5 hover:bg-green-500/20 rounded-lg transition-colors"
+                              >
+                                <CheckCircle className="w-4 h-4 text-green-400" />
+                              </button>
+                            )}
                             <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
                               <Eye className="w-4 h-4 text-muted-foreground" />
-                            </button>
-                            <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-                              <Edit2 className="w-4 h-4 text-muted-foreground" />
                             </button>
                           </div>
                         </td>

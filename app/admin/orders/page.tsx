@@ -83,6 +83,15 @@ export default function AdminOrdersPage() {
     }, 350)
   }
 
+  const patchOrder = async (id: string, status: string) => {
+    const res = await fetch("/api/admin/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status }),
+    })
+    if (res.ok) fetchOrders(search, statusFilter, page)
+  }
+
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
@@ -191,9 +200,9 @@ export default function AdminOrdersPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex items-center gap-3 shrink-0">
                       {order.delivery_address && (
-                        <p className="text-sm text-muted-foreground">{order.delivery_address.city ?? ""}</p>
+                        <p className="text-sm text-muted-foreground hidden lg:block">{order.delivery_address.city ?? ""}</p>
                       )}
                       <div className="text-right">
                         <p className="text-lg font-bold text-white">{formatCFA(order.total_amount)}</p>
@@ -201,9 +210,59 @@ export default function AdminOrdersPage() {
                           <p className="text-xs text-muted-foreground">+{formatCFA(order.delivery_fee)} livraison</p>
                         )}
                       </div>
-                      <Button variant="outline" size="icon" className="h-10 w-10 shrink-0">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      {/* Contextual status-change actions */}
+                      {order.status === "pending" && (
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 text-white shrink-0"
+                          onClick={() => patchOrder(order.id, "confirmed")}
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                          Confirmer
+                        </Button>
+                      )}
+                      {order.status === "confirmed" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-full shrink-0"
+                          onClick={() => patchOrder(order.id, "preparing")}
+                        >
+                          En préparation
+                        </Button>
+                      )}
+                      {order.status === "ready" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-full shrink-0"
+                          onClick={() => patchOrder(order.id, "delivering")}
+                        >
+                          <Truck className="h-3.5 w-3.5 mr-1" />
+                          En livraison
+                        </Button>
+                      )}
+                      {order.status === "delivering" && (
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-full bg-green-600 hover:bg-green-700 text-white shrink-0"
+                          onClick={() => patchOrder(order.id, "delivered")}
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                          Livré
+                        </Button>
+                      )}
+                      {!["delivered", "cancelled"].includes(order.status) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 w-8 rounded-full border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"
+                          title="Annuler"
+                          onClick={() => patchOrder(order.id, "cancelled")}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </motion.div>

@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware"
 
 export interface CartItem {
   id: string
+  cartItemDbId?: string  // DB UUID from cart_items.id, for API mutations
   name: string
   price: number
   quantity: number
@@ -23,6 +24,7 @@ interface CartState {
   removeItem: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
+  setItems: (items: CartItem[]) => void
   getTotal: () => number
   getTotalPrice: () => number
   getItemCount: () => number
@@ -65,6 +67,8 @@ export const useCart = create<CartState>()(
         })),
 
       clearCart: () => set({ items: [] }),
+
+      setItems: (items) => set({ items }),
 
       getTotalPrice: () => {
         const state = get()
