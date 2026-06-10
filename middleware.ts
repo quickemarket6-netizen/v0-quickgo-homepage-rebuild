@@ -61,6 +61,29 @@ async function getRole(req: NextRequest, userId: string): Promise<string> {
   return data?.role ?? "customer"
 }
 
+// ── Security headers ─────────────────────────────────────────────────────────
+
+function applySecurityHeaders(res: NextResponse, pathname: string): NextResponse {
+  res.headers.set("X-Frame-Options", "DENY")
+  res.headers.set("X-Content-Type-Options", "nosniff")
+  res.headers.set("X-XSS-Protection", "1; mode=block")
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=()")
+
+  // Prevent search engines from indexing protected / API routes
+  if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/api")   || pathname.startsWith("/vendor")    ||
+      pathname.startsWith("/driver")) {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow")
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+  }
+
+  return res
+}
+
 // ── Middleware ───────────────────────────────────────────────────────────────
 
 export async function middleware(request: NextRequest) {
@@ -72,7 +95,7 @@ export async function middleware(request: NextRequest) {
   // 2. Auth-only pages (no role check)
   if (AUTH_REQUIRED_PREFIXES.some(p => pathname.startsWith(p))) {
     if (!user) return toLogin(request)
-    return response
+    return applySecurityHeaders(response, pathname)
   }
 
   // 3. Role-protected pages
@@ -88,7 +111,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return response
+  return applySecurityHeaders(response, pathname)
 }
 
 // ── Matcher ──────────────────────────────────────────────────────────────────

