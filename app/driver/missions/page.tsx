@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -25,9 +25,26 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const missions = [
+interface DeliveryJob {
+  id: string
+  order_number?: string
+  type: string
+  merchant: string
+  pickup: string
+  dropoff: string
+  distance: number
+  earnings: number
+  estimatedTime: number
+  surge: number
+  rating: number
+  difficulty: "easy" | "medium" | "hard"
+  traffic: "light" | "moderate" | "heavy"
+  featured: boolean
+}
+
+const _STATIC_MISSIONS: DeliveryJob[] = [
   {
-    id: 1,
+    id: "1",
     type: "restaurant",
     merchant: "Restaurant Le Gourmet",
     pickup: "Bastos, Yaoundé",
@@ -42,7 +59,7 @@ const missions = [
     featured: true,
   },
   {
-    id: 2,
+    id: "2",
     type: "pharmacy",
     merchant: "Pharmacie du Centre",
     pickup: "Centre-ville",
@@ -57,7 +74,7 @@ const missions = [
     featured: false,
   },
   {
-    id: 3,
+    id: "3",
     type: "supermarket",
     merchant: "Santa Lucia",
     pickup: "Omnisports",
@@ -72,7 +89,7 @@ const missions = [
     featured: false,
   },
   {
-    id: 4,
+    id: "4",
     type: "package",
     merchant: "Express Colis",
     pickup: "Mokolo",
@@ -87,7 +104,7 @@ const missions = [
     featured: true,
   },
   {
-    id: 5,
+    id: "5",
     type: "office",
     merchant: "Tech Solutions",
     pickup: "Bastos",
@@ -98,7 +115,7 @@ const missions = [
     surge: 1.8,
     rating: 4.9,
     difficulty: "hard",
-    traffic: "moderate",
+    traffic: "moderate" as const,
     featured: false,
   },
 ]
@@ -133,10 +150,49 @@ const trafficColors: Record<string, { bg: string; text: string }> = {
 
 export default function DriverMissionsPage() {
   const [filter, setFilter] = useState("all")
-  const [selectedMission, setSelectedMission] = useState<number | null>(null)
+  const [selectedMission, setSelectedMission] = useState<string | null>(null)
+  const [missions, setMissions] = useState<DeliveryJob[]>([])
+  const [loading, setLoading] = useState(true)
+  const [accepting, setAccepting] = useState<string | null>(null)
 
-  const filteredMissions = filter === "all" 
-    ? missions 
+  const fetchMissions = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/driver/available")
+      if (res.ok) {
+        const data = await res.json()
+        setMissions(Array.isArray(data) && data.length > 0 ? data : _STATIC_MISSIONS)
+      } else {
+        setMissions(_STATIC_MISSIONS)
+      }
+    } catch {
+      setMissions(_STATIC_MISSIONS)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchMissions() }, [fetchMissions])
+
+  const handleAccept = async (missionId: string) => {
+    setAccepting(missionId)
+    try {
+      const res = await fetch("/api/driver/available", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: missionId }),
+      })
+      if (res.ok) {
+        setMissions(prev => prev.filter(m => m.id !== missionId))
+        setSelectedMission(null)
+      }
+    } finally {
+      setAccepting(null)
+    }
+  }
+
+  const filteredMissions = filter === "all"
+    ? missions
     : missions.filter(m => m.type === filter)
 
   return (
@@ -153,7 +209,7 @@ export default function DriverMissionsPage() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold text-white">Missions disponibles</h1>
-                <p className="text-sm text-muted-foreground">{missions.length} missions proches de vous</p>
+                <p className="text-sm text-muted-foreground">{loading ? "…" : `${missions.length} missions proches de vous`}</p>
               </div>
             </div>
 
@@ -200,8 +256,20 @@ export default function DriverMissionsPage() {
       </header>
 
       <main className="p-4 lg:p-6">
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-4 mb-6">
+            <div className="h-48 rounded-3xl bg-white/5 animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-52 rounded-2xl bg-white/5 animate-pulse" />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Featured Mission */}
-        <motion.div
+        {!loading && filteredMissions.length > 0 && <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
@@ -221,61 +289,71 @@ export default function DriverMissionsPage() {
 
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-14 h-14 rounded-2xl bg-orange-500/20 flex items-center justify-center">
-                    <Utensils className="w-7 h-7 text-orange-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Restaurant Le Gourmet</h3>
-                    <div className="flex items-center gap-2">
-                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                      <span className="text-sm text-white">4.8</span>
-                      <span className="text-xs text-muted-foreground">(256 avis)</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-quickgo-blue" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Pickup</p>
-                      <p className="text-sm text-white">Bastos, Yaoundé</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Navigation className="w-4 h-4 text-quickgo-lime" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Dropoff</p>
-                      <p className="text-sm text-white">Elig-Essono</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 rounded-full bg-quickgo-lime/20 text-quickgo-lime text-xs">
-                    2.8 km
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-quickgo-blue/20 text-quickgo-blue text-xs">
-                    18 min
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-quickgo-lime/20 text-quickgo-lime text-xs">
-                    Trafic fluide
-                  </span>
-                  <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    Surge x1.2
-                  </span>
-                </div>
+                {(() => {
+                  const top = filteredMissions[0]
+                  const TopIcon = typeIcons[top.type] ?? Package
+                  const topColor = typeColors[top.type] ?? "bg-blue-500/20 text-blue-400"
+                  return (
+                    <>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${topColor}`}>
+                          <TopIcon className="w-7 h-7" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-white">{top.merchant}</h3>
+                          <div className="flex items-center gap-2">
+                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                            <span className="text-sm text-white">{top.rating}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-quickgo-blue" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Pickup</p>
+                            <p className="text-sm text-white">{top.pickup}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Navigation className="w-4 h-4 text-quickgo-lime" />
+                          <div>
+                            <p className="text-xs text-muted-foreground">Dropoff</p>
+                            <p className="text-sm text-white">{top.dropoff}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-3 py-1 rounded-full bg-quickgo-lime/20 text-quickgo-lime text-xs">
+                          {top.distance} km
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-quickgo-blue/20 text-quickgo-blue text-xs">
+                          {top.estimatedTime} min
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-quickgo-lime/20 text-quickgo-lime text-xs">
+                          Trafic fluide
+                        </span>
+                        {top.surge > 1 && <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          Surge x{top.surge}
+                        </span>}
+                      </div>
+                    </>
+                  )
+                })()}
               </div>
 
               <div className="lg:text-right flex flex-col justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Gain estimé</p>
-                  <p className="text-4xl font-bold text-quickgo-lime">2 500 <span className="text-lg">CFA</span></p>
+                  <p className="text-4xl font-bold text-quickgo-lime">{filteredMissions[0]?.earnings.toLocaleString()} <span className="text-lg">CFA</span></p>
                 </div>
-                <Button className="mt-4 bg-quickgo-lime text-background hover:bg-quickgo-lime/90 rounded-full h-12 px-8">
-                  Accepter la mission
+                <Button
+                  disabled={accepting === filteredMissions[0]?.id}
+                  onClick={() => filteredMissions[0] && handleAccept(filteredMissions[0].id)}
+                  className="mt-4 bg-quickgo-lime text-background hover:bg-quickgo-lime/90 rounded-full h-12 px-8"
+                >
+                  {accepting === filteredMissions[0]?.id ? "Acceptation…" : "Accepter la mission"}
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
               </div>
@@ -284,7 +362,7 @@ export default function DriverMissionsPage() {
             {/* Decorative */}
             <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-quickgo-blue/30 rounded-full blur-3xl" />
           </div>
-        </motion.div>
+        </motion.div>}
 
         {/* Missions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -368,13 +446,19 @@ export default function DriverMissionsPage() {
                     </div>
                     <Button
                       size="sm"
+                      disabled={accepting === mission.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (selectedMission === mission.id) handleAccept(mission.id)
+                        else setSelectedMission(mission.id)
+                      }}
                       className={`rounded-full ${
                         selectedMission === mission.id
                           ? "bg-quickgo-lime text-background"
                           : "bg-quickgo-blue hover:bg-quickgo-blue/90"
                       }`}
                     >
-                      {selectedMission === mission.id ? "Accepter" : "Détails"}
+                      {accepting === mission.id ? "…" : selectedMission === mission.id ? "Accepter" : "Détails"}
                     </Button>
                   </div>
                 </motion.div>
