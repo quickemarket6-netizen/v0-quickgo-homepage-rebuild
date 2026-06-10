@@ -38,6 +38,7 @@ const categories = [
 
 export default function VendorOnboardingPage() {
   const [step, setStep] = useState(1)
+  const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: "",
@@ -64,6 +65,25 @@ export default function VendorOnboardingPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleSubmit = async () => {
+    if (!canProceed()) return
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/vendor/onboarding", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(formData),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Erreur lors de la soumission")
+      window.location.href = "/vendor/dashboard"
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erreur inattendue")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const canProceed = () => {
@@ -514,16 +534,24 @@ export default function VendorOnboardingPage() {
                 <ChevronRight className="w-5 h-5 ml-2" />
               </Button>
             ) : (
-              <Link href="/vendor/dashboard" className="flex-1">
-                <Button
-                  disabled={!canProceed()}
-                  className="w-full h-14 rounded-xl"
-                  size="lg"
-                >
-                  <CheckCircle2 className="w-5 h-5 mr-2" />
-                  Soumettre ma demande
-                </Button>
-              </Link>
+              <Button
+                disabled={!canProceed() || submitting}
+                onClick={handleSubmit}
+                className="flex-1 h-14 rounded-xl"
+                size="lg"
+              >
+                {submitting ? (
+                  <>
+                    <span className="w-5 h-5 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Soumission…
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 mr-2" />
+                    Soumettre ma demande
+                  </>
+                )}
+              </Button>
             )}
           </div>
         </div>

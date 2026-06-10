@@ -70,7 +70,31 @@ const performanceMetrics = [
 
 export default function DriverEarningsPage() {
   const [period, setPeriod] = useState<"day" | "week" | "month">("week")
-  
+  const [apiData, setApiData] = useState<{
+    total: { earnings: number; deliveries: number; bonuses: number; tips: number }
+    breakdown: { orders: { earnings: number; count: number }; express: { earnings: number; count: number } }
+    completion_rate: number
+    rating: number
+    all_time: { total_earnings: number; total_deliveries: number }
+  } | null>(null)
+
+  useState(() => {
+    fetch(`/api/driver/earnings?period=${period}`)
+      .then(r => r.json())
+      .then(d => setApiData(d))
+      .catch(() => {})
+  })
+
+  const live = apiData?.total
+  const displayEarnings = {
+    today: period === "day"   ? (live?.earnings ?? earningsData.today)   : earningsData.today,
+    week:  period === "week"  ? (live?.earnings ?? earningsData.week)    : earningsData.week,
+    month: period === "month" ? (live?.earnings ?? earningsData.month)   : earningsData.month,
+    todayChange: earningsData.todayChange,
+    weekChange:  earningsData.weekChange,
+    monthChange: earningsData.monthChange,
+  }
+
   const maxEarning = Math.max(...weeklyChart.map(d => d.earnings))
 
   return (

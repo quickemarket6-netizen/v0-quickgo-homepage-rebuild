@@ -41,10 +41,10 @@ const sidebarItems = [
   { icon: DollarSign, label: "Revenus", href: "/driver/earnings" },
   { icon: Wallet, label: "Portefeuille", href: "/wallet" },
   { icon: TrendingUp, label: "Performance", href: "/driver/ranking" },
-  { icon: MessageSquare, label: "Messages", href: "#", badge: 2 },
+  { icon: MessageSquare, label: "Messages", href: "/driver/messages", badge: 2 },
   { icon: Gift, label: "Incitations", href: "/driver/ranking" },
   { icon: HelpCircle, label: "Assistance", href: "/support" },
-  { icon: Settings, label: "Paramètres", href: "#" },
+  { icon: Settings, label: "Paramètres", href: "/driver/settings" },
 ]
 
 const activeZones = [
@@ -66,6 +66,24 @@ const weekDays = [
 
 export default function DriverDashboardPage() {
   const [isOnline, setIsOnline] = useState(true)
+  const [driverName, setDriverName]           = useState<string | null>(null)
+  const [todayEarnings, setTodayEarnings]     = useState<number | null>(null)
+  const [todayDeliveries, setTodayDeliveries] = useState<number | null>(null)
+  const [driverRating, setDriverRating]       = useState<number | null>(null)
+  const [activeMissions, setActiveMissions]   = useState<number>(0)
+
+  useState(() => {
+    fetch("/api/driver")
+      .then(r => r.json())
+      .then(data => {
+        if (data.user?.full_name) setDriverName(data.user.full_name)
+        if (typeof data.today_earnings  === "number") setTodayEarnings(data.today_earnings)
+        if (typeof data.today_deliveries === "number") setTodayDeliveries(data.today_deliveries)
+        if (typeof data.rating           === "number") setDriverRating(data.rating)
+        if (Array.isArray(data.active_missions))        setActiveMissions(data.active_missions.length)
+      })
+      .catch(() => {})
+  })
 
   return (
     <div className="min-h-screen bg-background flex">

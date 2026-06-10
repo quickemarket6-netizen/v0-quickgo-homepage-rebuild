@@ -66,6 +66,37 @@ const currentDriver = {
 
 export default function DriverRankingPage() {
   const [view, setView] = useState<"city" | "national">("city")
+  const [apiLeaderboard, setApiLeaderboard] = useState<typeof leaderboard | null>(null)
+  const [apiMe, setApiMe]                   = useState<typeof currentDriver | null>(null)
+  const [apiMyRank, setApiMyRank]           = useState<number | null>(null)
+
+  useState(() => {
+    fetch(`/api/driver/ranking?scope=${view}&limit=20`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.leaderboard?.length) {
+          setApiLeaderboard(d.leaderboard.map((r: {
+            rank: number; name: string; earnings: number; trips: number; rating: number; city: string
+          }) => ({
+            rank: r.rank, name: r.name, avatar: null,
+            earnings: r.earnings, trips: r.trips, rating: r.rating, streak: 0, city: r.city,
+          })))
+        }
+        if (d.me) {
+          setApiMe({
+            name: "Vous", rank: d.my_rank, totalRank: d.total_drivers,
+            earnings: d.me.earnings, trips: d.me.trips, rating: d.me.rating,
+            streak: d.me.streak, level: d.me.level, xp: d.me.xp, xpMax: d.me.xp_max,
+            nextReward: "25 000 CFA",
+          })
+          setApiMyRank(d.my_rank)
+        }
+      })
+      .catch(() => {})
+  })
+
+  const displayLeaderboard = apiLeaderboard ?? leaderboard
+  const displayMe          = apiMe          ?? currentDriver
 
   return (
     <div className="min-h-screen bg-background">
@@ -100,7 +131,7 @@ export default function DriverRankingPage() {
               <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-yellow-500">
                 <Image
                   src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0024-U4s2UDpvENxwAdPCezTrWL95wI71B4.jpg"
-                  alt={currentDriver.name}
+                  alt={displayMe.name}
                   width={96}
                   height={96}
                   className="object-cover"
@@ -112,15 +143,15 @@ export default function DriverRankingPage() {
             </div>
 
             <div className="flex-1 text-center lg:text-left">
-              <h2 className="text-2xl font-bold text-white mb-1">{currentDriver.name}</h2>
+              <h2 className="text-2xl font-bold text-white mb-1">{displayMe.name}</h2>
               <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
                 <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-sm font-semibold flex items-center gap-1">
                   <Crown className="w-4 h-4" />
-                  Niveau {currentDriver.level}
+                  Niveau {displayMe.level}
                 </span>
                 <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 text-sm flex items-center gap-1">
                   <Flame className="w-4 h-4" />
-                  {currentDriver.streak} jours
+                  {displayMe.streak} jours
                 </span>
               </div>
 
@@ -128,43 +159,43 @@ export default function DriverRankingPage() {
               <div className="max-w-md">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Progression niveau</span>
-                  <span className="text-sm text-white">{currentDriver.xp} / {currentDriver.xpMax} XP</span>
+                  <span className="text-sm text-white">{displayMe.xp} / {displayMe.xpMax} XP</span>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-3">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${(currentDriver.xp / currentDriver.xpMax) * 100}%` }}
+                    animate={{ width: `${(displayMe.xp / displayMe.xpMax) * 100}%` }}
                     transition={{ duration: 1, delay: 0.3 }}
                     className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 h-3 rounded-full"
                   />
                 </div>
                 <p className="text-xs text-quickgo-lime mt-2 flex items-center gap-1">
                   <Gift className="w-4 h-4" />
-                  Prochaine récompense: {currentDriver.nextReward}
+                  Prochaine récompense: {displayMe.nextReward}
                 </p>
               </div>
             </div>
 
             <div className="text-center lg:text-right">
               <p className="text-sm text-muted-foreground mb-1">Classement ville</p>
-              <p className="text-5xl font-bold text-white">#{currentDriver.rank}</p>
-              <p className="text-sm text-muted-foreground">sur {currentDriver.totalRank} livreurs</p>
+              <p className="text-5xl font-bold text-white">#{displayMe.rank}</p>
+              <p className="text-sm text-muted-foreground">sur {displayMe.totalRank} livreurs</p>
             </div>
           </div>
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{currentDriver.earnings.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-white">{displayMe.earnings.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">CFA ce mois</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-white">{currentDriver.trips}</p>
+              <p className="text-2xl font-bold text-white">{displayMe.trips}</p>
               <p className="text-xs text-muted-foreground">Courses totales</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-white flex items-center justify-center gap-1">
-                {currentDriver.rating}
+                {displayMe.rating}
                 <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
               </p>
               <p className="text-xs text-muted-foreground">Note moyenne</p>
@@ -248,7 +279,7 @@ export default function DriverRankingPage() {
 
             {/* Full List */}
             <div className="space-y-2">
-              {leaderboard.slice(3).map((driver, index) => (
+              {displayLeaderboard.slice(3).map((driver, index) => (
                 <motion.div
                   key={driver.rank}
                   initial={{ opacity: 0, x: -20 }}
