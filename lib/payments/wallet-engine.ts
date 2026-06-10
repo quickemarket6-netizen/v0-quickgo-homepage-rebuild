@@ -204,9 +204,9 @@ export async function getVendorWallet(vendorId: string): Promise<WalletBalance |
     vendorId: data.vendor_id,
     pendingBalance: data.pending_balance,
     availableBalance: data.available_balance,
-    withdrawnBalance: data.withdrawn_balance,
+    withdrawnBalance: data.total_withdrawn,
     totalEarned: data.total_earned,
-    totalSales: data.total_sales,
+    totalSales: data.total_earned,  // total_sales not stored separately — use total_earned
     frozen: data.frozen,
     freezeReason: data.freeze_reason,
   }
@@ -331,7 +331,6 @@ export async function approveAndProcessPayout(
   const { data: deductResult } = await supabase.rpc("deduct_vendor_payout", {
     p_vendor_id: payout.vendor_id,
     p_amount: payout.amount,
-    p_payout_id: payoutId,
   })
 
   if (!deductResult?.success) {
@@ -372,7 +371,7 @@ export async function completePayoutTransfer(
       status: "completed",
       cinetpay_transaction_id: cinetpayTransactionId,
       cinetpay_reference: cinetpayReference,
-      completed_at: new Date().toISOString(),
+      processed_at: new Date().toISOString(),
     })
     .eq("id", payoutId)
     .in("status", ["processing", "approved"])
@@ -431,9 +430,10 @@ export async function rejectPayout(
 
   // If was approved (funds already deducted), refund back to available
   if (payout.status === "approved") {
-    await supabase.rpc("refund_payout_to_available" as string, {
+    await supabase.rpc("refund_payout_to_available", {
       p_vendor_id: payout.vendor_id,
       p_amount: payout.amount,
+      p_payout_id: payoutId,
     })
   }
 
