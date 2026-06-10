@@ -75,14 +75,14 @@ export async function POST(request: NextRequest) {
         // Log communication
         await supabase.from('communication_logs').insert({
           user_id: user.id,
-          message_type: messageType,
-          channels: channels,
-          title,
+          type: messageType,
+          channel: (channels as string[]).join(','),
+          subject: title,
           content,
-          recipients_count: contacts.length,
-          results,
-          status: 'sent'
-        }).select().single()
+          recipient: `${contacts.length} destinataires`,
+          results_json: results,
+          status: 'sent',
+        })
 
         return NextResponse.json({
           success: true,

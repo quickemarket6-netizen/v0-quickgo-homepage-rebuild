@@ -1,9 +1,9 @@
 // Unified Communication Service
-// Handles: Push notifications, SMS, WhatsApp, Email, In-app popups
+// Handles: Push notifications, SMS (Africa's Talking), WhatsApp Business API, Email, In-app
 
 export type CommunicationChannel = 'push' | 'email' | 'sms' | 'whatsapp' | 'popup' | 'call'
 
-export type MessageType = 
+export type MessageType =
   | 'promotion'
   | 'order_update'
   | 'delivery_update'
@@ -43,243 +43,263 @@ export interface NotificationPayload {
   data?: Record<string, unknown>
 }
 
-// WhatsApp message templates
+// ── Phone normaliser ─────────────────────────────────────────
+// Converts any Cameroonian format to E.164 (+237XXXXXXXXX)
+function normalisePhone(raw: string): string {
+  let p = raw.replace(/[\s\-\(\)\.]/g, '')
+  if (p.startsWith('+'))  return p
+  if (p.startsWith('00')) return '+' + p.slice(2)
+  if (p.startsWith('237')) return '+' + p
+  // Cameroonian numbers start with 6
+  if (p.startsWith('6')) return '+237' + p
+  return '+' + p
+}
+
+// ── WhatsApp templates ───────────────────────────────────────
 export const whatsappTemplates = {
   order_confirmation: (data: { orderId: string; total: number; items: number }) => ({
     template: 'order_confirmation',
-    params: [data.orderId, `${data.items} articles`, `${data.total.toLocaleString()} FCFA`]
+    params: [data.orderId, `${data.items} articles`, `${data.total.toLocaleString()} FCFA`],
   }),
   delivery_update: (data: { orderId: string; status: string; eta?: string }) => ({
     template: 'delivery_update',
-    params: [data.orderId, data.status, data.eta || 'Bientot']
+    params: [data.orderId, data.status, data.eta ?? 'Bientôt'],
   }),
   promotion: (data: { code: string; discount: string; expiry: string }) => ({
     template: 'promotion',
-    params: [data.code, data.discount, data.expiry]
+    params: [data.code, data.discount, data.expiry],
   }),
   support_response: (data: { ticketId: string; message: string }) => ({
     template: 'support_response',
-    params: [data.ticketId, data.message]
-  })
+    params: [data.ticketId, data.message],
+  }),
 }
 
-// SMS templates (short messages)
+// ── SMS templates ────────────────────────────────────────────
 export const smsTemplates = {
-  order_confirmation: (data: { orderId: string; total: number }) => 
-    `QuickGo: Commande #${data.orderId} confirmee! Total: ${data.total.toLocaleString()} FCFA. Suivez votre commande sur quickgo.cm`,
-  
+  order_confirmation: (data: { orderId: string; total: number }) =>
+    `QuickGo: Commande #${data.orderId} confirmee! Total: ${data.total.toLocaleString()} FCFA. Suivi: quickgo.cm`,
+
   delivery_arriving: (data: { minutes: number; driverName: string }) =>
-    `QuickGo: Votre livreur ${data.driverName} arrive dans ${data.minutes} min! Preparez-vous.`,
-  
+    `QuickGo: ${data.driverName} arrive dans ${data.minutes} min! Preparez-vous.`,
+
   verification_code: (data: { code: string }) =>
-    `QuickGo: Votre code de verification est ${data.code}. Ne le partagez avec personne.`,
-  
+    `QuickGo: Votre code de verification est ${data.code}. Ne le partagez pas.`,
+
   promotion: (data: { code: string; discount: string }) =>
-    `QuickGo: ${data.discount} avec le code ${data.code}! Commandez maintenant sur quickgo.cm`,
-  
+    `QuickGo: ${data.discount} avec le code ${data.code}! quickgo.cm`,
+
   payment_alert: (data: { amount: number; code: string }) =>
-    `QuickGo: Validez votre paiement de ${data.amount.toLocaleString()} FCFA. Code: ${data.code}`
+    `QuickGo: Validez votre paiement de ${data.amount.toLocaleString()} FCFA. Code: ${data.code}`,
 }
 
-// Push notification service
+// ── Push Notification Service ────────────────────────────────
 export class PushNotificationService {
-  private vapidPublicKey: string
-  private vapidPrivateKey: string
-
-  constructor() {
-    this.vapidPublicKey = process.env.VAPID_PUBLIC_KEY || ''
-    this.vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || ''
-  }
-
-  async sendPush(subscription: PushSubscription, payload: NotificationPayload) {
-    // In production, use web-push library
-    console.log('[Push] Sending to subscription:', subscription.endpoint)
+  async sendPush(_subscription: PushSubscription, payload: NotificationPayload) {
+    // Production: use the `web-push` npm package with VAPID keys.
+    // VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set.
     console.log('[Push] Payload:', payload)
-    
-    // Simulated success
-    return { success: true, endpoint: subscription.endpoint }
+    return { success: true }
   }
 
   async sendBulkPush(subscriptions: PushSubscription[], payload: NotificationPayload) {
-    const results = await Promise.allSettled(
-      subscriptions.map(sub => this.sendPush(sub, payload))
-    )
-    
+    const results = await Promise.allSettled(subscriptions.map(s => this.sendPush(s, payload)))
     return {
       total: subscriptions.length,
       success: results.filter(r => r.status === 'fulfilled').length,
-      failed: results.filter(r => r.status === 'rejected').length
+      failed:  results.filter(r => r.status === 'rejected').length,
     }
   }
 }
 
-// WhatsApp Business API service
+// ── WhatsApp Business API ────────────────────────────────────
 export class WhatsAppService {
-  private apiUrl: string
-  private accessToken: string
-  private phoneNumberId: string
+  private readonly apiBase = 'https://graph.facebook.com/v21.0'
+  private readonly accessToken  = process.env.WHATSAPP_ACCESS_TOKEN   ?? ''
+  private readonly phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID ?? ''
 
-  constructor() {
-    this.apiUrl = 'https://graph.facebook.com/v17.0'
-    this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN || ''
-    this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || ''
+  private get configured() {
+    return Boolean(this.accessToken && this.phoneNumberId)
   }
 
-  async sendMessage(to: string, message: string) {
-    const url = `${this.apiUrl}/${this.phoneNumberId}/messages`
-    
+  async sendMessage(to: string, message: string): Promise<{ success: boolean; messageId?: string; fallbackUrl?: string }> {
+    const phone = normalisePhone(to)
+
+    if (!this.configured) {
+      console.warn('[WhatsApp] Not configured — falling back to link')
+      return { success: false, fallbackUrl: this.generateChatLink(phone, message) }
+    }
+
     try {
-      const response = await fetch(url, {
+      const res = await fetch(`${this.apiBase}/${this.phoneNumberId}/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
-          to: this.formatPhoneNumber(to),
+          to: phone,
           type: 'text',
-          text: { body: message }
-        })
+          text: { body: message },
+        }),
       })
 
-      if (!response.ok) {
-        throw new Error(`WhatsApp API error: ${response.status}`)
+      if (!res.ok) {
+        const err = await res.text()
+        throw new Error(`WhatsApp API ${res.status}: ${err}`)
       }
 
-      return await response.json()
+      const json = await res.json()
+      return { success: true, messageId: json.messages?.[0]?.id }
     } catch (error) {
-      console.error('[WhatsApp] Error sending message:', error)
-      // Fallback: Generate WhatsApp link for manual sending
-      return {
-        success: false,
-        fallbackUrl: `https://wa.me/${this.formatPhoneNumber(to)}?text=${encodeURIComponent(message)}`
-      }
+      console.error('[WhatsApp] Error:', error)
+      return { success: false, fallbackUrl: this.generateChatLink(phone, message) }
     }
   }
 
   async sendTemplate(to: string, templateName: string, params: string[]) {
-    const url = `${this.apiUrl}/${this.phoneNumberId}/messages`
-    
+    const phone = normalisePhone(to)
+
+    if (!this.configured) {
+      return { success: false, error: 'WhatsApp not configured' }
+    }
+
     try {
-      const response = await fetch(url, {
+      const res = await fetch(`${this.apiBase}/${this.phoneNumberId}/messages`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
-          to: this.formatPhoneNumber(to),
+          to: phone,
           type: 'template',
           template: {
             name: templateName,
             language: { code: 'fr' },
             components: [{
               type: 'body',
-              parameters: params.map(p => ({ type: 'text', text: p }))
-            }]
-          }
-        })
+              parameters: params.map(p => ({ type: 'text', text: p })),
+            }],
+          },
+        }),
       })
 
-      return await response.json()
+      if (!res.ok) throw new Error(`WhatsApp API ${res.status}`)
+      return { success: true, ...(await res.json()) }
     } catch (error) {
-      console.error('[WhatsApp] Error sending template:', error)
+      console.error('[WhatsApp] Template error:', error)
       return { success: false, error }
     }
   }
 
-  private formatPhoneNumber(phone: string): string {
-    // Remove spaces and special characters
-    let cleaned = phone.replace(/[\s\-\(\)]/g, '')
-    
-    // Add country code if missing
-    if (cleaned.startsWith('6')) {
-      cleaned = '237' + cleaned
-    } else if (cleaned.startsWith('+')) {
-      cleaned = cleaned.substring(1)
-    }
-    
-    return cleaned
-  }
-
-  // Generate click-to-chat link
   generateChatLink(phone: string, message?: string): string {
-    const formattedPhone = this.formatPhoneNumber(phone)
-    let url = `https://wa.me/${formattedPhone}`
-    if (message) {
-      url += `?text=${encodeURIComponent(message)}`
-    }
-    return url
+    const p = normalisePhone(phone).replace('+', '')
+    return message
+      ? `https://wa.me/${p}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/${p}`
   }
 }
 
-// SMS Service (using Africa's Talking or similar)
+// ── SMS Service — Africa's Talking ───────────────────────────
+// Docs: https://developers.africastalking.com/docs/sms/sending
 export class SMSService {
-  private apiKey: string
-  private senderId: string
+  private readonly apiKey   = process.env.AFRICASTALKING_API_KEY   ?? ''
+  private readonly username = process.env.AFRICASTALKING_USERNAME   ?? 'sandbox'
+  private readonly senderId = process.env.SMS_SENDER_ID             ?? 'QuickGo'
 
-  constructor() {
-    this.apiKey = process.env.SMS_API_KEY || ''
-    this.senderId = process.env.SMS_SENDER_ID || 'QuickGo'
+  // Africa's Talking uses a sandbox endpoint for testing
+  private get apiUrl() {
+    return this.username === 'sandbox'
+      ? 'https://api.sandbox.africastalking.com/version1/messaging'
+      : 'https://api.africastalking.com/version1/messaging'
   }
 
-  async sendSMS(to: string, message: string) {
-    // Format phone number
-    let phone = to.replace(/[\s\-\(\)]/g, '')
-    if (phone.startsWith('6')) {
-      phone = '+237' + phone
-    } else if (!phone.startsWith('+')) {
-      phone = '+' + phone
+  private get configured() {
+    return Boolean(this.apiKey && this.username !== 'sandbox')
+  }
+
+  async sendSMS(to: string, message: string): Promise<{ success: boolean; messageId?: string; cost?: number; error?: string }> {
+    const phone = normalisePhone(to)
+
+    if (!this.configured) {
+      // Sandbox mode — still hits the AT sandbox so devs can test
+      console.log(`[SMS] Sandbox → ${phone}: ${message}`)
     }
 
-    // In production, integrate with SMS provider (Africa's Talking, Twilio, etc.)
-    console.log(`[SMS] Sending to ${phone}: ${message}`)
-    
-    // Simulated response
-    return {
-      success: true,
-      messageId: `sms_${Date.now()}`,
-      to: phone,
-      cost: 25 // FCFA per SMS
+    try {
+      const body = new URLSearchParams({
+        username: this.username,
+        to:       phone,
+        message,
+        from:     this.senderId,
+      })
+
+      const res = await fetch(this.apiUrl, {
+        method: 'POST',
+        headers: {
+          apiKey: this.apiKey || 'sandbox_key',
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body,
+      })
+
+      if (!res.ok) {
+        const err = await res.text()
+        throw new Error(`AT API ${res.status}: ${err}`)
+      }
+
+      const json = await res.json()
+      const recipient = json.SMSMessageData?.Recipients?.[0]
+
+      if (recipient?.statusCode !== 101) {
+        throw new Error(recipient?.status ?? 'Unknown AT error')
+      }
+
+      return {
+        success:   true,
+        messageId: recipient.messageId,
+        cost:      parseFloat(recipient.cost?.replace(/[^\d.]/g, '') ?? '0'),
+      }
+    } catch (error) {
+      console.error('[SMS] Error:', error)
+      return { success: false, error: String(error) }
     }
   }
 
   async sendBulkSMS(recipients: string[], message: string) {
-    const results = await Promise.allSettled(
-      recipients.map(to => this.sendSMS(to, message))
-    )
-    
+    const results = await Promise.allSettled(recipients.map(r => this.sendSMS(r, message)))
+    const succeeded = results.filter((r): r is PromiseFulfilledResult<{ success: boolean; cost?: number }> =>
+      r.status === 'fulfilled' && r.value.success)
     return {
-      total: recipients.length,
-      success: results.filter(r => r.status === 'fulfilled').length,
-      failed: results.filter(r => r.status === 'rejected').length,
-      totalCost: results.filter(r => r.status === 'fulfilled').length * 25
+      total:     recipients.length,
+      success:   succeeded.length,
+      failed:    recipients.length - succeeded.length,
+      totalCost: succeeded.reduce((s, r) => s + (r.value.cost ?? 0), 0),
     }
   }
 }
 
-// Unified Communication Manager
+// ── Unified Communication Manager ───────────────────────────
 export class CommunicationManager {
-  private pushService: PushNotificationService
-  private whatsappService: WhatsAppService
-  private smsService: SMSService
+  private push     = new PushNotificationService()
+  private whatsapp = new WhatsAppService()
+  private sms      = new SMSService()
 
-  constructor() {
-    this.pushService = new PushNotificationService()
-    this.whatsappService = new WhatsAppService()
-    this.smsService = new SMSService()
-  }
-
-  async sendMessage(message: Message, contacts: { phone?: string; email?: string; pushSubscription?: PushSubscription }[]) {
+  async sendMessage(
+    message: Message,
+    contacts: { phone?: string; email?: string; pushSubscription?: PushSubscription }[],
+  ) {
     const results: Record<CommunicationChannel, { success: number; failed: number }> = {
-      push: { success: 0, failed: 0 },
-      email: { success: 0, failed: 0 },
-      sms: { success: 0, failed: 0 },
+      push:     { success: 0, failed: 0 },
+      email:    { success: 0, failed: 0 },
+      sms:      { success: 0, failed: 0 },
       whatsapp: { success: 0, failed: 0 },
-      popup: { success: 0, failed: 0 },
-      call: { success: 0, failed: 0 }
+      popup:    { success: 0, failed: 0 },
+      call:     { success: 0, failed: 0 },
     }
 
     for (const channel of message.channels) {
@@ -288,43 +308,36 @@ export class CommunicationManager {
           switch (channel) {
             case 'push':
               if (contact.pushSubscription) {
-                await this.pushService.sendPush(contact.pushSubscription, {
-                  title: message.title,
-                  body: message.body,
-                  data: message.data
-                })
+                await this.push.sendPush(contact.pushSubscription, { title: message.title, body: message.body, data: message.data })
                 results.push.success++
               }
               break
 
             case 'sms':
               if (contact.phone) {
-                await this.smsService.sendSMS(contact.phone, `${message.title}: ${message.body}`)
-                results.sms.success++
+                const r = await this.sms.sendSMS(contact.phone, `${message.title}: ${message.body}`)
+                r.success ? results.sms.success++ : results.sms.failed++
               }
               break
 
             case 'whatsapp':
               if (contact.phone) {
-                await this.whatsappService.sendMessage(contact.phone, `*${message.title}*\n\n${message.body}`)
-                results.whatsapp.success++
+                const r = await this.whatsapp.sendMessage(contact.phone, `*${message.title}*\n\n${message.body}`)
+                r.success ? results.whatsapp.success++ : results.whatsapp.failed++
               }
               break
 
             case 'email':
-              // Email is handled by the existing email service
-              if (contact.email) {
-                results.email.success++
-              }
+              // Email handled separately via /api/email
+              if (contact.email) results.email.success++
               break
 
             case 'popup':
-              // Popup notifications are handled client-side
               results.popup.success++
               break
           }
         } catch (error) {
-          console.error(`[Communication] Error on ${channel}:`, error)
+          console.error(`[Communication] ${channel} error:`, error)
           results[channel].failed++
         }
       }
@@ -334,17 +347,12 @@ export class CommunicationManager {
   }
 
   getWhatsAppLink(phone: string, message?: string): string {
-    return this.whatsappService.generateChatLink(phone, message)
+    return this.whatsapp.generateChatLink(phone, message)
   }
 
   getCallLink(phone: string): string {
-    let formatted = phone.replace(/[\s\-\(\)]/g, '')
-    if (formatted.startsWith('6')) {
-      formatted = '+237' + formatted
-    }
-    return `tel:${formatted}`
+    return `tel:${normalisePhone(phone)}`
   }
 }
 
-// Export singleton instance
 export const communicationManager = new CommunicationManager()
