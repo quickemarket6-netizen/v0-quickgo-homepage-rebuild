@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
   // ── KPI ────────────────────────────────────────────────────────
   const { data: kpiRows } = await supabase
     .from("vendor_payouts")
-    .select("status, amount, created_at")
+    .select("status, amount, created_at, payout_method, owner_type")
 
   const now = new Date()
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
 
   // ── approve: deduct wallet + mark processing ────────────────────
   if (body.action === "approve") {
-    const result = await approveAndProcessPayout(body.payout_id, admin.adminId, ipAddress)
+    const result = await approveAndProcessPayout(body.payout_id, admin.adminId!, ipAddress)
     if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 })
 
     // Fetch payout to fire CinetPay transfer immediately
@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
     if (!body.reason?.trim()) {
       return NextResponse.json({ error: "reason requis pour rejection" }, { status: 400 })
     }
-    const result = await rejectPayout(body.payout_id, admin.adminId, body.reason, ipAddress)
+    const result = await rejectPayout(body.payout_id, admin.adminId!, body.reason, ipAddress)
     if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 })
     return NextResponse.json({ success: true })
   }

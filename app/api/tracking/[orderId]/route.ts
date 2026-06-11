@@ -5,10 +5,10 @@ import { NextRequest, NextResponse } from "next/server"
 // Returns order details, tracking timeline, and last-known driver position.
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { orderId: string } },
+  { params }: { params: Promise<{ orderId: string }> },
 ) {
   const supabase = await createClient()
-  const { orderId } = params
+  const { orderId } = await params
 
   const [orderRes, eventsRes] = await Promise.all([
     supabase

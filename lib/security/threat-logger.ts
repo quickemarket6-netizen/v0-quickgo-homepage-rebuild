@@ -71,6 +71,9 @@ export async function logLoginAttempt(params: {
   fingerprint?: string
   country?: string
   city?: string
+  device?: string
+  browser?: string
+  os?: string
   status: "success" | "failed" | "blocked" | "suspicious"
   failureReason?: string
 }): Promise<void> {

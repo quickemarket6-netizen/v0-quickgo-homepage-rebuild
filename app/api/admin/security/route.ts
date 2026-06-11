@@ -147,13 +147,13 @@ export async function POST(req: NextRequest) {
     await blockIPPersistent({
       ip:           body.ip,
       reason:       body.reason ?? "Manuel — admin action",
-      blockedBy:    admin.adminId,
+      blockedBy:    admin.adminId!,
       durationHours: body.duration_hours ?? undefined,
       autoBlocked:  false,
     })
 
     await logAdminAction({
-      adminId:   admin.adminId,
+      adminId:   admin.adminId!,
       action:    "block",
       resource:  "ip_address",
       resourceId: body.ip,
@@ -168,10 +168,10 @@ export async function POST(req: NextRequest) {
   if (body.action === "unblock_ip") {
     if (!body.ip) return NextResponse.json({ error: "ip requis" }, { status: 400 })
 
-    await unblockIPPersistent({ ip: body.ip, unblockedBy: admin.adminId })
+    await unblockIPPersistent({ ip: body.ip, unblockedBy: admin.adminId! })
 
     await logAdminAction({
-      adminId:   admin.adminId,
+      adminId:   admin.adminId!,
       action:    "unblock",
       resource:  "ip_address",
       resourceId: body.ip,
@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
       .from("security_logs")
       .update({
         acknowledged:    true,
-        acknowledged_by: admin.adminId,
+        acknowledged_by: admin.adminId!,
         acknowledged_at: new Date().toISOString(),
       })
       .eq("id", body.threat_id)
@@ -206,7 +206,7 @@ export async function POST(req: NextRequest) {
       .from("security_logs")
       .update({
         acknowledged:    true,
-        acknowledged_by: admin.adminId,
+        acknowledged_by: admin.adminId!,
         acknowledged_at: new Date().toISOString(),
       })
       .eq("acknowledged", false)
