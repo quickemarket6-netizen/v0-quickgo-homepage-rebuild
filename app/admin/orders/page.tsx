@@ -231,6 +231,17 @@ export default function AdminOrdersPage() {
                           En préparation
                         </Button>
                       )}
+                      {order.status === "preparing" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-full shrink-0"
+                          onClick={() => patchOrder(order.id, "ready")}
+                        >
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                          Prêt
+                        </Button>
+                      )}
                       {order.status === "ready" && (
                         <Button
                           size="sm"
