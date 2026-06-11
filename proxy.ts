@@ -10,7 +10,15 @@ const ROLE_ROUTES = [
   { prefix: "/driver", allowed: ["driver"]               },
 ] as const
 
-const AUTH_REQUIRED_PREFIXES = ["/dashboard", "/profile", "/marketplace/orders", "/marketplace/checkout"]
+const AUTH_REQUIRED_PREFIXES = [
+  "/dashboard",
+  "/profile",
+  "/marketplace/orders",
+  "/marketplace/checkout",
+  "/wallet",
+  "/delivery",
+  "/notifications",
+]
 
 // ── Redirects ─────────────────────────────────────────────────────────────────
 

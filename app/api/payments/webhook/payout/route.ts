@@ -5,10 +5,11 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 import { completePayoutTransfer } from "@/lib/payments/wallet-engine"
+import { checkTransferStatus } from "@/lib/payments/cinetpay"
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  const { client_transaction_id, transaction_id, status } = body
+  const { client_transaction_id, transaction_id } = body
 
   if (!client_transaction_id) {
     return NextResponse.json({ error: "Missing client_transaction_id" }, { status: 400 })
@@ -25,9 +26,17 @@ export async function POST(req: NextRequest) {
   if (!payout) return NextResponse.json({ error: "Payout not found" }, { status: 404 })
   if (payout.status === "completed") return NextResponse.json({ message: "Already completed" })
 
-  if (status === "SUCCESS" || status === "ACCEPTED") {
+  // Never trust the status in the webhook body — re-verify with CinetPay's API.
+  // A spoofed POST could otherwise mark a payout SUCCESS or trigger a refund.
+  const verification = await checkTransferStatus(client_transaction_id)
+  if (!verification.success || !verification.status) {
+    return NextResponse.json({ error: "Unable to verify transfer status" }, { status: 502 })
+  }
+  const status = verification.status
+
+  if (status === "SUCCESS") {
     await completePayoutTransfer(payout.id, transaction_id ?? "", client_transaction_id)
-  } else if (status === "FAILED" || status === "REFUSED") {
+  } else if (status === "FAILED") {
     // Mark failed + refund to available balance
     await supabase
       .from("vendor_payouts")

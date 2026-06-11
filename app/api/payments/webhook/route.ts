@@ -6,7 +6,7 @@
 
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-import { verifyPayment } from "@/lib/payments/cinetpay"
+import { verifyPayment, validateWebhookSignature } from "@/lib/payments/cinetpay"
 import { creditVendorPending, calculateCommission } from "@/lib/payments/wallet-engine"
 
 // CinetPay sends POST with form data or JSON
@@ -26,6 +26,19 @@ export async function POST(req: NextRequest) {
 
   if (!cpm_trans_id) {
     return NextResponse.json({ error: "Missing transaction_id" }, { status: 400 })
+  }
+
+  // Reject webhooks that don't target our CinetPay site
+  const expectedSiteId = process.env.CINETPAY_SITE_ID
+  if (expectedSiteId && cpm_site_id && cpm_site_id !== expectedSiteId) {
+    return NextResponse.json({ error: "Invalid site_id" }, { status: 401 })
+  }
+
+  // Validate signature when CinetPay provides one (defense in depth on top of
+  // the double-verification with verifyPayment below)
+  const receivedSig = body.signature ?? req.headers.get("x-token") ?? ""
+  if (receivedSig && !validateWebhookSignature(body, receivedSig)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
   }
 
   const supabase = await createClient()

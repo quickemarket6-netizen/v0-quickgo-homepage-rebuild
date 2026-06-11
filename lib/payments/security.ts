@@ -6,8 +6,18 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest } from "next/server"
 
-// In-memory rate limiting (use Redis in production)
+// In-memory rate limiting.
+// NOTE: state is per-instance and is lost on redeploy / not shared across
+// serverless instances. For strong, distributed limits use Redis (e.g.
+// @upstash/redis) in production. The cleanup below bounds memory growth.
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>()
+
+// Evict expired entries so the Map can't grow unbounded over the process life.
+function evictExpired(now: number): void {
+  for (const [key, entry] of rateLimitStore) {
+    if (now > entry.resetAt) rateLimitStore.delete(key)
+  }
+}
 
 export interface RateLimitConfig {
   maxRequests: number
@@ -33,6 +43,10 @@ export function checkRateLimit(key: string, config: RateLimitConfig): {
   resetAt: number
 } {
   const now = Date.now()
+
+  // Opportunistically purge stale keys (cheap, runs ~1/100 calls)
+  if (Math.random() < 0.01) evictExpired(now)
+
   const entry = rateLimitStore.get(key)
 
   if (!entry || now > entry.resetAt) {

@@ -59,10 +59,10 @@ export async function PUT(
     return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
   }
   
-  const raw = await request.json()
+  const raw = (await request.json()) as Record<string, unknown>
 
   // Only allow fields a customer is permitted to set
-  const ALLOWED: Array<keyof typeof raw> = ["rating", "review", "cancellation_reason"]
+  const ALLOWED = ["rating", "review", "cancellation_reason"] as const
   const safeBody: Record<string, unknown> = {}
   for (const key of ALLOWED) {
     if (key in raw) safeBody[key] = raw[key]
@@ -70,6 +70,22 @@ export async function PUT(
 
   if (Object.keys(safeBody).length === 0) {
     return NextResponse.json({ error: "Aucun champ modifiable fourni" }, { status: 400 })
+  }
+
+  // Validate the whitelisted values
+  if ("rating" in safeBody) {
+    const r = safeBody.rating
+    if (typeof r !== "number" || !Number.isInteger(r) || r < 1 || r > 5) {
+      return NextResponse.json({ error: "Note invalide (1 à 5 attendu)" }, { status: 400 })
+    }
+  }
+  for (const key of ["review", "cancellation_reason"] as const) {
+    if (key in safeBody) {
+      const v = safeBody[key]
+      if (typeof v !== "string" || v.length > 1000) {
+        return NextResponse.json({ error: `Champ ${key} invalide` }, { status: 400 })
+      }
+    }
   }
 
   const { data, error } = await supabase

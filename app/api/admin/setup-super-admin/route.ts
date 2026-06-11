@@ -11,9 +11,9 @@ import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin } from "@/lib/payments/security"
 
-const SUPER_EMAIL    = "fomoujunior2@gmail.com"
-const SUPER_PASSWORD = "QuickGo@2024!"
-const SUPER_NAME     = "Emmanuel Admin"
+const SUPER_EMAIL    = process.env.SUPER_ADMIN_EMAIL    ?? "fomoujunior2@gmail.com"
+const SUPER_PASSWORD = process.env.SUPER_ADMIN_PASSWORD ?? "QuickGo@2024!"
+const SUPER_NAME     = process.env.SUPER_ADMIN_NAME     ?? "Emmanuel Admin"
 
 export async function POST(_req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
