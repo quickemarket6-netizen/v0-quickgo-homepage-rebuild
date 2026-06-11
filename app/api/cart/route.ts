@@ -132,22 +132,38 @@ export async function DELETE(request: Request) {
   }
   
   const { searchParams } = new URL(request.url)
-  const id = searchParams.get("id")
-  const clearAll = searchParams.get("clearAll")
-  
+  const id        = searchParams.get("id")
+  const productId = searchParams.get("product_id")
+  const clearAll  = searchParams.get("clearAll")
+
   if (clearAll === "true") {
     const { error } = await supabase
       .from("cart_items")
       .delete()
       .eq("user_id", user.id)
-    
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
-    
+
     return NextResponse.json({ cleared: true })
   }
-  
+
+  // Fallback: delete by product_id when the cart_items UUID is unknown client-side
+  if (productId) {
+    const { error } = await supabase
+      .from("cart_items")
+      .delete()
+      .eq("product_id", productId)
+      .eq("user_id", user.id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ deleted: true })
+  }
+
   if (!id) {
     return NextResponse.json({ error: "ID requis" }, { status: 400 })
   }

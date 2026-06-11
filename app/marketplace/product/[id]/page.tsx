@@ -93,7 +93,13 @@ export default function ProductPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ product_id: product.id, quantity }),
-    }).catch(() => {})
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((dbItem: { id?: string } | null) => {
+        // Write the DB UUID back into the store so handleRemove can DELETE it directly
+        if (dbItem?.id) useCart.getState().patchItem(product.id, { cartItemDbId: dbItem.id })
+      })
+      .catch(() => {})
     toast.success(`${quantity}× ${product.name} ajouté au panier`, {
       action: { label: "Voir le panier", onClick: () => router.push("/marketplace/cart") },
     })

@@ -25,6 +25,7 @@ interface CartState {
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
   setItems: (items: CartItem[]) => void
+  patchItem: (id: string, patch: Partial<CartItem>) => void
   getTotal: () => number
   getTotalPrice: () => number
   getItemCount: () => number
@@ -69,6 +70,11 @@ export const useCart = create<CartState>()(
       clearCart: () => set({ items: [] }),
 
       setItems: (items) => set({ items }),
+
+      patchItem: (id, patch) =>
+        set((state) => ({
+          items: state.items.map((i) => i.id === id ? { ...i, ...patch } : i),
+        })),
 
       getTotalPrice: () => {
         const state = get()

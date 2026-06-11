@@ -129,9 +129,11 @@ export default function CartPage() {
   }
 
   const handleRemove = (item: CartItem) => {
-    if (item.cartItemDbId) {
-      fetch(`/api/cart?id=${item.cartItemDbId}`, { method: "DELETE" }).catch(() => {})
-    }
+    // Always attempt the DB delete: prefer the UUID, fall back to product_id
+    const url = item.cartItemDbId
+      ? `/api/cart?id=${item.cartItemDbId}`
+      : `/api/cart?product_id=${item.id}`
+    fetch(url, { method: "DELETE" }).catch(() => {})
     removeItem(item.id)
   }
 
