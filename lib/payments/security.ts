@@ -155,7 +155,7 @@ export async function verifyAdmin(): Promise<{
     .eq("id", user.id)
     .single()
 
-  if (profile?.role !== "admin") return { valid: false, error: "Accès refusé — rôle admin requis" }
+  if (!["admin", "super_admin"].includes(profile?.role ?? "")) return { valid: false, error: "Accès refusé — rôle admin requis" }
 
   return { valid: true, adminId: user.id }
 }

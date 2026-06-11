@@ -1,13 +1,11 @@
 /**
- * Route de seed temporaire — À SUPPRIMER après utilisation !
- *
- * Usage : GET /api/admin/seed?secret=QUICKGO_SEED_2024
+ * Route de seed — réservée aux admins authentifiés.
+ * GET /api/admin/seed
  */
 
 import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
-
-const SEED_SECRET = "QUICKGO_SEED_2024"
+import { verifyAdmin } from "@/lib/payments/security"
 
 function rand(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min
@@ -19,9 +17,10 @@ function orderNum() {
   return "QG" + String(rand(10000, 99999))
 }
 
-export async function GET(req: NextRequest) {
-  if (req.nextUrl.searchParams.get("secret") !== SEED_SECRET) {
-    return NextResponse.json({ error: "Accès refusé" }, { status: 401 })
+export async function GET(_req: NextRequest) {
+  const admin = await verifyAdmin()
+  if (!admin.valid) {
+    return NextResponse.json({ error: admin.error }, { status: 401 })
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL

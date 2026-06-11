@@ -59,11 +59,22 @@ export async function PUT(
     return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
   }
   
-  const body = await request.json()
-  
+  const raw = await request.json()
+
+  // Only allow fields a customer is permitted to set
+  const ALLOWED: Array<keyof typeof raw> = ["rating", "review", "cancellation_reason"]
+  const safeBody: Record<string, unknown> = {}
+  for (const key of ALLOWED) {
+    if (key in raw) safeBody[key] = raw[key]
+  }
+
+  if (Object.keys(safeBody).length === 0) {
+    return NextResponse.json({ error: "Aucun champ modifiable fourni" }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from("orders")
-    .update(body)
+    .update(safeBody)
     .eq("id", id)
     .eq("customer_id", user.id)
     .select()

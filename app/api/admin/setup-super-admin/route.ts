@@ -1,27 +1,25 @@
 /**
  * Route de création du compte super admin — usage unique.
  * POST /api/admin/setup-super-admin
- * Body JSON : { "secret": "QUICKGO_SUPERADMIN_SETUP" }
  *
- * Prérequis : avoir exécuté supabase/migrations/add_super_admin_role.sql
+ * Prérequis : être connecté en tant qu'admin ou super_admin.
+ * Avoir exécuté supabase/migrations/add_super_admin_role.sql
  * dans l'éditeur SQL Supabase avant d'appeler cette route.
  */
 
 import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
-const SETUP_SECRET  = "QUICKGO_SUPERADMIN_SETUP"
-const SUPER_EMAIL   = "fomoujunior2@gmail.com"
+const SUPER_EMAIL    = "fomoujunior2@gmail.com"
 const SUPER_PASSWORD = "QuickGo@2024!"
-const SUPER_NAME    = "Emmanuel Admin"
+const SUPER_NAME     = "Emmanuel Admin"
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
-  let body: { secret?: string } = {}
-  try { body = await req.json() } catch { /* empty body */ }
-
-  if (body.secret !== SETUP_SECRET) {
-    return NextResponse.json({ error: "Secret invalide." }, { status: 401 })
+  const admin = await verifyAdmin()
+  if (!admin.valid) {
+    return NextResponse.json({ error: admin.error }, { status: 401 })
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -92,9 +90,8 @@ export async function POST(req: NextRequest) {
     success: true,
     message: "✅ Compte super admin créé avec succès.",
     compte: {
-      email:    SUPER_EMAIL,
-      password: SUPER_PASSWORD,
-      role:     "super_admin",
+      email:  SUPER_EMAIL,
+      role:   "super_admin",
       userId,
     },
   })

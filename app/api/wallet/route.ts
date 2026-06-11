@@ -42,25 +42,31 @@ export async function POST(request: Request) {
   }
   
   const { type, amount, description } = await request.json()
-  
+
+  // Only debit operations are allowed from this client endpoint.
+  // Credits (cashback, refund) must go through system/payment webhooks.
+  if (type !== "debit" && type !== "withdrawal") {
+    return NextResponse.json({ error: "Type d'opération non autorisé" }, { status: 403 })
+  }
+
+  if (typeof amount !== "number" || amount <= 0) {
+    return NextResponse.json({ error: "Montant invalide" }, { status: 400 })
+  }
+
   // Get current balance
   const { data: profile } = await supabase
     .from("profiles")
     .select("wallet_balance")
     .eq("id", user.id)
     .single()
-  
+
   const currentBalance = profile?.wallet_balance || 0
   let newBalance = currentBalance
-  
-  if (type === "credit" || type === "cashback" || type === "refund") {
-    newBalance = currentBalance + amount
-  } else if (type === "debit" || type === "withdrawal") {
-    if (currentBalance < amount) {
-      return NextResponse.json({ error: "Solde insuffisant" }, { status: 400 })
-    }
-    newBalance = currentBalance - amount
+
+  if (currentBalance < amount) {
+    return NextResponse.json({ error: "Solde insuffisant" }, { status: 400 })
   }
+  newBalance = currentBalance - amount
   
   // Create transaction
   const { data: transaction, error: txError } = await supabase
