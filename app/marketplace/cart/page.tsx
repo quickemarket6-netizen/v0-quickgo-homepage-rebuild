@@ -52,14 +52,37 @@ export default function CartPage() {
   const [promoLoading, setPromoLoading]     = useState(false)
   const [promoError, setPromoError]         = useState("")
 
-  // Load cart from DB on mount — sets cartItemDbId so mutations can call the API
+  // Merge DB cart into local Zustand store on mount.
+  // Strategy: patch existing Zustand items with cartItemDbId+DB quantity,
+  // add DB-only items (other session/device), keep Zustand-only items untouched
+  // so articles added from /products or /favorites are never silently dropped.
   useEffect(() => {
     fetch("/api/cart")
       .then((r) => r.ok ? r.json() : null)
       .then((data: ApiCartItem[] | null) => {
         if (!data || data.length === 0) return
-        const mapped: CartItem[] = data
-          .filter((d) => d.product != null)
+
+        // Build a map: product_id → DB cart row
+        const dbMap = new Map(
+          data
+            .filter((d) => d.product != null)
+            .map((d) => [d.product!.id, d])
+        )
+
+        // Snapshot current local state without adding a render dependency
+        const current = useCart.getState().items
+        const seen = new Set<string>()
+
+        // Patch local items that exist in DB; leave local-only items untouched
+        const patched = current.map((item) => {
+          seen.add(item.id)
+          const db = dbMap.get(item.id)
+          return db ? { ...item, cartItemDbId: db.id, quantity: db.quantity } : item
+        })
+
+        // Append DB items that have no local counterpart (added from another device/session)
+        const dbOnly: CartItem[] = data
+          .filter((d) => d.product != null && !seen.has(d.product!.id))
           .map((d) => ({
             id:           d.product!.id,
             cartItemDbId: d.id,
@@ -70,7 +93,8 @@ export default function CartPage() {
             vendorId:     d.product!.vendor?.id,
             vendorName:   d.product!.vendor?.name,
           }))
-        setItems(mapped)
+
+        setItems([...patched, ...dbOnly])
       })
       .catch(() => {})
   }, [setItems])
