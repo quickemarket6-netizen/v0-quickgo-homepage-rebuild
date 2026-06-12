@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin } from "@/lib/payments/security"
 
@@ -68,4 +69,51 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
+}
+
+// POST — create a new user account (requires service role key)
+export async function POST(req: NextRequest) {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) {
+    return NextResponse.json({ error: "Service role non configuré" }, { status: 500 })
+  }
+
+  const { full_name, email, phone, password, role } = await req.json() as {
+    full_name?: string; email?: string; phone?: string; password?: string; role?: string
+  }
+
+  if (!full_name?.trim() || !email?.trim() || !password) {
+    return NextResponse.json({ error: "Nom, email et mot de passe requis" }, { status: 400 })
+  }
+  if (password.length < 8) {
+    return NextResponse.json({ error: "Mot de passe : minimum 8 caractères" }, { status: 400 })
+  }
+  const allowedRoles = ["customer", "vendor", "driver"]
+  const userRole = allowedRoles.includes(role ?? "") ? role! : "customer"
+
+  const service = createServiceClient(supabaseUrl, serviceKey)
+  const { data: created, error: createErr } = await service.auth.admin.createUser({
+    email: email.trim(),
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: full_name.trim() },
+  })
+  if (createErr) {
+    return NextResponse.json({ error: createErr.message }, { status: 400 })
+  }
+
+  // The profiles row is normally created by trigger; upsert to set fields either way
+  await service.from("profiles").upsert({
+    id: created.user.id,
+    full_name: full_name.trim(),
+    email: email.trim(),
+    phone: phone?.trim() || null,
+    role: userRole,
+  }, { onConflict: "id" })
+
+  return NextResponse.json({ success: true, user_id: created.user.id }, { status: 201 })
 }

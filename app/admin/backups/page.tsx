@@ -105,6 +105,18 @@ export default function BackupsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [toggledSchedules, setToggledSchedules] = useState<Set<string>>(new Set())
+  const [backingUp, setBackingUp] = useState(false)
+
+  async function handleBackupNow() {
+    if (backingUp) return
+    setBackingUp(true)
+    try {
+      const res = await fetch("/api/admin/backups", { method: "POST" })
+      if (res.ok) await load(true)
+    } finally {
+      setBackingUp(false)
+    }
+  }
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -170,9 +182,10 @@ export default function BackupsPage() {
               Actualiser
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[12px] font-medium transition-colors">
-              <Zap className="w-3.5 h-3.5" />
-              Backup maintenant
+              onClick={handleBackupNow} disabled={backingUp}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white text-[12px] font-medium transition-colors">
+              <Zap className={`w-3.5 h-3.5 ${backingUp ? "animate-pulse" : ""}`} />
+              {backingUp ? "Backup en cours…" : "Backup maintenant"}
             </motion.button>
           </div>
         </div>

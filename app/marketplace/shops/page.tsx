@@ -38,8 +38,28 @@ export default function MarketplaceShopsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [catFilter, setCatFilter] = useState(initialCat)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const categoriesRef = useRef<Category[]>([])
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("qg_fav_vendors") ?? "[]")
+      if (Array.isArray(stored)) setFavorites(new Set(stored))
+    } catch { /* ignore */ }
+  }, [])
+
+  const toggleFavorite = (e: React.MouseEvent, vendorId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setFavorites((prev) => {
+      const next = new Set(prev)
+      if (next.has(vendorId)) next.delete(vendorId)
+      else next.add(vendorId)
+      localStorage.setItem("qg_fav_vendors", JSON.stringify([...next]))
+      return next
+    })
+  }
 
   const fetchVendors = useCallback(async (q: string, cat: string) => {
     setLoading(true)
@@ -154,10 +174,11 @@ export default function MarketplaceShopsPage() {
                           <CatIcon className="w-12 h-12 text-quickgo-blue/30" />
                         </div>
                       )}
-                      <button className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 hover:text-red-400 transition-colors"
-                        onClick={(e) => e.preventDefault()}
+                      <button className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 transition-colors"
+                        onClick={(e) => toggleFavorite(e, vendor.id)}
+                        aria-label={favorites.has(vendor.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
                       >
-                        <Heart className="w-3.5 h-3.5 text-white" />
+                        <Heart className={`w-3.5 h-3.5 transition-colors ${favorites.has(vendor.id) ? "text-red-400 fill-red-400" : "text-white"}`} />
                       </button>
                       {vendor.is_verified && (
                         <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-quickgo-blue/90 text-white text-[10px] font-medium">

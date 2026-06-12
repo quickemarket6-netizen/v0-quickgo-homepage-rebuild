@@ -516,7 +516,7 @@ export default function DriverDashboardPage() {
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Défis & incitations</h3>
-                  <Link href="#" className="text-quickgo-blue text-sm">Voir tout</Link>
+                  <Link href="/driver/missions" className="text-quickgo-blue text-sm">Voir tout</Link>
                 </div>
 
                 {/* Daily Objective */}
@@ -573,7 +573,7 @@ export default function DriverDashboardPage() {
               >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">État du véhicule</h3>
-                  <Link href="#" className="text-quickgo-blue text-sm">Voir détails</Link>
+                  <Link href="/driver/settings" className="text-quickgo-blue text-sm">Voir détails</Link>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -674,7 +674,7 @@ export default function DriverDashboardPage() {
                 <Button className="w-full bg-quickgo-blue hover:bg-quickgo-blue/90 rounded-xl">
                   Démarrer la livraison
                 </Button>
-                <Link href="#" className="block text-center text-quickgo-blue text-sm mt-2">
+                <Link href="/driver/navigation" className="block text-center text-quickgo-blue text-sm mt-2">
                   Voir les détails
                 </Link>
               </motion.div>

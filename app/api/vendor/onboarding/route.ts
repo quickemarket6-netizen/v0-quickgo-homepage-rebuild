@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
     mobileNumber?: string
     bankName?: string
     accountNumber?: string
+    logoUrl?: string
+    idCardUrl?: string
+    businessLicenseUrl?: string
   }
 
   const {
@@ -30,6 +33,7 @@ export async function POST(req: NextRequest) {
     businessName, category, description, address, city,
     taxId,
     paymentMethod, mobileNumber, bankName, accountNumber,
+    logoUrl, idCardUrl, businessLicenseUrl,
   } = body
 
   // Update user profile
@@ -52,6 +56,7 @@ export async function POST(req: NextRequest) {
         phone:       phone ?? null,
         email:       body.email ?? user.email,
         tax_id:      taxId ?? null,
+        logo_url:    logoUrl ?? null,
         status:      "pending",
       },
       { onConflict: "user_id" },
@@ -60,6 +65,19 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 })
+
+  // KYC document URLs go to user metadata (no dedicated columns on vendors)
+  if (idCardUrl || businessLicenseUrl) {
+    await supabase.auth.updateUser({
+      data: {
+        vendor_documents: {
+          id_card: idCardUrl ?? null,
+          business_license: businessLicenseUrl ?? null,
+          submitted_at: new Date().toISOString(),
+        },
+      },
+    })
+  }
 
   // Save payout account
   if (vendor && paymentMethod) {

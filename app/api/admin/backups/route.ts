@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
 function ts(minutesOffset: number) {
   return new Date(Date.now() + minutesOffset * 60_000).toISOString()
 }
 
+// NOTE: demo dataset held in module memory — manual backups survive only for
+// the lifetime of the server process. Hook to a real backup job for prod.
 const BACKUPS = [
   { id:"BCK-0142", type:"full",        status:"success",  size_mb:2_480, duration_s:84,  created_at:ts(-180),   storage:"S3 Paris",      compressed:true,  encrypted:true  },
   { id:"BCK-0141", type:"incremental", status:"success",  size_mb:142,   duration_s:12,  created_at:ts(-360),   storage:"S3 Paris",      compressed:true,  encrypted:true  },
@@ -26,12 +29,12 @@ const SCHEDULES = [
   { id:"SCH-04", name:"Backup media mensuel",       type:"media",       cron:"0 4 1 * *",   next_run:ts(21000),enabled:false, storage:"GCS Europe", retention_days:365},
 ]
 
-const success = BACKUPS.filter(b => b.status === "success")
-const failed  = BACKUPS.filter(b => b.status === "failed")
-const totalStorage = success.reduce((s, b) => s + b.size_mb, 0)
-const lastFull = BACKUPS.find(b => b.type === "full" && b.status === "success")
-
 export async function GET() {
+  const success = BACKUPS.filter(b => b.status === "success")
+  const failed  = BACKUPS.filter(b => b.status === "failed")
+  const totalStorage = success.reduce((s, b) => s + b.size_mb, 0)
+  const lastFull = BACKUPS.find(b => b.type === "full" && b.status === "success")
+
   return NextResponse.json({
     kpi: {
       total_backups:     BACKUPS.length,
@@ -54,4 +57,26 @@ export async function GET() {
       { day:"Auj", full:2_480, incremental:Math.round(142+118+165), logs:0 },
     ],
   })
+}
+
+// POST — trigger a manual backup (admin only)
+export async function POST() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const lastNum = parseInt(BACKUPS[0]?.id.replace("BCK-", "") ?? "0", 10)
+  const backup = {
+    id: `BCK-${String(lastNum + 1).padStart(4, "0")}`,
+    type: "full",
+    status: "success",
+    size_mb: 2_480 + Math.round(Math.random() * 60),
+    duration_s: 80 + Math.round(Math.random() * 10),
+    created_at: new Date().toISOString(),
+    storage: "S3 Paris",
+    compressed: true,
+    encrypted: true,
+  }
+  BACKUPS.unshift(backup)
+
+  return NextResponse.json({ success: true, backup }, { status: 201 })
 }

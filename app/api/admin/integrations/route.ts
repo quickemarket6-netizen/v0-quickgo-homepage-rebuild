@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
+import { randomBytes } from "crypto"
 
 function ts(minutesOffset: number) {
   return new Date(Date.now() + minutesOffset * 60_000).toISOString()
 }
 
+// NOTE: demo dataset held in module memory — created keys survive only for the
+// lifetime of the server process. Move to a real `api_keys` table for prod.
 const API_KEYS = [
   { id:"KEY-001", name:"MTN_MoMo_PROD",        service:"MTN Money",       status:"active",   created_at:ts(-87600), last_used:ts(-5),    requests_today:1_842, requests_month:48_200 },
   { id:"KEY-002", name:"ORANGE_MONEY_PROD",     service:"Orange Money",    status:"active",   created_at:ts(-87600), last_used:ts(-12),   requests_today:2_104, requests_month:62_800 },
@@ -28,12 +32,12 @@ const WEBHOOKS = [
   { id:"WHK-06", url:"https://api.cinetpay.com/v2/callback",         event:"payment.any",      status:"paused",  last_triggered:ts(-720), success_rate:85.3 },
 ]
 
-const active   = API_KEYS.filter(k => k.status === "active")
-const revoked  = API_KEYS.filter(k => k.status === "revoked")
-const totalRequests = active.reduce((s, k) => s + k.requests_today, 0)
-const totalMonth    = active.reduce((s, k) => s + k.requests_month, 0)
-
 export async function GET() {
+  const active   = API_KEYS.filter(k => k.status === "active")
+  const revoked  = API_KEYS.filter(k => k.status === "revoked")
+  const totalRequests = active.reduce((s, k) => s + k.requests_today, 0)
+  const totalMonth    = active.reduce((s, k) => s + k.requests_month, 0)
+
   return NextResponse.json({
     kpi: {
       active_keys:      active.length,
@@ -56,4 +60,31 @@ export async function GET() {
       { day:"Auj", requests:totalRequests },
     ],
   })
+}
+
+// POST — generate a new API key (admin only). The secret is returned once.
+export async function POST(req: NextRequest) {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const { name, service } = await req.json() as { name?: string; service?: string }
+  if (!name?.trim() || !service?.trim()) {
+    return NextResponse.json({ error: "Nom et service requis" }, { status: 400 })
+  }
+
+  const nextNum = API_KEYS.length + 1
+  const key = {
+    id: `KEY-${String(nextNum).padStart(3, "0")}`,
+    name: name.trim().toUpperCase().replace(/\s+/g, "_"),
+    service: service.trim(),
+    status: "active",
+    created_at: new Date().toISOString(),
+    last_used: new Date().toISOString(),
+    requests_today: 0,
+    requests_month: 0,
+  }
+  API_KEYS.unshift(key)
+
+  const secret = `qg_live_${randomBytes(24).toString("hex")}`
+  return NextResponse.json({ success: true, key, secret }, { status: 201 })
 }

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 const STATUS_CONFIG: Record<string, { label: string; dot: string }> = {
   online:     { label: "En ligne",   dot: "bg-green-500" },
@@ -75,6 +76,56 @@ export default function AdminDriversPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
+  const handleExport = () => {
+    if (drivers.length === 0) { toast.error("Aucune donnée à exporter"); return }
+    const header = ["Nom", "Email", "Téléphone", "Statut", "Véhicule", "Note", "Livraisons", "Gains", "Ville", "Inscription"]
+    const rows = drivers.map((d) => [
+      d.user?.full_name ?? "", d.user?.email ?? "", d.user?.phone ?? "",
+      STATUS_CONFIG[d.status]?.label ?? d.status, d.vehicle_type ?? "",
+      d.rating != null ? String(d.rating) : "", String(d.total_deliveries),
+      String(d.total_earnings), d.city ?? "",
+      new Date(d.created_at).toLocaleDateString("fr-FR"),
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `livreurs-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addForm, setAddForm] = useState({ email: "", vehicle_type: "moto", city: "" })
+  const [adding, setAdding] = useState(false)
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAdding(true)
+    try {
+      const res = await fetch("/api/admin/drivers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addForm),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success("Livreur ajouté avec succès")
+        setShowAddModal(false)
+        setAddForm({ email: "", vehicle_type: "moto", city: "" })
+        fetchDrivers(search, statusFilter, page)
+      } else {
+        toast.error(data.error ?? "Erreur lors de l'ajout")
+      }
+    } catch {
+      toast.error("Erreur réseau")
+    } finally {
+      setAdding(false)
+    }
+  }
+
   const summaryCards = [
     { key: "online",     label: "En ligne",   icon: CheckCircle, color: "text-green-400", bg: "bg-green-500/20" },
     { key: "delivering", label: "En course",  icon: Truck,       color: "text-blue-400",  bg: "bg-blue-500/20" },
@@ -94,10 +145,10 @@ export default function AdminDriversPage() {
               <p className="text-sm text-muted-foreground">{total.toLocaleString()} livreurs enregistrés</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" className="rounded-full gap-2">
+              <Button onClick={handleExport} variant="outline" size="sm" className="rounded-full gap-2">
                 <Download className="w-4 h-4" /> Exporter
               </Button>
-              <Button size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-2">
+              <Button onClick={() => setShowAddModal(true)} size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-2">
                 <UserPlus className="w-4 h-4" /> Ajouter
               </Button>
             </div>
@@ -267,6 +318,60 @@ export default function AdminDriversPage() {
           )}
         </div>
       </main>
+
+      {/* Add Driver Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-white mb-1">Nouveau livreur</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              L&apos;utilisateur doit déjà avoir un compte QuickGo.
+            </p>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Email du compte *</label>
+                <Input type="email" value={addForm.email} required
+                  onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="livreur@email.com" className="bg-[#0a0a0f] border-[#1e1e2e]" />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Type de véhicule</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { id: "moto", label: "Moto", icon: Bike },
+                    { id: "voiture", label: "Voiture", icon: Car },
+                  ].map((v) => (
+                    <button key={v.id} type="button"
+                      onClick={() => setAddForm((f) => ({ ...f, vehicle_type: v.id }))}
+                      className={`flex items-center justify-center gap-2 p-3 rounded-xl border transition-colors ${
+                        addForm.vehicle_type === v.id
+                          ? "border-quickgo-blue bg-quickgo-blue/10 text-quickgo-blue"
+                          : "border-[#1e1e2e] text-muted-foreground hover:border-quickgo-blue/40"
+                      }`}>
+                      <v.icon className="w-4 h-4" /> {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Ville</label>
+                <Input value={addForm.city}
+                  onChange={(e) => setAddForm((f) => ({ ...f, city: e.target.value }))}
+                  placeholder="Yaoundé" className="bg-[#0a0a0f] border-[#1e1e2e]" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowAddModal(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={adding} className="flex-1 bg-quickgo-blue hover:bg-quickgo-blue/90">
+                  {adding ? "Ajout…" : "Ajouter"}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

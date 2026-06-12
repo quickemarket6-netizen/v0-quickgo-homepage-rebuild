@@ -117,6 +117,35 @@ export default function CmsPage() {
   const [activeTab, setActiveTab] = useState<"pages" | "blocks">("pages")
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [toggledBlocks, setToggledBlocks] = useState<Set<string>>(new Set())
+  const [showNewPage, setShowNewPage] = useState(false)
+  const [newPage, setNewPage] = useState({ title: "", slug: "", type: "static", status: "draft" })
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+
+  async function handleCreatePage(e: React.FormEvent) {
+    e.preventDefault()
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const res = await fetch("/api/admin/cms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPage),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        setShowNewPage(false)
+        setNewPage({ title: "", slug: "", type: "static", status: "draft" })
+        load(true)
+      } else {
+        setCreateError(json.error ?? "Erreur lors de la création")
+      }
+    } catch {
+      setCreateError("Erreur réseau")
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -185,6 +214,7 @@ export default function CmsPage() {
               Actualiser
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={() => setShowNewPage(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[12px] font-medium transition-colors">
               <Plus className="w-3.5 h-3.5" />
               Nouvelle page
@@ -434,6 +464,75 @@ export default function CmsPage() {
         </div>
       </div>
       </div>
+
+      {/* New Page Modal */}
+      {showNewPage && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-6 max-w-md w-full">
+            <h3 className="text-[15px] font-bold text-white mb-4">Nouvelle page CMS</h3>
+            <form onSubmit={handleCreatePage} className="space-y-4">
+              {createError && (
+                <p className="text-[12px] text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{createError}</p>
+              )}
+              <div>
+                <label className="block text-[12px] text-[#6b6b8a] mb-1.5">Titre *</label>
+                <input value={newPage.title} required
+                  onChange={(e) => {
+                    const title = e.target.value
+                    setNewPage((p) => ({
+                      ...p, title,
+                      slug: p.slug === "" || p.slug === slugify(p.title) ? slugify(title) : p.slug,
+                    }))
+                  }}
+                  placeholder="Ex: Conditions générales"
+                  className="w-full px-3 py-2 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-white text-[13px] focus:outline-none focus:border-blue-500/50" />
+              </div>
+              <div>
+                <label className="block text-[12px] text-[#6b6b8a] mb-1.5">Slug *</label>
+                <input value={newPage.slug} required
+                  onChange={(e) => setNewPage((p) => ({ ...p, slug: e.target.value }))}
+                  placeholder="conditions-generales"
+                  className="w-full px-3 py-2 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-white text-[13px] font-mono focus:outline-none focus:border-blue-500/50" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] text-[#6b6b8a] mb-1.5">Type</label>
+                  <select value={newPage.type}
+                    onChange={(e) => setNewPage((p) => ({ ...p, type: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-white text-[13px] focus:outline-none">
+                    {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[12px] text-[#6b6b8a] mb-1.5">Statut</label>
+                  <select value={newPage.status}
+                    onChange={(e) => setNewPage((p) => ({ ...p, status: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-white text-[13px] focus:outline-none">
+                    <option value="draft">Brouillon</option>
+                    <option value="published">Publié</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowNewPage(false)}
+                  className="flex-1 py-2 rounded-xl border border-[#1e1e2e] text-[#6b6b8a] hover:text-white text-[13px] transition-colors">
+                  Annuler
+                </button>
+                <button type="submit" disabled={creating}
+                  className="flex-1 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-[13px] font-medium transition-colors">
+                  {creating ? "Création…" : "Créer la page"}
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
+}
+
+function slugify(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
 }

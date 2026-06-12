@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 function formatCFA(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M F"
@@ -61,6 +62,54 @@ export default function AdminUsersPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
+  const handleExport = () => {
+    if (users.length === 0) { toast.error("Aucune donnée à exporter"); return }
+    const header = ["Nom", "Email", "Téléphone", "Commandes", "Dépenses totales", "Inscription"]
+    const rows = users.map((u) => [
+      u.full_name, u.email, u.phone,
+      String(u.orders_count), String(u.total_spent),
+      new Date(u.created_at).toLocaleDateString("fr-FR"),
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `clients-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addForm, setAddForm] = useState({ full_name: "", email: "", phone: "", password: "" })
+  const [adding, setAdding] = useState(false)
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAdding(true)
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...addForm, role: "customer" }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success("Client créé avec succès")
+        setShowAddModal(false)
+        setAddForm({ full_name: "", email: "", phone: "", password: "" })
+        fetchUsers(search, page)
+      } else {
+        toast.error(data.error ?? "Erreur lors de la création")
+      }
+    } catch {
+      toast.error("Erreur réseau")
+    } finally {
+      setAdding(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex">
       <AdminSidebar />
@@ -73,10 +122,10 @@ export default function AdminUsersPage() {
               <p className="text-sm text-muted-foreground">{total.toLocaleString()} clients enregistrés</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" className="rounded-full gap-2">
+              <Button onClick={handleExport} variant="outline" size="sm" className="rounded-full gap-2">
                 <Download className="w-4 h-4" /> Exporter
               </Button>
-              <Button size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-2">
+              <Button onClick={() => setShowAddModal(true)} size="sm" className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-2">
                 <UserPlus className="w-4 h-4" /> Ajouter
               </Button>
             </div>
@@ -187,6 +236,50 @@ export default function AdminUsersPage() {
           </motion.div>
         </div>
       </main>
+
+      {/* Add User Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border border-border/50 rounded-3xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-white mb-4">Nouveau client</h3>
+            <form onSubmit={handleAdd} className="space-y-4">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Nom complet *</label>
+                <Input value={addForm.full_name} required
+                  onChange={(e) => setAddForm((f) => ({ ...f, full_name: e.target.value }))}
+                  placeholder="Jean Dupont" className="bg-background border-border/50" />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Email *</label>
+                <Input type="email" value={addForm.email} required
+                  onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+                  placeholder="client@email.com" className="bg-background border-border/50" />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Téléphone</label>
+                <Input value={addForm.phone}
+                  onChange={(e) => setAddForm((f) => ({ ...f, phone: e.target.value }))}
+                  placeholder="+237 6XX XXX XXX" className="bg-background border-border/50" />
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Mot de passe temporaire * (min. 8 caractères)</label>
+                <Input type="password" value={addForm.password} required minLength={8}
+                  onChange={(e) => setAddForm((f) => ({ ...f, password: e.target.value }))}
+                  placeholder="••••••••" className="bg-background border-border/50" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowAddModal(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={adding} className="flex-1 bg-quickgo-blue hover:bg-quickgo-blue/90">
+                  {adding ? "Création…" : "Créer le client"}
+                </Button>
+              </div>
+            </form>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }

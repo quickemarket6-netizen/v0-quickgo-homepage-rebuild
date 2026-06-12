@@ -81,3 +81,49 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
+
+// POST — register an existing user (by email) as a driver
+export async function POST(req: NextRequest) {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
+
+  const supabase = await createClient()
+  const { email, vehicle_type, city } = await req.json() as {
+    email?: string; vehicle_type?: string; city?: string
+  }
+  if (!email?.trim()) return NextResponse.json({ error: "Email requis" }, { status: 400 })
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, full_name, role")
+    .eq("email", email.trim())
+    .single()
+  if (!profile) {
+    return NextResponse.json({ error: "Aucun utilisateur trouvé avec cet email — créez d'abord le compte" }, { status: 404 })
+  }
+
+  const { data: existing } = await supabase
+    .from("drivers")
+    .select("id")
+    .eq("user_id", profile.id)
+    .maybeSingle()
+  if (existing) {
+    return NextResponse.json({ error: "Cet utilisateur est déjà livreur" }, { status: 400 })
+  }
+
+  const { data: driver, error } = await supabase
+    .from("drivers")
+    .insert({
+      user_id: profile.id,
+      status: "offline",
+      vehicle_type: vehicle_type ?? "moto",
+      city: city ?? null,
+    })
+    .select("id")
+    .single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  await supabase.from("profiles").update({ role: "driver" }).eq("id", profile.id)
+
+  return NextResponse.json({ success: true, driver_id: driver.id }, { status: 201 })
+}

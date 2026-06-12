@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -52,9 +52,10 @@ export default function VendorOnboardingPage() {
     description: "",
     address: "",
     city: "yaounde",
-    // Documents
-    idCard: null,
-    businessLicense: null,
+    // Documents (public URLs after upload)
+    logoUrl: "",
+    idCardUrl: "",
+    businessLicenseUrl: "",
     taxId: "",
     // Payment
     paymentMethod: "mobile_money",
@@ -62,9 +63,39 @@ export default function VendorOnboardingPage() {
     bankName: "",
     accountNumber: "",
   })
+  const [uploading, setUploading] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [fileNames, setFileNames] = useState<Record<string, string>>({})
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const idCardInputRef = useRef<HTMLInputElement>(null)
+  const licenseInputRef = useRef<HTMLInputElement>(null)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleFileUpload = async (kind: "logo" | "id_card" | "business_license", file: File | undefined) => {
+    if (!file) return
+    setUploading(kind)
+    setUploadError(null)
+    try {
+      const fd = new FormData()
+      fd.append("file", file)
+      fd.append("kind", kind)
+      const res = await fetch("/api/vendor/onboarding/upload", { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        setUploadError(data.error ?? "Échec de l'envoi du fichier")
+        return
+      }
+      const field = kind === "logo" ? "logoUrl" : kind === "id_card" ? "idCardUrl" : "businessLicenseUrl"
+      setFormData(prev => ({ ...prev, [field]: data.url }))
+      setFileNames(prev => ({ ...prev, [kind]: file.name }))
+    } catch {
+      setUploadError("Erreur réseau pendant l'envoi")
+    } finally {
+      setUploading(null)
+    }
   }
 
   const handleSubmit = async () => {
@@ -93,7 +124,7 @@ export default function VendorOnboardingPage() {
       case 2:
         return formData.businessName && formData.category && formData.address
       case 3:
-        return formData.taxId
+        return formData.taxId && formData.idCardUrl
       case 4:
         return formData.paymentMethod && (formData.mobileNumber || formData.accountNumber)
       default:
@@ -247,13 +278,22 @@ export default function VendorOnboardingPage() {
                 {/* Logo Upload */}
                 <div>
                   <Label>Logo de la boutique</Label>
+                  <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                    onChange={(e) => handleFileUpload("logo", e.target.files?.[0])} />
                   <div className="mt-2 flex items-center gap-4">
-                    <div className="w-24 h-24 rounded-xl bg-muted/30 border-2 border-dashed border-border flex items-center justify-center">
-                      <Camera className="w-8 h-8 text-muted-foreground" />
+                    <div className="w-24 h-24 rounded-xl bg-muted/30 border-2 border-dashed border-border flex items-center justify-center overflow-hidden">
+                      {formData.logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={formData.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-muted-foreground" />
+                      )}
                     </div>
-                    <Button variant="outline" className="rounded-xl">
+                    <Button type="button" variant="outline" className="rounded-xl"
+                      disabled={uploading === "logo"}
+                      onClick={() => logoInputRef.current?.click()}>
                       <Upload className="w-4 h-4 mr-2" />
-                      Telecharger
+                      {uploading === "logo" ? "Envoi…" : formData.logoUrl ? "Remplacer" : "Telecharger"}
                     </Button>
                   </div>
                 </div>
@@ -357,26 +397,63 @@ export default function VendorOnboardingPage() {
               </div>
 
               <div className="p-6 rounded-2xl bg-card border border-border/50 space-y-6">
+                {uploadError && (
+                  <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">{uploadError}</p>
+                )}
                 <div>
                   <Label>Piece d&apos;identite (CNI ou Passeport) *</Label>
-                  <div className="mt-2 p-8 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer text-center">
-                    <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Cliquez pour telecharger ou glissez-deposez
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      PNG, JPG ou PDF (max. 5MB)
-                    </p>
+                  <input ref={idCardInputRef} type="file" accept="image/png,image/jpeg,application/pdf" className="hidden"
+                    onChange={(e) => handleFileUpload("id_card", e.target.files?.[0])} />
+                  <div
+                    onClick={() => uploading !== "id_card" && idCardInputRef.current?.click()}
+                    className={`mt-2 p-8 rounded-xl border-2 border-dashed transition-colors cursor-pointer text-center ${
+                      formData.idCardUrl ? "border-green-500/50 bg-green-500/5" : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {formData.idCardUrl ? (
+                      <>
+                        <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-green-400" />
+                        <p className="text-sm text-foreground font-medium">{fileNames.id_card ?? "Document envoyé"}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Cliquez pour remplacer</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className={`w-10 h-10 mx-auto mb-3 text-muted-foreground ${uploading === "id_card" ? "animate-pulse" : ""}`} />
+                        <p className="text-sm text-muted-foreground">
+                          {uploading === "id_card" ? "Envoi en cours…" : "Cliquez pour telecharger ou glissez-deposez"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          PNG, JPG ou PDF (max. 5MB)
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <Label>Registre de commerce (optionnel)</Label>
-                  <div className="mt-2 p-8 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer text-center">
-                    <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Cliquez pour telecharger
-                    </p>
+                  <input ref={licenseInputRef} type="file" accept="image/png,image/jpeg,application/pdf" className="hidden"
+                    onChange={(e) => handleFileUpload("business_license", e.target.files?.[0])} />
+                  <div
+                    onClick={() => uploading !== "business_license" && licenseInputRef.current?.click()}
+                    className={`mt-2 p-8 rounded-xl border-2 border-dashed transition-colors cursor-pointer text-center ${
+                      formData.businessLicenseUrl ? "border-green-500/50 bg-green-500/5" : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    {formData.businessLicenseUrl ? (
+                      <>
+                        <CheckCircle2 className="w-10 h-10 mx-auto mb-3 text-green-400" />
+                        <p className="text-sm text-foreground font-medium">{fileNames.business_license ?? "Document envoyé"}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Cliquez pour remplacer</p>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className={`w-10 h-10 mx-auto mb-3 text-muted-foreground ${uploading === "business_license" ? "animate-pulse" : ""}`} />
+                        <p className="text-sm text-muted-foreground">
+                          {uploading === "business_license" ? "Envoi en cours…" : "Cliquez pour telecharger"}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 

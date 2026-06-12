@@ -98,6 +98,11 @@ export default function ApiPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState("all")
   const [lastUpdated, setLastUpdated] = useState(new Date())
+  const [showNewKey, setShowNewKey] = useState(false)
+  const [newKey, setNewKey] = useState({ name: "", service: "" })
+  const [creating, setCreating] = useState(false)
+  const [createdSecret, setCreatedSecret] = useState<string | null>(null)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -109,6 +114,31 @@ export default function ApiPage() {
     else setLoading(false)
   }
   useEffect(() => { load() }, [])
+
+  async function handleCreateKey(e: React.FormEvent) {
+    e.preventDefault()
+    setCreating(true)
+    setCreateError(null)
+    try {
+      const res = await fetch("/api/admin/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newKey),
+      })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setCreatedSecret(json.secret)
+        setNewKey({ name: "", service: "" })
+        load(true)
+      } else {
+        setCreateError(json.error ?? "Erreur lors de la création")
+      }
+    } catch {
+      setCreateError("Erreur réseau")
+    } finally {
+      setCreating(false)
+    }
+  }
 
   function copyKey(id: string) {
     setCopiedKey(id)
@@ -168,6 +198,7 @@ export default function ApiPage() {
               Actualiser
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={() => { setShowNewKey(true); setCreatedSecret(null) }}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[12px] font-medium transition-colors">
               <Plus className="w-3.5 h-3.5" />
               Nouvelle clé
@@ -413,6 +444,69 @@ export default function ApiPage() {
         </div>
       </div>
       </div>
+
+      {/* New API Key Modal */}
+      {showNewKey && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-6 max-w-md w-full">
+            {createdSecret ? (
+              <>
+                <h3 className="text-[15px] font-bold text-white mb-2">Clé générée</h3>
+                <p className="text-[12px] text-[#6b6b8a] mb-3">
+                  Copiez ce secret maintenant — il ne sera plus jamais affiché.
+                </p>
+                <div className="p-3 rounded-xl bg-[#0a0a0f] border border-cyan-500/30 mb-4">
+                  <code className="text-[12px] text-cyan-400 break-all">{createdSecret}</code>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => { navigator.clipboard?.writeText(createdSecret) }}
+                    className="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-[13px] font-medium transition-colors">
+                    Copier
+                  </button>
+                  <button onClick={() => { setShowNewKey(false); setCreatedSecret(null) }}
+                    className="flex-1 py-2 rounded-xl border border-[#1e1e2e] text-[#6b6b8a] hover:text-white text-[13px] transition-colors">
+                    Fermer
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-[15px] font-bold text-white mb-4">Nouvelle clé API</h3>
+                <form onSubmit={handleCreateKey} className="space-y-4">
+                  {createError && (
+                    <p className="text-[12px] text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{createError}</p>
+                  )}
+                  <div>
+                    <label className="block text-[12px] text-[#6b6b8a] mb-1.5">Nom de la clé *</label>
+                    <input value={newKey.name} required
+                      onChange={(e) => setNewKey((k) => ({ ...k, name: e.target.value }))}
+                      placeholder="MON_SERVICE_PROD"
+                      className="w-full px-3 py-2 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-white text-[13px] font-mono focus:outline-none focus:border-cyan-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] text-[#6b6b8a] mb-1.5">Service *</label>
+                    <input value={newKey.service} required
+                      onChange={(e) => setNewKey((k) => ({ ...k, service: e.target.value }))}
+                      placeholder="Ex: Orange Money"
+                      className="w-full px-3 py-2 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-white text-[13px] focus:outline-none focus:border-cyan-500/50" />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={() => setShowNewKey(false)}
+                      className="flex-1 py-2 rounded-xl border border-[#1e1e2e] text-[#6b6b8a] hover:text-white text-[13px] transition-colors">
+                      Annuler
+                    </button>
+                    <button type="submit" disabled={creating}
+                      className="flex-1 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-[13px] font-medium transition-colors">
+                      {creating ? "Génération…" : "Générer la clé"}
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
