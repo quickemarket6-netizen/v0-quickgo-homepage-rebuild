@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
@@ -10,15 +11,10 @@ import {
   Bike,
   DollarSign,
   Clock,
-  MapPin,
-  Star,
   Shield,
   TrendingUp,
-  Users,
-  Zap,
   ArrowRight,
   CheckCircle2,
-  Calendar,
 } from "lucide-react"
 
 const benefits = [
@@ -51,12 +47,23 @@ const steps = [
   { number: 4, title: "Commencez", description: "Recevez vos premières missions et gagnez" },
 ]
 
-const stats = [
+const marketingStats = [
   { value: "2 890+", label: "Livreurs actifs" },
   { value: "98%", label: "Taux de satisfaction" },
   { value: "25 000 CFA", label: "Gains moyens/jour" },
   { value: "27 min", label: "Temps moyen livraison" },
 ]
+
+interface DriverProfile {
+  rating: number | null
+  total_deliveries: number | null
+  today_earnings: number
+  today_deliveries: number
+  is_online?: boolean
+  user?: { full_name?: string | null } | null
+}
+
+const formatCfa = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " CFA"
 
 const requirements = [
   "Avoir 18 ans minimum",
@@ -67,6 +74,34 @@ const requirements = [
 ]
 
 export default function DriverPage() {
+  const [driver, setDriver] = useState<DriverProfile | null>(null)
+  const [loadingProfile, setLoadingProfile] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/driver")
+      .then(async (res) => {
+        if (!res.ok) return null // 401: non connecte, 404: pas encore livreur
+        return res.json()
+      })
+      .then((data) => {
+        if (data && !data.error) setDriver(data as DriverProfile)
+      })
+      .catch(() => {})
+      .finally(() => setLoadingProfile(false))
+  }, [])
+
+  const isDriver = !loadingProfile && driver !== null
+
+  // Real stats for registered drivers, marketing figures for visitors
+  const stats = isDriver && driver
+    ? [
+        { value: formatCfa(driver.today_earnings ?? 0), label: "Gains aujourd'hui" },
+        { value: `${driver.today_deliveries ?? 0}`, label: "Livraisons aujourd'hui" },
+        { value: driver.rating != null ? Number(driver.rating).toFixed(1) : "—", label: "Note moyenne" },
+        { value: `${driver.total_deliveries ?? 0}`, label: "Livraisons totales" },
+      ]
+    : marketingStats
+
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
@@ -90,30 +125,58 @@ export default function DriverPage() {
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 mb-6">
                   <Bike className="h-4 w-4 text-secondary" />
                   <span className="text-sm font-medium text-secondary">
-                    DEVENEZ LIVREUR QUICKGO
+                    {isDriver ? "VOTRE ESPACE LIVREUR QUICKGO" : "DEVENEZ LIVREUR QUICKGO"}
                   </span>
                 </div>
-                
+
                 <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-foreground mb-6">
-                  Gagnez de l&apos;argent{" "}
-                  <span className="text-gradient-lime">à votre rythme</span>
+                  {isDriver && driver?.user?.full_name ? (
+                    <>
+                      Bon retour,{" "}
+                      <span className="text-gradient-lime">{driver.user.full_name}</span>
+                    </>
+                  ) : (
+                    <>
+                      Gagnez de l&apos;argent{" "}
+                      <span className="text-gradient-lime">à votre rythme</span>
+                    </>
+                  )}
                 </h1>
-                
+
                 <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-                  Rejoignez la communauté QuickGo et devenez livreur partenaire.
-                  Flexibilité, bons revenus et support 24/7.
+                  {isDriver
+                    ? "Retrouvez vos statistiques du jour et accédez à votre tableau de bord pour gérer vos livraisons."
+                    : "Rejoignez la communauté QuickGo et devenez livreur partenaire. Flexibilité, bons revenus et support 24/7."}
                 </p>
-                
+
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                  <Link href="/auth/register?type=driver">
-                    <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-14 px-8">
-                      S&apos;inscrire maintenant
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
-                  <Button size="lg" variant="outline" className="h-14 px-8">
-                    En savoir plus
-                  </Button>
+                  {isDriver ? (
+                    <>
+                      <Link href="/driver/dashboard">
+                        <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-14 px-8">
+                          Accéder à mon tableau de bord
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                      </Link>
+                      <Link href="/driver/missions">
+                        <Button size="lg" variant="outline" className="h-14 px-8">
+                          Missions disponibles
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/auth/register?type=driver">
+                        <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-14 px-8">
+                          S&apos;inscrire maintenant
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </Button>
+                      </Link>
+                      <Button size="lg" variant="outline" className="h-14 px-8">
+                        En savoir plus
+                      </Button>
+                    </>
+                  )}
                 </div>
                 
                 {/* Stats */}

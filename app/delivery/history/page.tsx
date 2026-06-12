@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
@@ -18,64 +18,54 @@ import {
   Star,
   XCircle,
   Plus,
-  Filter,
   Calendar,
   RotateCcw,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react"
 
-const deliveries = [
-  {
-    id: "DL2026052401",
-    date: "24 Mai 2026",
-    status: "in_transit",
-    statusLabel: "En cours",
-    pickup: { address: "123 Rue Bastos, Yaounde", name: "Samuel O.", phone: "+237 6 95 55 55 55" },
-    dropoff: { address: "456 Avenue Kennedy, Douala", name: "Jean Paul N.", phone: "+237 6 77 88 99 00" },
-    package: { description: "Documents importants", weight: "0.5 kg" },
-    price: 2250,
-    eta: "14:30",
-    driver: { name: "Emmanuel K.", phone: "+237 6 88 77 66 55", rating: 4.9 },
-    vehicleType: "Moto",
-  },
-  {
-    id: "DL2026052301",
-    date: "23 Mai 2026",
-    status: "delivered",
-    statusLabel: "Livree",
-    pickup: { address: "Marche Central, Yaounde", name: "Marie C.", phone: "+237 6 55 44 33 22" },
-    dropoff: { address: "123 Rue Bastos, Yaounde", name: "Samuel O.", phone: "+237 6 95 55 55 55" },
-    package: { description: "Colis electronique", weight: "3 kg" },
-    price: 3000,
-    deliveredAt: "23 Mai 2026, 16:45",
-    driver: { name: "Paul M.", phone: "+237 6 11 22 33 44", rating: 4.8 },
-    vehicleType: "Voiture",
-  },
-  {
-    id: "DL2026052201",
-    date: "22 Mai 2026",
-    status: "delivered",
-    statusLabel: "Livree",
-    pickup: { address: "Aeroport Nsimalen", name: "Air France Cargo", phone: "+237 2 22 23 00 00" },
-    dropoff: { address: "Bureau DL Solutions", name: "Reception", phone: "+237 6 95 55 55 55" },
-    package: { description: "Equipement informatique", weight: "15 kg" },
-    price: 8000,
-    deliveredAt: "22 Mai 2026, 10:20",
-    driver: { name: "David T.", phone: "+237 6 99 88 77 66", rating: 4.7 },
-    vehicleType: "Camion",
-  },
-  {
-    id: "DL2026052001",
-    date: "20 Mai 2026",
-    status: "cancelled",
-    statusLabel: "Annulee",
-    pickup: { address: "123 Rue Bastos, Yaounde", name: "Samuel O.", phone: "+237 6 95 55 55 55" },
-    dropoff: { address: "Hopital Central", name: "Dr. Mbarga", phone: "+237 6 44 55 66 77" },
-    package: { description: "Medicaments", weight: "1 kg" },
-    price: 1500,
-    cancelledReason: "Destinataire indisponible",
-    vehicleType: "Moto",
-  },
-]
+interface ApiDeliveryRequest {
+  id: string
+  tracking_number?: string | null
+  created_at: string
+  updated_at?: string | null
+  status: string
+  pickup_address?: string | null
+  pickup_contact?: string | null
+  pickup_phone?: string | null
+  delivery_address?: string | null
+  dropoff_address?: string | null
+  delivery_contact?: string | null
+  delivery_phone?: string | null
+  package_type?: string | null
+  package_description?: string | null
+  notes?: string | null
+  price?: number | null
+  distance_km?: number | null
+  estimated_duration?: number | null
+  driver?: {
+    id?: string
+    rating?: number | null
+    vehicle_type?: string | null
+    user?: { full_name?: string | null; phone?: string | null } | null
+  } | null
+}
+
+interface Delivery {
+  id: string
+  reference: string
+  date: string
+  status: "pending" | "in_transit" | "delivered" | "cancelled"
+  statusLabel: string
+  pickup: { address: string; name: string; phone: string }
+  dropoff: { address: string; name: string; phone: string }
+  package: { description: string; detail: string }
+  price: number
+  deliveredAt?: string
+  cancelledReason?: string
+  driver?: { name: string; phone: string; rating: number } | null
+  vehicleType?: string | null
+}
 
 const statusConfig = {
   delivered: { icon: CheckCircle2, color: "text-secondary", bg: "bg-secondary/20" },
@@ -88,17 +78,119 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat("fr-FR").format(price) + " FCFA"
 }
 
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+
+function mapStatus(status: string): { status: Delivery["status"]; label: string } {
+  switch (status) {
+    case "delivered":
+      return { status: "delivered", label: "Livree" }
+    case "accepted":
+    case "picked_up":
+    case "in_transit":
+      return { status: "in_transit", label: "En cours" }
+    case "cancelled":
+    case "rejected":
+      return { status: "cancelled", label: "Annulee" }
+    default:
+      return { status: "pending", label: "En attente" }
+  }
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function mapApiDelivery(req: ApiDeliveryRequest): Delivery {
+  const { status, label } = mapStatus(req.status)
+  const driver = req.driver
+  return {
+    id: req.id,
+    reference: req.tracking_number || req.id.slice(0, 8).toUpperCase(),
+    date: formatDate(req.created_at),
+    status,
+    statusLabel: label,
+    pickup: {
+      address: req.pickup_address || "Adresse de collecte",
+      name: req.pickup_contact || "",
+      phone: req.pickup_phone || "",
+    },
+    dropoff: {
+      address: req.delivery_address || req.dropoff_address || "Adresse de livraison",
+      name: req.delivery_contact || "",
+      phone: req.delivery_phone || "",
+    },
+    package: {
+      description: req.package_description || req.notes || "Colis",
+      detail: [
+        req.package_type ? capitalize(req.package_type) : null,
+        req.distance_km ? `${req.distance_km} km` : null,
+      ]
+        .filter(Boolean)
+        .join(" • "),
+    },
+    price: req.price ?? 0,
+    deliveredAt: status === "delivered" && req.updated_at ? formatDateTime(req.updated_at) : undefined,
+    cancelledReason: status === "cancelled" ? "Livraison annulee" : undefined,
+    driver: driver?.user?.full_name
+      ? {
+          name: driver.user.full_name,
+          phone: driver.user.phone || "",
+          rating: driver.rating ?? 0,
+        }
+      : null,
+    vehicleType: driver?.vehicle_type ? capitalize(driver.vehicle_type) : null,
+  }
+}
+
 export default function DeliveryHistoryPage() {
   const [filter, setFilter] = useState("all")
+  const [deliveries, setDeliveries] = useState<Delivery[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredDeliveries = filter === "all" 
-    ? deliveries 
+  const loadDeliveries = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/delivery/history")
+      if (res.status === 401) {
+        setError("Veuillez vous connecter pour voir vos livraisons")
+        return
+      }
+      if (!res.ok) {
+        throw new Error("Erreur serveur")
+      }
+      const data: ApiDeliveryRequest[] = await res.json()
+      setDeliveries(Array.isArray(data) ? data.map(mapApiDelivery) : [])
+    } catch {
+      setError("Impossible de charger vos livraisons. Veuillez reessayer.")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadDeliveries()
+  }, [loadDeliveries])
+
+  const filteredDeliveries = filter === "all"
+    ? deliveries
     : deliveries.filter(d => d.status === filter)
 
   return (
     <main className="min-h-screen bg-background">
       <Navbar />
-      
+
       <div className="pt-20 lg:pt-24 pb-20">
         {/* Header */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -127,6 +219,7 @@ export default function DeliveryHistoryPage() {
           <div className="flex items-center gap-2 mt-8 overflow-x-auto pb-2">
             {[
               { id: "all", label: "Toutes" },
+              { id: "pending", label: "En attente" },
               { id: "in_transit", label: "En cours" },
               { id: "delivered", label: "Livrees" },
               { id: "cancelled", label: "Annulees" },
@@ -148,6 +241,34 @@ export default function DeliveryHistoryPage() {
 
         {/* Deliveries List */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Loading State */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Chargement de vos livraisons...</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {!loading && error && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-20"
+            >
+              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertTriangle className="w-12 h-12 text-destructive" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Une erreur est survenue</h2>
+              <p className="text-muted-foreground mb-8">{error}</p>
+              <Button size="lg" className="rounded-xl" onClick={loadDeliveries}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reessayer
+              </Button>
+            </motion.div>
+          )}
+
+          {!loading && !error && (
           <div className="space-y-6">
             {filteredDeliveries.map((delivery, index) => {
               const statusInfo = statusConfig[delivery.status as keyof typeof statusConfig]
@@ -165,14 +286,16 @@ export default function DeliveryHistoryPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/50">
                     <div>
                       <div className="flex items-center gap-3">
-                        <h3 className="font-bold text-foreground">#{delivery.id}</h3>
+                        <h3 className="font-bold text-foreground">#{delivery.reference}</h3>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${statusInfo.bg} ${statusInfo.color}`}>
                           <StatusIcon className="w-3 h-3" />
                           {delivery.statusLabel}
                         </span>
-                        <span className="px-2 py-1 rounded-lg text-xs bg-muted text-muted-foreground">
-                          {delivery.vehicleType}
-                        </span>
+                        {delivery.vehicleType && (
+                          <span className="px-2 py-1 rounded-lg text-xs bg-muted text-muted-foreground">
+                            {delivery.vehicleType}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
@@ -181,9 +304,6 @@ export default function DeliveryHistoryPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-foreground">{formatPrice(delivery.price)}</p>
-                      {delivery.status === "in_transit" && delivery.eta && (
-                        <p className="text-sm text-primary">ETA: {delivery.eta}</p>
-                      )}
                     </div>
                   </div>
 
@@ -199,12 +319,16 @@ export default function DeliveryHistoryPage() {
                         <div>
                           <p className="text-xs text-muted-foreground">Collecte</p>
                           <p className="font-medium text-foreground">{delivery.pickup.address}</p>
-                          <p className="text-sm text-muted-foreground">{delivery.pickup.name}</p>
+                          {delivery.pickup.name && (
+                            <p className="text-sm text-muted-foreground">{delivery.pickup.name}</p>
+                          )}
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Livraison</p>
                           <p className="font-medium text-foreground">{delivery.dropoff.address}</p>
-                          <p className="text-sm text-muted-foreground">{delivery.dropoff.name}</p>
+                          {delivery.dropoff.name && (
+                            <p className="text-sm text-muted-foreground">{delivery.dropoff.name}</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -218,7 +342,9 @@ export default function DeliveryHistoryPage() {
                       </div>
                       <div>
                         <p className="font-medium text-foreground">{delivery.package.description}</p>
-                        <p className="text-sm text-muted-foreground">{delivery.package.weight}</p>
+                        {delivery.package.detail && (
+                          <p className="text-sm text-muted-foreground">{delivery.package.detail}</p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -241,9 +367,13 @@ export default function DeliveryHistoryPage() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="rounded-full">
-                              <Phone className="w-4 h-4" />
-                            </Button>
+                            {delivery.driver.phone && (
+                              <a href={`tel:${delivery.driver.phone}`}>
+                                <Button size="sm" variant="outline" className="rounded-full">
+                                  <Phone className="w-4 h-4" />
+                                </Button>
+                              </a>
+                            )}
                             <Button size="sm" variant="outline" className="rounded-full">
                               <MessageSquare className="w-4 h-4" />
                             </Button>
@@ -276,14 +406,14 @@ export default function DeliveryHistoryPage() {
                   {/* Actions */}
                   <div className="flex flex-wrap gap-3 pt-4 border-t border-border/50">
                     {delivery.status === "in_transit" && (
-                      <Link href={`/tracking?delivery=${delivery.id}`}>
+                      <Link href={`/tracking?delivery=${delivery.reference}`}>
                         <Button className="rounded-xl">
                           <MapPin className="w-4 h-4 mr-2" />
                           Suivre en temps reel
                         </Button>
                       </Link>
                     )}
-                    
+
                     {delivery.status === "delivered" && (
                       <>
                         <Button variant="outline" className="rounded-xl">
@@ -308,8 +438,9 @@ export default function DeliveryHistoryPage() {
               )
             })}
           </div>
+          )}
 
-          {filteredDeliveries.length === 0 && (
+          {!loading && !error && filteredDeliveries.length === 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -332,7 +463,7 @@ export default function DeliveryHistoryPage() {
           )}
         </div>
       </div>
-      
+
       <Footer />
     </main>
   )
