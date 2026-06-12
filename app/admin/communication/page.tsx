@@ -1,20 +1,19 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { 
-  Bell, 
-  Send, 
-  Users, 
-  MessageSquare, 
-  Phone, 
-  Mail, 
+import {
+  Bell,
+  Send,
+  Users,
+  MessageSquare,
+  Phone,
+  Mail,
   Smartphone,
   Gift,
   Clock,
   CheckCircle,
   AlertCircle,
-  Search,
   Filter,
   Plus,
   ChevronRight,
@@ -28,6 +27,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 const channels = [
   { id: 'push', label: 'Push', icon: Bell, color: 'text-blue-400', bgColor: 'bg-blue-500/10' },
@@ -35,13 +35,6 @@ const channels = [
   { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-yellow-400', bgColor: 'bg-yellow-500/10' },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, color: 'text-green-400', bgColor: 'bg-green-500/10' },
   { id: 'popup', label: 'Popup', icon: Megaphone, color: 'text-pink-400', bgColor: 'bg-pink-500/10' },
-]
-
-const segments = [
-  { id: 'all', label: 'Tous les utilisateurs', count: 12458 },
-  { id: 'clients', label: 'Clients', count: 10234 },
-  { id: 'vendors', label: 'Commercants', count: 856 },
-  { id: 'drivers', label: 'Livreurs', count: 1368 },
 ]
 
 const messageTypes = [
@@ -52,38 +45,25 @@ const messageTypes = [
   { id: 'broadcast', label: 'Diffusion generale', icon: Megaphone },
 ]
 
-const recentCampaigns = [
-  { 
-    id: 1, 
-    title: 'Promo Weekend -20%', 
-    type: 'promotion',
-    channels: ['push', 'email', 'whatsapp'],
-    sent: 8456,
-    opened: 3421,
-    clicked: 892,
-    date: '2024-01-15'
-  },
-  { 
-    id: 2, 
-    title: 'Nouvelle zone de livraison', 
-    type: 'broadcast',
-    channels: ['push', 'email'],
-    sent: 12458,
-    opened: 6234,
-    clicked: 1567,
-    date: '2024-01-14'
-  },
-  { 
-    id: 3, 
-    title: 'Rappel panier abandonne', 
-    type: 'reminder',
-    channels: ['email', 'whatsapp'],
-    sent: 2341,
-    opened: 1023,
-    clicked: 456,
-    date: '2024-01-13'
-  },
-]
+type Campaign = {
+  id: number | string
+  title: string
+  type: string
+  channels: string[]
+  sent: number
+  opened: number
+  clicked: number
+  date: string
+}
+
+type Segment = { id: string; label: string; count: number }
+
+type CommStats = {
+  totalSent: number
+  openRate: number
+  clickRate: number
+  activeUsers: number
+}
 
 export default function CommunicationDashboard() {
   const [selectedChannels, setSelectedChannels] = useState<string[]>(['push'])
@@ -96,9 +76,34 @@ export default function CommunicationDashboard() {
   const [isSending, setIsSending] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
+  const [stats, setStats] = useState<CommStats>({ totalSent: 0, openRate: 0, clickRate: 0, activeUsers: 0 })
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [segments, setSegments] = useState<Segment[]>([
+    { id: 'all', label: 'Tous les utilisateurs', count: 0 },
+    { id: 'clients', label: 'Clients', count: 0 },
+    { id: 'vendors', label: 'Commercants', count: 0 },
+    { id: 'drivers', label: 'Livreurs', count: 0 },
+  ])
+  const [loadingStats, setLoadingStats] = useState(true)
+
+  async function fetchStats() {
+    try {
+      const res = await fetch('/api/admin/communication')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.stats) setStats(data.stats)
+      if (data.campaigns) setCampaigns(data.campaigns)
+      if (data.segments) setSegments(data.segments)
+    } catch { /* non-critical */ } finally {
+      setLoadingStats(false)
+    }
+  }
+
+  useEffect(() => { fetchStats() }, [])
+
   const toggleChannel = (channelId: string) => {
-    setSelectedChannels(prev => 
-      prev.includes(channelId) 
+    setSelectedChannels(prev =>
+      prev.includes(channelId)
         ? prev.filter(c => c !== channelId)
         : [...prev, channelId]
     )
@@ -106,45 +111,39 @@ export default function CommunicationDashboard() {
 
   const handleSend = async () => {
     if (!title || !message || selectedChannels.length === 0) {
-      alert('Veuillez remplir tous les champs requis')
+      toast.error('Veuillez remplir tous les champs requis')
       return
     }
 
     setIsSending(true)
     try {
-      const response = await fetch('/api/communication', {
+      const response = await fetch('/api/admin/communication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: isScheduled ? 'schedule_broadcast' : 'send_notification',
           channels: selectedChannels,
           messageType: selectedType,
           title,
           content: message,
-          recipients: { segment: selectedSegment },
-          scheduledAt: isScheduled ? scheduledDate : null
-        })
+          segment: selectedSegment,
+          scheduledAt: isScheduled ? scheduledDate : null,
+        }),
       })
 
       const data = await response.json()
-      if (data.success) {
-        alert(isScheduled ? 'Campagne programmee!' : 'Messages envoyes!')
+      if (response.ok && data.success) {
+        toast.success(isScheduled ? 'Campagne programmée !' : `Messages envoyés (${data.recipientsCount ?? 0} destinataires)`)
         setTitle('')
         setMessage('')
+        fetchStats()
+      } else {
+        toast.error(data.error ?? "Erreur lors de l'envoi")
       }
-    } catch (error) {
-      console.error('Error sending:', error)
-      alert('Erreur lors de l\'envoi')
+    } catch {
+      toast.error("Erreur réseau")
     } finally {
       setIsSending(false)
     }
-  }
-
-  const stats = {
-    totalSent: 45678,
-    openRate: 67.3,
-    clickRate: 23.4,
-    activeUsers: 8934
   }
 
   return (
@@ -348,7 +347,7 @@ export default function CommunicationDashboard() {
               </div>
 
               <div className="space-y-3">
-                {recentCampaigns.map(campaign => (
+                {campaigns.map(campaign => (
                   <div 
                     key={campaign.id}
                     className="p-4 rounded-lg bg-gray-800/30 border border-gray-800 hover:border-gray-700 transition-colors"

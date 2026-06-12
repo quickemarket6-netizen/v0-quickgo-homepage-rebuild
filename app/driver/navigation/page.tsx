@@ -36,16 +36,35 @@ const routeSteps = [
   { id: 4, instruction: "Votre destination sera sur la droite", distance: "50m", completed: false },
 ]
 
+type ActiveDelivery = {
+  type: string
+  reference: string
+  destination: string
+  customer_name: string
+  customer_phone: string | null
+  earning: number
+  tip: number
+  order_type: string
+}
+
 export default function DriverNavigationPage() {
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showPanel, setShowPanel] = useState(true)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [progress, setProgress] = useState(65)
+  const [delivery, setDelivery] = useState<ActiveDelivery | null>(null)
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/driver/active-delivery")
+      .then((r) => r.json())
+      .then((data) => { if (data) setDelivery(data) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -160,7 +179,7 @@ export default function DriverNavigationPage() {
               </Link>
               <div>
                 <p className="text-xs text-muted-foreground">En route vers</p>
-                <p className="text-white font-semibold">Elig-Essono, Yaoundé</p>
+                <p className="text-white font-semibold">{delivery?.destination ?? "Chargement..."}</p>
               </div>
             </div>
 
@@ -365,7 +384,7 @@ export default function DriverNavigationPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-white font-medium">Jean Paul N.</p>
+                      <p className="text-white font-medium">{delivery?.customer_name ?? "—"}</p>
                       <p className="text-xs text-muted-foreground">Client en attente</p>
                     </div>
                   </div>
@@ -374,24 +393,32 @@ export default function DriverNavigationPage() {
                     <Button variant="outline" size="icon" className="rounded-full border-quickgo-blue/50 text-quickgo-blue">
                       <MessageSquare className="w-5 h-5" />
                     </Button>
-                    <Button size="icon" className="rounded-full bg-quickgo-lime text-background">
-                      <Phone className="w-5 h-5" />
-                    </Button>
+                    {delivery?.customer_phone ? (
+                      <a href={`tel:${delivery.customer_phone}`}>
+                        <Button size="icon" className="rounded-full bg-quickgo-lime text-background">
+                          <Phone className="w-5 h-5" />
+                        </Button>
+                      </a>
+                    ) : (
+                      <Button size="icon" className="rounded-full bg-quickgo-lime text-background" disabled>
+                        <Phone className="w-5 h-5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                   <div className="bg-white/5 rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Gain</p>
-                    <p className="text-white font-bold">2 300 CFA</p>
+                    <p className="text-white font-bold">{delivery ? new Intl.NumberFormat("fr-FR").format(delivery.earning) + " CFA" : "—"}</p>
                   </div>
                   <div className="bg-white/5 rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Pourboire</p>
-                    <p className="text-quickgo-lime font-bold">+500 CFA</p>
+                    <p className="text-quickgo-lime font-bold">{delivery && delivery.tip > 0 ? "+" + new Intl.NumberFormat("fr-FR").format(delivery.tip) + " CFA" : "—"}</p>
                   </div>
                   <div className="bg-white/5 rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Type</p>
-                    <p className="text-quickgo-cyan font-bold">Express</p>
+                    <p className="text-quickgo-cyan font-bold">{delivery?.order_type ?? "—"}</p>
                   </div>
                 </div>
               </div>

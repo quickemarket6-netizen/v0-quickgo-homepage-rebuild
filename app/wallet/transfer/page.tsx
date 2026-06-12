@@ -11,19 +11,17 @@ import {
   ArrowLeft,
   Send,
   Phone,
-  User,
   ChevronRight,
   CheckCircle,
   Loader2,
   AlertCircle,
-  Smartphone,
 } from "lucide-react"
 
 const contacts = [
-  { name: "Marie Atangana", phone: "+237 6 77 11 22 33", initial: "M" },
-  { name: "Jean Paul N.", phone: "+237 6 55 44 33 22", initial: "J" },
-  { name: "Claire Mbarga", phone: "+237 6 99 88 77 66", initial: "C" },
-  { name: "Samuel Fotso", phone: "+237 6 11 22 33 44", initial: "S" },
+  { name: "Marie Atangana", phone: "+237677112233", initial: "M" },
+  { name: "Jean Paul N.", phone: "+237655443322", initial: "J" },
+  { name: "Claire Mbarga", phone: "+237699887766", initial: "C" },
+  { name: "Samuel Fotso", phone: "+237611223344", initial: "S" },
 ]
 
 const formatPrice = (p: number) => new Intl.NumberFormat("fr-FR").format(p) + " FCFA"
@@ -34,14 +32,35 @@ export default function TransferPage() {
   const [amount, setAmount] = useState("")
   const [note, setNote] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [recipientName, setRecipientName] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (step === "form") { setStep("confirm"); return }
+
     setIsLoading(true)
-    await new Promise((r) => setTimeout(r, 1500))
-    setIsLoading(false)
-    setStep("success")
+    setError(null)
+    try {
+      const res = await fetch("/api/wallet/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient, amount: Number(amount), note }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setRecipientName(data.recipient_name ?? recipient)
+        setStep("success")
+      } else {
+        setError(data.error ?? "Erreur lors du transfert")
+        setStep("form")
+      }
+    } catch {
+      setError("Erreur réseau, veuillez réessayer")
+      setStep("form")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -63,12 +82,12 @@ export default function TransferPage() {
               <p className="text-muted-foreground mb-2">
                 <span className="text-white font-bold">{formatPrice(Number(amount))}</span> envoyé à
               </p>
-              <p className="text-quickgo-lime font-medium mb-8">{recipient}</p>
+              <p className="text-quickgo-lime font-medium mb-8">{recipientName}</p>
               <div className="space-y-3">
                 <Link href="/wallet">
                   <Button className="w-full h-12 rounded-xl">Retour au portefeuille</Button>
                 </Link>
-                <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => { setStep("form"); setAmount(""); setRecipient(""); setNote("") }}>
+                <Button variant="outline" className="w-full h-12 rounded-xl" onClick={() => { setStep("form"); setAmount(""); setRecipient(""); setNote(""); setRecipientName(""); setError(null) }}>
                   Nouveau transfert
                 </Button>
               </div>
@@ -77,6 +96,13 @@ export default function TransferPage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <h1 className="text-2xl font-bold text-white mb-1">Envoyer de l&apos;argent</h1>
               <p className="text-muted-foreground mb-6">Transferts gratuits entre comptes QuickGo</p>
+
+              {error && (
+                <div className="mb-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+                  <span className="text-red-300 text-sm">{error}</span>
+                </div>
+              )}
 
               {step === "confirm" && (
                 <div className="mb-6 p-4 rounded-2xl bg-quickgo-blue/10 border border-quickgo-blue/30">
@@ -118,6 +144,7 @@ export default function TransferPage() {
                           className="w-full flex items-center gap-3 p-3 rounded-xl bg-card/50 border border-border/30 hover:border-quickgo-blue/50 transition-colors text-left">
                           <div className="w-10 h-10 rounded-full bg-quickgo-blue/20 flex items-center justify-center text-quickgo-blue font-bold">{c.initial}</div>
                           <div><p className="text-white text-sm font-medium">{c.name}</p><p className="text-xs text-muted-foreground">{c.phone}</p></div>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
                         </button>
                       ))}
                     </div>

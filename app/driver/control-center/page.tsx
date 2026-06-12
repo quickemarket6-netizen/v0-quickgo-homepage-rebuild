@@ -26,56 +26,52 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const liveDrivers = [
-  { id: 1, name: "Marc D.", status: "delivering", location: "Bastos", eta: 5, earning: 2500 },
-  { id: 2, name: "Jean P.", status: "picking", location: "Centre-ville", eta: 8, earning: 3200 },
-  { id: 3, name: "Alain K.", status: "idle", location: "Omnisports", eta: 0, earning: 0 },
-  { id: 4, name: "Christian B.", status: "delivering", location: "Mvan", eta: 12, earning: 4100 },
-  { id: 5, name: "Steve M.", status: "delivering", location: "Nlongkak", eta: 3, earning: 1800 },
-]
-
-const liveOrders = [
-  { id: "#QG1234", merchant: "Le Gourmet", status: "in_transit", driver: "Marc D.", eta: 5 },
-  { id: "#QG1235", merchant: "Pharmacie Plus", status: "picking", driver: "Jean P.", eta: 12 },
-  { id: "#QG1236", merchant: "Santa Lucia", status: "pending", driver: null, eta: null },
-  { id: "#QG1237", merchant: "Tech Store", status: "in_transit", driver: "Christian B.", eta: 8 },
-]
-
-const hotspots = [
-  { name: "Bastos", orders: 24, intensity: "high" },
-  { name: "Centre-ville", orders: 18, intensity: "high" },
-  { name: "Omnisports", orders: 12, intensity: "medium" },
-  { name: "Mvan", orders: 8, intensity: "medium" },
-  { name: "Nlongkak", orders: 15, intensity: "high" },
-  { name: "Mokolo", orders: 6, intensity: "low" },
-]
-
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
   delivering: { bg: "bg-quickgo-blue/20", text: "text-quickgo-blue", label: "En livraison" },
-  picking: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "Récupération" },
-  idle: { bg: "bg-gray-500/20", text: "text-gray-400", label: "Disponible" },
-  in_transit: { bg: "bg-quickgo-blue/20", text: "text-quickgo-blue", label: "En cours" },
+  online: { bg: "bg-green-500/20", text: "text-green-400", label: "Disponible" },
+  offline: { bg: "bg-gray-500/20", text: "text-gray-400", label: "Hors ligne" },
+  confirmed: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "Confirmée" },
+  preparing: { bg: "bg-yellow-500/20", text: "text-yellow-400", label: "Préparation" },
+  ready: { bg: "bg-quickgo-lime/20", text: "text-quickgo-lime", label: "Prête" },
   pending: { bg: "bg-orange-500/20", text: "text-orange-400", label: "En attente" },
 }
+
+type DriverRow = { id: string; name: string; status: string; eta: number; earning: number }
+type OrderRow = { id: string; merchant: string; status: string; driver: string | null; eta: number | null }
+type CCStats = { active_drivers: number; online_drivers: number; total_drivers: number; active_orders: number; pending_orders: number; live_revenue: number }
 
 export default function ControlCenterPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [mapLayer, setMapLayer] = useState<"drivers" | "orders" | "heatmap">("drivers")
+  const [liveDrivers, setLiveDrivers] = useState<DriverRow[]>([])
+  const [liveOrders, setLiveOrders] = useState<OrderRow[]>([])
+  const [ccStats, setCcStats] = useState<CCStats>({ active_drivers: 0, online_drivers: 0, total_drivers: 0, active_orders: 0, pending_orders: 0, live_revenue: 0 })
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  const handleRefresh = () => {
+  const fetchData = () => {
     setRefreshing(true)
-    setTimeout(() => setRefreshing(false), 1500)
+    fetch("/api/driver/control-center")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.drivers)) setLiveDrivers(data.drivers)
+        if (Array.isArray(data.orders)) setLiveOrders(data.orders)
+        if (data.stats) setCcStats(data.stats)
+      })
+      .catch(() => {})
+      .finally(() => setRefreshing(false))
   }
 
-  // Stats
-  const activeDrivers = liveDrivers.filter(d => d.status !== "idle").length
-  const pendingOrders = liveOrders.filter(o => o.status === "pending").length
+  useEffect(() => { fetchData() }, [])
+
+  const handleRefresh = () => { fetchData() }
+
+  const activeDrivers = ccStats.active_drivers
+  const pendingOrders = ccStats.pending_orders
 
   return (
     <div className="min-h-screen bg-background">
@@ -127,10 +123,10 @@ export default function ControlCenterPage() {
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Livreurs actifs", value: activeDrivers, total: liveDrivers.length, icon: Users, color: "quickgo-blue" },
-            { label: "Commandes en cours", value: liveOrders.filter(o => o.status !== "pending").length, icon: Package, color: "quickgo-lime" },
+            { label: "Livreurs actifs", value: activeDrivers, total: ccStats.total_drivers, icon: Users, color: "quickgo-blue" },
+            { label: "Commandes en cours", value: ccStats.active_orders, icon: Package, color: "quickgo-lime" },
             { label: "En attente", value: pendingOrders, icon: Clock, color: "orange-500", alert: pendingOrders > 0 },
-            { label: "Revenus live", value: "45 200 CFA", icon: TrendingUp, color: "quickgo-cyan" },
+            { label: "Revenus live", value: new Intl.NumberFormat("fr-FR").format(ccStats.live_revenue) + " CFA", icon: TrendingUp, color: "quickgo-cyan" },
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -248,7 +244,7 @@ export default function ControlCenterPage() {
                     { x: 600, y: 280 },
                   ]
                   const pos = positions[i]
-                  const isActive = driver.status !== "idle"
+                  const isActive = driver.status !== "offline"
 
                   return (
                     <motion.g key={driver.id}>
@@ -370,22 +366,16 @@ export default function ControlCenterPage() {
             {/* Hotspots Bar */}
             <div className="p-4 border-t border-border/30">
               <div className="flex items-center gap-4 overflow-x-auto pb-2">
-                <span className="text-sm text-muted-foreground whitespace-nowrap">Zones actives:</span>
-                {hotspots.map((spot) => (
-                  <div
-                    key={spot.name}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-full whitespace-nowrap ${
-                      spot.intensity === "high"
-                        ? "bg-red-500/20 text-red-400"
-                        : spot.intensity === "medium"
-                        ? "bg-yellow-500/20 text-yellow-400"
-                        : "bg-green-500/20 text-green-400"
-                    }`}
-                  >
-                    <span className="text-sm font-medium">{spot.name}</span>
-                    <span className="text-xs opacity-75">{spot.orders}</span>
-                  </div>
-                ))}
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Données en direct</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full whitespace-nowrap bg-quickgo-blue/20 text-quickgo-blue">
+                  <span className="text-sm font-medium">{ccStats.online_drivers} en ligne</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full whitespace-nowrap bg-quickgo-lime/20 text-quickgo-lime">
+                  <span className="text-sm font-medium">{ccStats.active_drivers} en livraison</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full whitespace-nowrap bg-orange-500/20 text-orange-400">
+                  <span className="text-sm font-medium">{ccStats.pending_orders} en attente</span>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -411,8 +401,10 @@ export default function ControlCenterPage() {
               </div>
 
               <div className="space-y-3">
-                {liveDrivers.map((driver) => {
-                  const status = statusColors[driver.status]
+                {liveDrivers.length === 0 ? (
+                  <p className="text-muted-foreground text-sm text-center py-4">Aucun livreur en ligne</p>
+                ) : liveDrivers.map((driver) => {
+                  const status = statusColors[driver.status] ?? { bg: "bg-gray-500/20", text: "text-gray-400", label: driver.status }
                   return (
                     <motion.div
                       key={driver.id}
@@ -426,12 +418,11 @@ export default function ControlCenterPage() {
                             <span className="text-quickgo-blue font-semibold text-sm">{driver.name.charAt(0)}</span>
                           </div>
                           <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
-                            driver.status === "idle" ? "bg-gray-500" : "bg-quickgo-lime"
+                            driver.status === "offline" ? "bg-gray-500" : "bg-quickgo-lime"
                           }`} />
                         </div>
                         <div>
                           <p className="text-white font-medium text-sm">{driver.name}</p>
-                          <p className="text-xs text-muted-foreground">{driver.location}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -460,12 +451,14 @@ export default function ControlCenterPage() {
                   <Package className="w-4 h-4 text-quickgo-lime" />
                   Commandes en temps réel
                 </h2>
-                <span className="text-xs text-muted-foreground">{liveOrders.length} actives</span>
+                <span className="text-xs text-muted-foreground">{ccStats.active_orders} actives</span>
               </div>
 
               <div className="space-y-3">
-                {liveOrders.map((order) => {
-                  const status = statusColors[order.status]
+                {liveOrders.length === 0 ? (
+                  <p className="text-muted-foreground text-sm text-center py-4">Aucune commande active</p>
+                ) : liveOrders.map((order) => {
+                  const status = statusColors[order.status] ?? { bg: "bg-gray-500/20", text: "text-gray-400", label: order.status }
                   return (
                     <div
                       key={order.id}
