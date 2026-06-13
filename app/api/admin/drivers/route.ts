@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin } from "@/lib/payments/security"
 
@@ -87,7 +88,15 @@ export async function POST(req: NextRequest) {
   const admin = await verifyAdmin()
   if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) {
+    return NextResponse.json({ error: "Service role non configuré" }, { status: 500 })
+  }
+
   const supabase = await createClient()
+  const service  = createServiceClient(supabaseUrl, serviceKey)
+
   const { email, vehicle_type, city } = await req.json() as {
     email?: string; vehicle_type?: string; city?: string
   }
@@ -123,7 +132,12 @@ export async function POST(req: NextRequest) {
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  await supabase.from("profiles").update({ role: "driver" }).eq("id", profile.id)
+  // Use service role so RLS doesn't silently block the role update on another user's profile
+  const { error: roleErr } = await service
+    .from("profiles")
+    .update({ role: "driver" })
+    .eq("id", profile.id)
+  if (roleErr) console.error("[admin/drivers] profile role update failed:", roleErr.message)
 
   return NextResponse.json({ success: true, driver_id: driver.id }, { status: 201 })
 }

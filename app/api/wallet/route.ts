@@ -61,14 +61,28 @@ export async function POST(request: Request) {
     .single()
 
   const currentBalance = profile?.wallet_balance || 0
-  let newBalance = currentBalance
 
   if (currentBalance < amount) {
     return NextResponse.json({ error: "Solde insuffisant" }, { status: 400 })
   }
-  newBalance = currentBalance - amount
-  
-  // Create transaction
+  const newBalance = currentBalance - amount
+
+  // Update balance first with optimistic lock — fails if balance changed concurrently
+  const { data: updated, error: profileError } = await supabase
+    .from("profiles")
+    .update({ wallet_balance: newBalance })
+    .eq("id", user.id)
+    .eq("wallet_balance", currentBalance)
+    .select("id")
+
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message }, { status: 500 })
+  }
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: "Solde modifié, veuillez réessayer" }, { status: 409 })
+  }
+
+  // Audit log after confirmed balance update
   const { data: transaction, error: txError } = await supabase
     .from("wallet_transactions")
     .insert({
@@ -80,23 +94,13 @@ export async function POST(request: Request) {
     })
     .select()
     .single()
-  
+
   if (txError) {
-    return NextResponse.json({ error: txError.message }, { status: 500 })
+    console.error("[wallet] audit log failed:", txError.message)
   }
-  
-  // Update profile balance
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({ wallet_balance: newBalance })
-    .eq("id", user.id)
-  
-  if (profileError) {
-    return NextResponse.json({ error: profileError.message }, { status: 500 })
-  }
-  
+
   return NextResponse.json({
-    transaction,
+    transaction: transaction ?? null,
     new_balance: newBalance
   })
 }

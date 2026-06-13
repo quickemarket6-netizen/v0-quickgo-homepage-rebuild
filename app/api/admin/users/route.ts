@@ -60,6 +60,12 @@ export async function PATCH(req: NextRequest) {
   const { id, role } = await req.json()
   if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 })
 
+  // Whitelist assignable roles — admin/super_admin promotion is intentionally excluded
+  const ASSIGNABLE_ROLES = ["customer", "vendor", "driver", "suspended"]
+  if (role !== undefined && !ASSIGNABLE_ROLES.includes(role)) {
+    return NextResponse.json({ error: "Rôle non autorisé via cette action" }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .update({ role })

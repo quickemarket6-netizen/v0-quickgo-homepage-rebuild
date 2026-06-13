@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
   let { error: uploadErr } = await service.storage.from(BUCKET)
     .upload(path, bytes, { contentType: file.type, upsert: true })
 
-  // Create the bucket on first use, then retry once
+  // Create the bucket on first use (private — KYC documents must not be publicly accessible)
   if (uploadErr && /bucket.*not.*found/i.test(uploadErr.message)) {
-    await service.storage.createBucket(BUCKET, { public: true, fileSizeLimit: MAX_SIZE })
+    await service.storage.createBucket(BUCKET, { public: false, fileSizeLimit: MAX_SIZE })
     const retry = await service.storage.from(BUCKET)
       .upload(path, bytes, { contentType: file.type, upsert: true })
     uploadErr = retry.error
@@ -64,6 +64,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Échec de l'envoi : ${uploadErr.message}` }, { status: 500 })
   }
 
-  const { data: pub } = service.storage.from(BUCKET).getPublicUrl(path)
-  return NextResponse.json({ success: true, url: pub.publicUrl, kind })
+  // Return a signed URL valid for 1 hour — do NOT use getPublicUrl on a private bucket
+  const { data: signed, error: signErr } = await service.storage
+    .from(BUCKET)
+    .createSignedUrl(path, 3600)
+
+  if (signErr || !signed) {
+    return NextResponse.json({ error: "Impossible de générer l'URL sécurisée" }, { status: 500 })
+  }
+
+  return NextResponse.json({ success: true, url: signed.signedUrl, kind })
 }

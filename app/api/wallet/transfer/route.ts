@@ -1,10 +1,19 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
+import { checkRateLimit } from "@/lib/payments/security"
+
+// 10 transfers per hour per user
+const TRANSFER_RATE_LIMIT = { maxRequests: 10, windowMs: 60 * 60 * 1000 }
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
+
+  const rl = checkRateLimit(`transfer:${user.id}`, TRANSFER_RATE_LIMIT)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Trop de transferts, réessayez plus tard" }, { status: 429 })
+  }
 
   const { recipient, amount, note } = await req.json() as {
     recipient?: string
@@ -54,27 +63,41 @@ export async function POST(req: NextRequest) {
   const newRecipientBalance = (recipientProfile.wallet_balance ?? 0) + amt
   const desc = note?.trim() ? note.trim() : undefined
 
-  // Debit sender
-  const { error: debitErr } = await supabase
+  // Atomic debit with optimistic locking:
+  // The WHERE wallet_balance = senderBalance ensures no concurrent modification
+  // slipped between our read and this write. Returns 0 rows on conflict.
+  const { data: debitResult, error: debitErr } = await supabase
     .from("profiles")
     .update({ wallet_balance: newSenderBalance })
     .eq("id", user.id)
+    .eq("wallet_balance", senderBalance)
+    .select("id")
+
   if (debitErr) return NextResponse.json({ error: "Erreur débit expéditeur" }, { status: 500 })
+  if (!debitResult || debitResult.length === 0) {
+    // Another concurrent operation already changed the balance
+    return NextResponse.json({ error: "Solde modifié, veuillez réessayer" }, { status: 409 })
+  }
 
   // Credit recipient
   const { error: creditErr } = await supabase
     .from("profiles")
     .update({ wallet_balance: newRecipientBalance })
     .eq("id", recipientProfile.id)
+
   if (creditErr) {
-    // Rollback sender debit
-    await supabase.from("profiles").update({ wallet_balance: senderBalance }).eq("id", user.id)
+    // Rollback: restore sender's balance to exact value before the debit
+    await supabase
+      .from("profiles")
+      .update({ wallet_balance: senderBalance })
+      .eq("id", user.id)
+      .eq("wallet_balance", newSenderBalance)
     return NextResponse.json({ error: "Erreur crédit destinataire" }, { status: 500 })
   }
 
-  // Insert wallet transactions (fire-and-forget)
+  // Audit trail — log failure instead of silently swallowing
   const ts = new Date().toISOString()
-  await supabase.from("wallet_transactions").insert([
+  const { error: txErr } = await supabase.from("wallet_transactions").insert([
     {
       user_id: user.id,
       type: "transfer_out",
@@ -91,12 +114,13 @@ export async function POST(req: NextRequest) {
       description: `Reçu de ${senderProfile?.full_name ?? "QuickGo"}${desc ? ` — ${desc}` : ""}`,
       created_at: ts,
     },
-  ]).then(undefined, () => {})
+  ])
+  if (txErr) console.error("[wallet/transfer] audit log failed:", txErr.message)
 
-  // Notify recipient
-  await supabase.from("notifications").insert({
+  // Notify recipient (fire-and-forget is acceptable for notifications)
+  supabase.from("notifications").insert({
     user_id: recipientProfile.id,
-    title: "Transfert reçu 💸",
+    title: "Transfert reçu",
     message: `Vous avez reçu ${new Intl.NumberFormat("fr-FR").format(amt)} FCFA de ${senderProfile?.full_name ?? "quelqu'un"}.`,
     is_read: false,
   }).then(undefined, () => {})

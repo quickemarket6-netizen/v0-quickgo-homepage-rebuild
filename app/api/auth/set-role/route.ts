@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
-const VALID_ROLES = ["client", "vendor", "driver", "admin"] as const
+// "admin" is intentionally excluded — role elevation requires an existing admin via the admin panel
+const VALID_ROLES = ["client", "vendor", "driver"] as const
 type Role = (typeof VALID_ROLES)[number]
 
 export async function POST(request: Request) {
