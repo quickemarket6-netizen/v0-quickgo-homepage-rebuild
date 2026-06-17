@@ -2,11 +2,17 @@ import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 import { logLoginAttempt, parseUserAgent, extractIP } from "@/lib/security/threat-logger"
 import { SecurityService } from "@/lib/security/cybersecurity"
+import { checkRateLimit } from "@/lib/payments/security"
 
 // POST /api/auth/login-event
 // Called by client auth flows to persist login attempts to DB
 
 export async function POST(req: NextRequest) {
+  // Rate-limit this endpoint: 30 events per 10 minutes per IP prevents DoS on blocked_ips table
+  const ip = extractIP(req.headers)
+  const rl = checkRateLimit(`login-event:${ip}`, { maxRequests: 30, windowMs: 10 * 60 * 1000 })
+  if (!rl.allowed) return NextResponse.json({ recorded: false }, { status: 429 })
+
   const body = await req.json() as {
     email?: string
     phone?: string
@@ -15,7 +21,6 @@ export async function POST(req: NextRequest) {
     failureReason?: string
   }
 
-  const ip          = extractIP(req.headers)
   const ua          = req.headers.get("user-agent") ?? ""
   const { device, browser, os } = parseUserAgent(ua)
   const fingerprint = SecurityService.generateFingerprint(ua, ip)

@@ -7,8 +7,28 @@ export async function GET(
 ) {
   const { id } = await params
   const supabase = await createClient()
-  
-  // Allow tracking by ID or tracking number
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Build query — PII fields only returned for authenticated owner/driver
+  const isTrackingNumber = id.startsWith("QGD-")
+
+  // Anonymous access via tracking number: return minimal public data (no PII)
+  if (!user) {
+    if (!isTrackingNumber) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+    }
+    // Public tracking: status and estimated arrival only, no PII
+    const { data, error } = await supabase
+      .from("delivery_requests")
+      .select("id, tracking_number, status, pickup_address, delivery_address, estimated_arrival, created_at")
+      .eq("tracking_number", id)
+      .single()
+    if (error) return NextResponse.json({ error: "Livraison non trouvée" }, { status: 404 })
+    return NextResponse.json(data)
+  }
+
+  // Authenticated: fetch full data then verify ownership
   let query = supabase
     .from("delivery_requests")
     .select(`
@@ -26,20 +46,25 @@ export async function GET(
         license_plate
       )
     `)
-  
-  // Check if it's a UUID or tracking number
-  if (id.startsWith("QGD-")) {
-    query = query.eq("tracking_number", id)
-  } else {
-    query = query.eq("id", id)
+
+  const { data, error } = await (isTrackingNumber
+    ? query.eq("tracking_number", id)
+    : query.eq("id", id)
+  ).single()
+
+  if (error || !data) {
+    return NextResponse.json({ error: "Livraison non trouvée" }, { status: 404 })
   }
-  
-  const { data, error } = await query.single()
-  
-  if (error) {
-    return NextResponse.json({ error: "Livraison non trouvee" }, { status: 404 })
+
+  // Only the customer, the assigned driver, or an admin can read full data
+  const driver = await supabase.from("drivers").select("id").eq("user_id", user.id).maybeSingle()
+  const isOwner = (data as any).customer_id === user.id
+  const isAssignedDriver = driver.data && (data as any).driver_id === driver.data.id
+
+  if (!isOwner && !isAssignedDriver) {
+    return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
   }
-  
+
   return NextResponse.json(data)
 }
 

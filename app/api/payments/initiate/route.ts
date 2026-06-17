@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   const body = await req.json()
-  const { order_id, amount, customer_name, customer_email, customer_phone } = body
+  const { order_id, customer_name, customer_email, customer_phone } = body
 
-  if (!order_id || !amount || amount <= 0) {
-    return NextResponse.json({ error: "Paramètres invalides" }, { status: 400 })
+  if (!order_id) {
+    return NextResponse.json({ error: "order_id requis" }, { status: 400 })
   }
 
-  // Verify order belongs to user
+  // Verify order belongs to user and fetch the authoritative total
   const { data: order } = await supabase
     .from("orders")
     .select("id, total, status, payment_status")
@@ -33,6 +33,12 @@ export async function POST(req: NextRequest) {
   if (!order) return NextResponse.json({ error: "Commande introuvable" }, { status: 404 })
   if (order.payment_status === "paid") {
     return NextResponse.json({ error: "Commande déjà payée" }, { status: 400 })
+  }
+
+  // Always use the server-authoritative total — never trust client-supplied amount
+  const amount = order.total
+  if (!amount || amount <= 0) {
+    return NextResponse.json({ error: "Montant de commande invalide" }, { status: 400 })
   }
 
   const transactionId = randomUUID().replace(/-/g, "").slice(0, 20).toUpperCase()

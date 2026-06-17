@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
   }
 
   const newSenderBalance = senderBalance - amt
-  const newRecipientBalance = (recipientProfile.wallet_balance ?? 0) + amt
   const desc = note?.trim() ? note.trim() : undefined
 
   // Atomic debit with optimistic locking:
@@ -79,21 +78,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Solde modifié, veuillez réessayer" }, { status: 409 })
   }
 
-  // Credit recipient
-  const { error: creditErr } = await supabase
+  // Re-read recipient balance at this point for a fresh snapshot before crediting
+  const { data: freshRecipient } = await supabase
     .from("profiles")
-    .update({ wallet_balance: newRecipientBalance })
+    .select("wallet_balance")
     .eq("id", recipientProfile.id)
+    .single()
+  const recipientCurrentBalance = freshRecipient?.wallet_balance ?? recipientProfile.wallet_balance ?? 0
+  const finalRecipientBalance = recipientCurrentBalance + amt
 
-  if (creditErr) {
+  // Credit recipient with optimistic lock on their current balance
+  const { data: creditResult, error: creditErr } = await supabase
+    .from("profiles")
+    .update({ wallet_balance: finalRecipientBalance })
+    .eq("id", recipientProfile.id)
+    .eq("wallet_balance", recipientCurrentBalance)
+    .select("id")
+
+  if (creditErr || !creditResult?.length) {
     // Rollback: restore sender's balance to exact value before the debit
     await supabase
       .from("profiles")
       .update({ wallet_balance: senderBalance })
       .eq("id", user.id)
       .eq("wallet_balance", newSenderBalance)
-    return NextResponse.json({ error: "Erreur crédit destinataire" }, { status: 500 })
+    return NextResponse.json({ error: "Erreur crédit destinataire, solde restauré" }, { status: 500 })
   }
+
+  const newRecipientBalance = finalRecipientBalance
 
   // Audit trail — log failure instead of silently swallowing
   const ts = new Date().toISOString()

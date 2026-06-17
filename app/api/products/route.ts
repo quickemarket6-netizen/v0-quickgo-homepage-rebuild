@@ -7,8 +7,10 @@ export async function GET(request: Request) {
   const vendor = searchParams.get("vendor")
   const featured = searchParams.get("featured")
   const search = searchParams.get("search")
-  const limit = parseInt(searchParams.get("limit") || "20")
-  const offset = parseInt(searchParams.get("offset") || "0")
+  const rawLimit = parseInt(searchParams.get("limit") || "20")
+  const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(1, rawLimit), 100) : 20
+  const rawOffset = parseInt(searchParams.get("offset") || "0")
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0
   
   const supabase = await createClient()
   

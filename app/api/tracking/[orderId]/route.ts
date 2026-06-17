@@ -10,6 +10,10 @@ export async function GET(
   const supabase = await createClient()
   const { orderId } = await params
 
+  // Require authentication — tracking data contains PII (address, driver phone, GPS)
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
+
   const [orderRes, eventsRes] = await Promise.all([
     supabase
       .from("orders")
@@ -25,6 +29,7 @@ export async function GET(
         items:order_items(id, product_name, quantity, unit_price)
       `)
       .eq("id", orderId)
+      .eq("customer_id", user.id) // IDOR guard: only the order owner can track
       .single(),
     supabase
       .from("tracking_events")

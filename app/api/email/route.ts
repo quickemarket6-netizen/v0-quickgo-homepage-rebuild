@@ -11,16 +11,21 @@ import {
   passwordResetTemplate
 } from '@/lib/email/templates'
 import { createClient } from '@/lib/supabase/server'
+import { randomInt } from 'crypto'
+import { checkRateLimit } from '@/lib/payments/security'
 
-// Generate random code
+// Cryptographically secure code — Math.random() is not suitable for security codes
 function generateCode(length: number = 6): string {
-  return Math.random().toString().slice(2, 2 + length)
+  return randomInt(0, 10 ** length).toString().padStart(length, '0')
 }
 
 // Generate ticket ID
 function generateTicketId(): string {
   return `TKT-${Date.now().toString(36).toUpperCase()}-${generateCode(4)}`
 }
+
+// Types callable before auth (forgot-password flow). Everything else requires a session.
+const PRE_AUTH_TYPES = new Set(['password_reset', 'email_verification'])
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,9 +34,27 @@ export async function POST(request: NextRequest) {
 
     if (!type || !data) {
       return NextResponse.json(
-        { error: 'Missing type or data' },
+        { error: 'Paramètres manquants' },
         { status: 400 }
       )
+    }
+
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (PRE_AUTH_TYPES.has(type)) {
+      // Rate-limit unauthenticated sensitive flows to prevent spam/brute-force
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        ?? request.headers.get('x-real-ip') ?? 'unknown'
+      const rl = checkRateLimit(`email:${type}:${ip}`, { maxRequests: 3, windowMs: 15 * 60 * 1000 })
+      if (!rl.allowed) {
+        return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 15 minutes' }, { status: 429 })
+      }
+    } else {
+      // All other email types require an authenticated session
+      if (!user) {
+        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      }
     }
 
     let result

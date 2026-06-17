@@ -88,6 +88,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Payment not accepted" })
   }
 
+  // Verify paid amount matches expected amount to prevent partial-payment attacks
+  if (verification.amount !== undefined && Number(verification.amount) < Number(txn.amount)) {
+    console.error(`[webhook] amount mismatch: expected ${txn.amount}, got ${verification.amount}`)
+    await supabase
+      .from("payment_transactions")
+      .update({ status: "failed", raw_response: { ...body, verification } })
+      .eq("id", txn.id)
+    return NextResponse.json({ message: "Amount mismatch" })
+  }
+
   // Mark payment as completed
   await supabase
     .from("payment_transactions")

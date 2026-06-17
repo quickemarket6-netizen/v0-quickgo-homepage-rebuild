@@ -35,8 +35,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/login`)
   }
 
+  // Only these roles can be self-assigned via registration metadata
+  const ASSIGNABLE_ROLES = new Set(["client", "vendor", "driver"])
+
+  function isSafeRedirect(url: string): boolean {
+    return url.startsWith("/") && !url.startsWith("//") && !url.includes("://")
+  }
+
   // Sync role from user metadata → profile (handles email-confirmed registrations)
-  const metaRole = user.user_metadata?.role as string | undefined
+  const rawMetaRole = user.user_metadata?.role as string | undefined
+  // Whitelist to prevent privilege escalation via manipulated user_metadata
+  const metaRole = rawMetaRole && ASSIGNABLE_ROLES.has(rawMetaRole) ? rawMetaRole : undefined
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, full_name")
@@ -60,8 +70,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/auth/choose-role`)
   }
 
-  // Explicit `next` that isn't an auth route → honour it
-  if (next && next !== "/" && !next.startsWith("/auth")) {
+  // Safe redirect: only allow relative internal paths to prevent open redirect
+  if (next && isSafeRedirect(next) && next !== "/" && !next.startsWith("/auth")) {
     return NextResponse.redirect(`${origin}${next}`)
   }
 

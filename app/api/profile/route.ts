@@ -12,7 +12,8 @@ export async function GET() {
   
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    // Explicit field list: exclude wallet_pin_hash and other internal columns
+    .select("id, full_name, phone, avatar_url, city, role, wallet_balance, points, created_at, updated_at")
     .eq("id", user.id)
     .single()
   
