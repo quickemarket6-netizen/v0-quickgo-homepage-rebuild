@@ -4,6 +4,15 @@ import { initiatePayment } from "@/lib/payments/cinetpay"
 import { checkPaymentRateLimit, getClientIP, generateIdempotencyKey } from "@/lib/payments/security"
 import { randomUUID } from "crypto"
 
+// Strip ASCII control chars (incl. CR/LF/TAB), collapse whitespace, cap length.
+// Prevents payload corruption / header injection in the downstream CinetPay call.
+function sanitizeField(v: unknown, max: number): string | undefined {
+  if (typeof v !== "string") return undefined
+  const controls = new RegExp("[\\x00-\\x1F\\x7F]", "g")
+  const s = v.replace(controls, " ").replace(/\s+/g, " ").trim()
+  return s ? s.slice(0, max) : undefined
+}
+
 export async function POST(req: NextRequest) {
   const ip = getClientIP(req)
   const rateCheck = checkPaymentRateLimit(ip)
@@ -16,11 +25,15 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   const body = await req.json()
-  const { order_id, customer_name, customer_email, customer_phone } = body
+  const { order_id } = body
 
   if (!order_id) {
     return NextResponse.json({ error: "order_id requis" }, { status: 400 })
   }
+
+  const customer_name = sanitizeField(body.customer_name, 100)
+  const customer_email = sanitizeField(body.customer_email, 150)
+  const customer_phone = sanitizeField(body.customer_phone, 20)
 
   // Verify order belongs to user and fetch the authoritative total
   const { data: order } = await supabase

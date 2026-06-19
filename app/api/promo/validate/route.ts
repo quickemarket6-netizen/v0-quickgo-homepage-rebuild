@@ -19,6 +19,11 @@ export async function POST(request: NextRequest) {
   if (!code || typeof code !== "string") {
     return NextResponse.json({ error: "Code requis" }, { status: 400 })
   }
+  // Coerce and validate subtotal — a string like "abc" must not bypass the minimum-order check
+  const orderSubtotal = Number(subtotal)
+  if (!Number.isFinite(orderSubtotal) || orderSubtotal < 0) {
+    return NextResponse.json({ error: "Sous-total invalide" }, { status: 400 })
+  }
 
   const { data: promo, error } = await supabase
     .from("promo_codes")
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Code promo invalide ou expiré" }, { status: 400 })
   }
 
-  if (subtotal < promo.min_order_amount) {
+  if (orderSubtotal < promo.min_order_amount) {
     return NextResponse.json({
       error: `Commande minimum de ${promo.min_order_amount} FCFA requise`
     }, { status: 400 })
@@ -48,7 +53,7 @@ export async function POST(request: NextRequest) {
 
   let discount = 0
   if (promo.discount_type === "percentage") {
-    discount = Math.round((subtotal * promo.discount_value) / 100)
+    discount = Math.round((orderSubtotal * promo.discount_value) / 100)
   } else {
     discount = promo.discount_value
   }

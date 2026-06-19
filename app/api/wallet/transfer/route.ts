@@ -78,13 +78,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Solde modifié, veuillez réessayer" }, { status: 409 })
   }
 
-  // Re-read recipient balance at this point for a fresh snapshot before crediting
-  const { data: freshRecipient } = await supabase
+  // Re-read recipient balance for a fresh snapshot before crediting.
+  // If this read fails we must NOT fall back to a stale value — roll back instead.
+  const { data: freshRecipient, error: freshErr } = await supabase
     .from("profiles")
     .select("wallet_balance")
     .eq("id", recipientProfile.id)
     .single()
-  const recipientCurrentBalance = freshRecipient?.wallet_balance ?? recipientProfile.wallet_balance ?? 0
+  if (freshErr || !freshRecipient) {
+    await supabase
+      .from("profiles")
+      .update({ wallet_balance: senderBalance })
+      .eq("id", user.id)
+      .eq("wallet_balance", newSenderBalance)
+    return NextResponse.json({ error: "Erreur de lecture du destinataire, solde restauré" }, { status: 500 })
+  }
+  const recipientCurrentBalance = freshRecipient.wallet_balance ?? 0
   const finalRecipientBalance = recipientCurrentBalance + amt
 
   // Credit recipient with optimistic lock on their current balance

@@ -1,28 +1,59 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
-import { scrypt, randomBytes, timingSafeEqual } from "crypto"
-import { promisify } from "util"
+import { scrypt, randomBytes, timingSafeEqual, type ScryptOptions } from "crypto"
 import { checkRateLimit } from "@/lib/payments/security"
 
-const scryptAsync = promisify(scrypt)
+// Promisified scrypt that supports cost options (promisify picks the 3-arg overload)
+function scryptAsync(password: string, salt: string, keylen: number, options: ScryptOptions): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, keylen, options, (err, derived) => {
+      if (err) reject(err)
+      else resolve(derived as Buffer)
+    })
+  })
+}
 
 // 5 PIN changes per 15 minutes per user
 const PIN_RATE_LIMIT = { maxRequests: 5, windowMs: 15 * 60 * 1000 }
 
-async function hashPin(pin: string): Promise<string> {
-  const salt = randomBytes(16).toString("hex")
-  const derived = (await scryptAsync(pin, salt, 64)) as Buffer
-  return `${salt}:${derived.toString("hex")}`
+// Hardened scrypt cost. The keyspace of a 4-6 digit PIN is tiny (10^4–10^6),
+// so a leaked hash must be expensive to attack offline. N=2^15 with a server
+// pepper means even a full DB leak can't be brute-forced without the env secret.
+const SCRYPT = { N: 1 << 15, r: 8, p: 1, keylen: 64, maxmem: 96 * 1024 * 1024 }
+const HASH_VERSION = "v2"
+
+// Optional server-side pepper — combined into the hash input. A leaked
+// wallet_pin_hash is useless to an attacker who doesn't also hold this secret.
+function pepper(): string {
+  return process.env.WALLET_PIN_PEPPER ?? ""
 }
 
-async function verifyPin(pin: string, stored: string): Promise<boolean> {
-  const [salt, hash] = stored.split(":")
-  if (!salt || !hash) return false
-  const derived = (await scryptAsync(pin, salt, 64)) as Buffer
+async function hashPin(pin: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex")
+  const derived = await scryptAsync(pepper() + pin, salt, SCRYPT.keylen, SCRYPT)
+  return `${HASH_VERSION}:${salt}:${derived.toString("hex")}`
+}
+
+// Returns true/false for a valid comparison; null when the stored hash is malformed.
+async function verifyPin(pin: string, stored: string): Promise<boolean | null> {
+  const parts = stored.split(":")
+  // Expected shape: version:salt:hash
+  const [version, salt, hash] = parts.length === 3 ? parts : ["", "", ""]
+  if (version !== HASH_VERSION || !salt || !hash || !/^[0-9a-f]+$/i.test(hash)) {
+    return null // corrupt / unknown format — caller must surface a recovery path
+  }
+  const derived = await scryptAsync(pepper() + pin, salt, SCRYPT.keylen, SCRYPT)
   const storedBuf = Buffer.from(hash, "hex")
   if (derived.length !== storedBuf.length) return false
   return timingSafeEqual(derived, storedBuf)
+}
+
+function serviceClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) return null
+  return createServiceClient(supabaseUrl, serviceKey)
 }
 
 // POST — set or change the wallet PIN
@@ -42,12 +73,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Le PIN doit contenir 4 à 6 chiffres" }, { status: 400 })
   }
 
-  // Read existing hash from profiles table (not user_metadata — hashes must not appear in the JWT)
-  const { data: profile } = await supabase
+  const service = serviceClient()
+  if (!service) return NextResponse.json({ error: "Serveur non configuré" }, { status: 500 })
+
+  // Read existing hash via the SERVICE client so a restrictive RLS policy on
+  // profiles can't return null and let a caller skip the current-PIN check.
+  const { data: profile, error: readErr } = await service
     .from("profiles")
     .select("wallet_pin_hash")
     .eq("id", user.id)
     .single()
+  if (readErr) {
+    return NextResponse.json({ error: "Erreur de lecture du profil" }, { status: 500 })
+  }
 
   const existingHash: string | null = (profile as { wallet_pin_hash?: string | null })?.wallet_pin_hash ?? null
 
@@ -57,20 +95,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "PIN actuel requis pour le modifier" }, { status: 400 })
     }
     const ok = await verifyPin(current_pin, existingHash)
+    if (ok === null) {
+      // Stored hash is corrupt — don't lock the user out silently
+      return NextResponse.json(
+        { error: "PIN corrompu, contactez le support pour réinitialiser", code: "PIN_CORRUPT" },
+        { status: 409 },
+      )
+    }
     if (!ok) {
       return NextResponse.json({ error: "PIN actuel incorrect" }, { status: 403 })
     }
   }
 
   const newHash = await hashPin(pin)
-
-  // Use service role so the update bypasses any restrictive RLS on profiles
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceKey) {
-    return NextResponse.json({ error: "Serveur non configuré" }, { status: 500 })
-  }
-  const service = createServiceClient(supabaseUrl, serviceKey)
 
   const { error } = await service
     .from("profiles")
@@ -91,7 +128,10 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const service = serviceClient()
+  if (!service) return NextResponse.json({ error: "Serveur non configuré" }, { status: 500 })
+
+  const { data: profile } = await service
     .from("profiles")
     .select("wallet_pin_hash, wallet_pin_updated_at")
     .eq("id", user.id)

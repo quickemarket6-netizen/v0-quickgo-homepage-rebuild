@@ -39,7 +39,15 @@ export async function GET(request: NextRequest) {
   const ASSIGNABLE_ROLES = new Set(["client", "vendor", "driver"])
 
   function isSafeRedirect(url: string): boolean {
-    return url.startsWith("/") && !url.startsWith("//") && !url.includes("://")
+    // Reject anything that isn't a clean same-origin path: blocks "//evil.com",
+    // "https://evil.com", backslash tricks, and scheme-bearing values like
+    // "/javascript:...". Resolve against origin and require the origin to match.
+    if (!url.startsWith("/") || url.startsWith("//") || url.includes("\\")) return false
+    try {
+      return new URL(url, origin).origin === origin
+    } catch {
+      return false
+    }
   }
 
   // Sync role from user metadata → profile (handles email-confirmed registrations)

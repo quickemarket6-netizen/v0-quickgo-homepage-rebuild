@@ -73,14 +73,30 @@ export async function POST(request: Request) {
   }
   const priceMap = new Map(products.map(p => [p.id, p]))
 
+  // Single validation pass: verify each item and build normalized line items.
+  // Quantity is validated explicitly — never silently coerced.
   let subtotal = 0
+  const lineItems: { product_id: string; product_name: string; quantity: number; unit_price: number; total_price: number; notes?: string }[] = []
   for (const item of items) {
     const product = priceMap.get(item.product_id)
     if (!product) return NextResponse.json({ error: `Produit introuvable: ${item.product_id}` }, { status: 400 })
     if (!product.is_available) return NextResponse.json({ error: `Produit indisponible: ${product.name}` }, { status: 400 })
     if (product.vendor_id !== vendor_id) return NextResponse.json({ error: "Produit hors du périmètre du vendeur" }, { status: 400 })
-    const qty = Math.max(1, parseInt(item.quantity) || 1)
+
+    const qty = Number(item.quantity)
+    if (!Number.isInteger(qty) || qty < 1 || qty > 999) {
+      return NextResponse.json({ error: `Quantité invalide pour ${product.name}` }, { status: 400 })
+    }
+
     subtotal += product.price * qty
+    lineItems.push({
+      product_id: product.id,
+      product_name: product.name,
+      quantity: qty,
+      unit_price: product.price,
+      total_price: product.price * qty,
+      notes: item.notes,
+    })
   }
 
   // Get vendor delivery fee
@@ -156,27 +172,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Erreur de création de commande" }, { status: 500 })
   }
 
-  // Create order items with DB-validated prices
-  const orderItems = items.map((item: any) => {
-    const product = priceMap.get(item.product_id)!
-    const qty = Math.max(1, parseInt(item.quantity) || 1)
-    return {
-      order_id: order.id,
-      product_id: item.product_id,
-      product_name: product.name,
-      quantity: qty,
-      unit_price: product.price,
-      total_price: product.price * qty,
-      notes: item.notes
-    }
-  })
-  
+  // Reuse the validated line items computed above (DB prices, validated quantities)
+  const orderItems = lineItems.map((li) => ({ order_id: order.id, ...li }))
+
   const { error: itemsError } = await supabase
     .from("order_items")
     .insert(orderItems)
-  
+
   if (itemsError) {
-    return NextResponse.json({ error: itemsError.message }, { status: 500 })
+    // Roll back the orphaned order so we never leave a phantom order with no items
+    console.error("[orders] order_items insert failed, rolling back order:", itemsError.message)
+    await supabase.from("orders").delete().eq("id", order.id)
+    return NextResponse.json({ error: "Erreur lors de l'ajout des articles" }, { status: 500 })
   }
   
   // Clear cart
