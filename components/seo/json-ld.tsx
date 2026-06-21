@@ -14,7 +14,7 @@ export default function JsonLd() {
     ],
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+237-695-555-555",
+      "telephone": "+237-690-773-615",
       "contactType": "customer service",
       "areaServed": "CM",
       "availableLanguage": ["French", "English"]
@@ -34,7 +34,7 @@ export default function JsonLd() {
     "image": "https://www.quickgo.cm/og-image.jpg",
     "@id": "https://www.quickgo.cm",
     "url": "https://www.quickgo.cm",
-    "telephone": "+237-695-555-555",
+    "telephone": "+237-690-773-615",
     "priceRange": "$$",
     "address": {
       "@type": "PostalAddress",

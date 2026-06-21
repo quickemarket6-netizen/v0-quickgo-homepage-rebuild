@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
+import JsonLd from "@/components/seo/json-ld"
 import "./globals.css"
 
 const inter = Inter({
@@ -93,6 +94,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="dark bg-background">
+      <head>
+        <JsonLd />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" />
+      </head>
       <body
         className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
