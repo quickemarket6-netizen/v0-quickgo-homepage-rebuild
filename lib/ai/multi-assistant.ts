@@ -1,9 +1,7 @@
 // QuickGo Multi-AI Assistant Service
-// Supports: OpenAI GPT, Anthropic Claude, Google Gemini
+// Supports: OpenAI GPT, Anthropic Claude, Google Gemini, Sakana Fugu
 
-import { streamText, convertToModelMessages, UIMessage } from 'ai'
-
-export type AIProvider = 'openai' | 'anthropic' | 'google'
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'sakana'
 
 export interface AIModel {
   id: string
@@ -54,6 +52,22 @@ export const AI_MODELS: AIModel[] = [
     description: 'IA multimodale Google',
     icon: '🔵',
     color: 'from-blue-500 to-cyan-500'
+  },
+  {
+    id: 'sakana/fugu-ultra',
+    name: 'Sakana Fugu Ultra',
+    provider: 'sakana',
+    description: 'Orchestration multi-agents haute qualite',
+    icon: '🐡',
+    color: 'from-rose-500 to-pink-500'
+  },
+  {
+    id: 'sakana/fugu',
+    name: 'Sakana Fugu',
+    provider: 'sakana',
+    description: 'Rapide et faible latence',
+    icon: '🐡',
+    color: 'from-rose-400 to-pink-400'
   }
 ]
 

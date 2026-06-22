@@ -1,5 +1,6 @@
 import { streamText, convertToModelMessages, UIMessage } from 'ai'
 import { QUICKGO_SYSTEM_PROMPT } from '@/lib/ai/multi-assistant'
+import { resolveModel, isSakanaModel, isSakanaConfigured } from '@/lib/ai/sakana'
 
 export const maxDuration = 60
 
@@ -7,8 +8,16 @@ export async function POST(req: Request) {
   try {
     const { messages, model = 'openai/gpt-4o' }: { messages: UIMessage[], model?: string } = await req.json()
 
+    // Guard: Sakana Fugu requires a configured API key.
+    if (isSakanaModel(model) && !isSakanaConfigured()) {
+      return new Response(
+        JSON.stringify({ error: 'Sakana Fugu non configure: ajoutez SAKANA_API_KEY.' }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
     const result = streamText({
-      model: model,
+      model: resolveModel(model),
       system: QUICKGO_SYSTEM_PROMPT,
       messages: await convertToModelMessages(messages),
       temperature: 0.7,
