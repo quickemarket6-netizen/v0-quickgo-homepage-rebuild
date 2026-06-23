@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import {
   Bell,
@@ -75,6 +75,8 @@ export default function CommunicationDashboard() {
   const [scheduledDate, setScheduledDate] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [quickModal, setQuickModal] = useState<{ type: "call" | "whatsapp" | null; phone: string }>({ type: null, phone: "" })
+  const composeRef = useRef<HTMLDivElement>(null)
 
   const [stats, setStats] = useState<CommStats>({ totalSent: 0, openRate: 0, clickRate: 0, activeUsers: 0 })
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -146,6 +148,33 @@ export default function CommunicationDashboard() {
     }
   }
 
+  const handleQuickCall = () => setQuickModal({ type: "call", phone: "" })
+  const handleQuickWhatsApp = () => setQuickModal({ type: "whatsapp", phone: "" })
+
+  const handleQuickEmail = () => {
+    setSelectedChannels(["email"])
+    composeRef.current?.scrollIntoView({ behavior: "smooth" })
+    toast.info("Canal Email sélectionné dans le formulaire")
+  }
+
+  const handleQuickSMS = () => {
+    setSelectedChannels(["sms"])
+    composeRef.current?.scrollIntoView({ behavior: "smooth" })
+    toast.info("Canal SMS sélectionné dans le formulaire")
+  }
+
+  const confirmQuickModal = () => {
+    const raw = quickModal.phone.trim()
+    if (!raw) return
+    const digits = raw.replace(/\s/g, "").replace(/^00/, "+")
+    if (quickModal.type === "call") {
+      window.open(`tel:${digits}`)
+    } else if (quickModal.type === "whatsapp") {
+      window.open(`https://wa.me/${digits.replace(/^\+/, "")}`, "_blank")
+    }
+    setQuickModal({ type: null, phone: "" })
+  }
+
   return (
     <div className="min-h-screen bg-background flex">
       <AdminSidebar />
@@ -194,7 +223,7 @@ export default function CommunicationDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Compose Message */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div ref={composeRef} className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
               <h2 className="text-lg font-bold text-foreground mb-4">Nouveau message</h2>
               
               {/* Channels */}
@@ -404,28 +433,28 @@ export default function CommunicationDashboard() {
                   label="Appeler un client"
                   description="Lancer un appel direct"
                   color="text-blue-400"
-                  onClick={() => {}}
+                  onClick={handleQuickCall}
                 />
                 <QuickSendButton
                   icon={MessageSquare}
                   label="WhatsApp"
                   description="Envoyer un message WhatsApp"
                   color="text-green-400"
-                  onClick={() => {}}
+                  onClick={handleQuickWhatsApp}
                 />
                 <QuickSendButton
                   icon={Mail}
                   label="Email"
                   description="Envoyer un email"
                   color="text-purple-400"
-                  onClick={() => {}}
+                  onClick={handleQuickEmail}
                 />
                 <QuickSendButton
                   icon={Smartphone}
                   label="SMS"
                   description="Envoyer un SMS"
                   color="text-yellow-400"
-                  onClick={() => {}}
+                  onClick={handleQuickSMS}
                 />
               </div>
             </div>
@@ -503,6 +532,50 @@ export default function CommunicationDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Quick Send Modal */}
+      {quickModal.type && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-sm w-full"
+          >
+            <h3 className="text-lg font-bold text-foreground mb-1">
+              {quickModal.type === "call" ? "Appeler un client" : "WhatsApp"}
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {quickModal.type === "call"
+                ? "Entrez le numéro à appeler"
+                : "Entrez le numéro WhatsApp du destinataire"}
+            </p>
+            <Input
+              placeholder="+237 6XX XXX XXX"
+              value={quickModal.phone}
+              onChange={(e) => setQuickModal(prev => ({ ...prev, phone: e.target.value }))}
+              onKeyDown={(e) => e.key === "Enter" && confirmQuickModal()}
+              className="bg-gray-800/50 border-gray-700 mb-4"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setQuickModal({ type: null, phone: "" })}
+              >
+                Annuler
+              </Button>
+              <Button
+                className="flex-1 bg-lime-500 hover:bg-lime-600 text-black"
+                onClick={confirmQuickModal}
+                disabled={!quickModal.phone.trim()}
+              >
+                {quickModal.type === "call" ? "Appeler" : "Ouvrir WhatsApp"}
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Preview Modal */}
       {showPreview && (
