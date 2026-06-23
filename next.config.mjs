@@ -104,6 +104,19 @@ const nextConfig = {
     return [
       { source: "/home",  destination: "/", permanent: true },
       { source: "/index", destination: "/", permanent: true },
+      // Canonicalize: www → non-www  (avoids duplicate content in Google index)
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.quickgo237.com" }],
+        destination: "https://quickgo237.com/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.quickgo.cm" }],
+        destination: "https://quickgo.cm/:path*",
+        permanent: true,
+      },
     ]
   },
 }

@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SITE_URL } from "@/lib/site-config"
 import "./globals.css"
 
 const inter = Inter({
@@ -34,14 +35,14 @@ export const metadata: Metadata = {
   authors: [{ name: "QuickGo" }],
   creator: "QuickGo",
   publisher: "QuickGo",
-  metadataBase: new URL("https://quickgo.cm"),
+  metadataBase: new URL(SITE_URL),
   alternates: {
-    canonical: "https://quickgo.cm",
+    canonical: SITE_URL,
   },
   openGraph: {
     type: "website",
     locale: "fr_CM",
-    url: "https://quickgo.cm",
+    url: SITE_URL,
     siteName: "QuickGo",
     title: "QuickGo - Livraison rapide & sécurisée au Cameroun",
     description:

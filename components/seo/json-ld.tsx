@@ -1,4 +1,6 @@
-const BASE = "https://quickgo.cm"
+import { SITE_URL } from "@/lib/site-config"
+
+const BASE = SITE_URL
 
 export default function JsonLd() {
   const organizationSchema = {

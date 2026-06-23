@@ -1,8 +1,7 @@
 import { MetadataRoute } from 'next'
+import { SITE_URL } from '@/lib/site-config'
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://www.quickgo.cm'
-  
   return {
     rules: [
       {
@@ -28,7 +27,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/images/',
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl,
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   }
 }

@@ -15,21 +15,33 @@
   "categories": ["shopping", "food", "lifestyle", "productivity"],
   "icons": [
     {
-      "src": "/quickgo-icon.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
+      "src": "/icon-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/quickgo-logo.jpg",
-      "sizes": "1080x1080",
-      "type": "image/jpeg",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/quickgo-icon.jpg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
@@ -39,21 +51,21 @@
       "short_name": "Commander",
       "description": "Passer une commande rapidement",
       "url": "/marketplace",
-      "icons": [{ "src": "/quickgo-icon.jpg", "sizes": "512x512", "type": "image/jpeg" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Suivre ma livraison",
       "short_name": "Tracking",
       "description": "Suivre votre commande en temps réel",
       "url": "/tracking",
-      "icons": [{ "src": "/quickgo-icon.jpg", "sizes": "512x512", "type": "image/jpeg" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Mon Portefeuille",
       "short_name": "Wallet",
       "description": "Gérer votre portefeuille QuickGo",
       "url": "/wallet",
-      "icons": [{ "src": "/quickgo-icon.jpg", "sizes": "512x512", "type": "image/jpeg" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ],
   "prefer_related_applications": false,

@@ -1,10 +1,11 @@
 import { MetadataRoute } from "next"
 import { createClient } from "@/lib/supabase/server"
+import { SITE_URL } from "@/lib/site-config"
 
 export const revalidate = 3600  // refresh sitemap every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://www.quickgo.cm"
+  const baseUrl = SITE_URL
 
   // Fetch published blog posts for dynamic entries
   let blogEntries: MetadataRoute.Sitemap = []
