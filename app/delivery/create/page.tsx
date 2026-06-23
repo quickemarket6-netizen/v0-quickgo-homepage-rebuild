@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -29,6 +29,7 @@ import {
   Shield,
   CreditCard,
   Check,
+  Loader2,
 } from "lucide-react"
 
 const vehicleTypes = [
@@ -47,6 +48,7 @@ const formatPrice = (price: number) => {
 }
 
 export default function CreateDeliveryPage() {
+  const router = useRouter()
   const [step, setStep] = useState(1)
   const [selectedVehicle, setSelectedVehicle] = useState("moto")
   const [selectedDeliveryType, setSelectedDeliveryType] = useState("standard")
@@ -61,6 +63,10 @@ export default function CreateDeliveryPage() {
     packageWeight: "",
     instructions: "",
   })
+  const [step1Error, setStep1Error] = useState<string | null>(null)
+  const [step2Error, setStep2Error] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const basePrice = vehicleTypes.find(v => v.id === selectedVehicle)?.price || 1500
   const multiplier = deliveryTypes.find(d => d.id === selectedDeliveryType)?.multiplier || 1
@@ -68,6 +74,64 @@ export default function CreateDeliveryPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleStep1Continue = () => {
+    if (!formData.pickupAddress.trim() || !formData.pickupPhone.trim() ||
+        !formData.dropoffAddress.trim() || !formData.dropoffPhone.trim()) {
+      setStep1Error("Veuillez remplir tous les champs obligatoires (*)")
+      return
+    }
+    setStep1Error(null)
+    setStep(2)
+  }
+
+  const handleStep2Continue = () => {
+    if (!formData.packageDescription.trim()) {
+      setStep2Error("Veuillez décrire le colis")
+      return
+    }
+    setStep2Error(null)
+    setStep(3)
+  }
+
+  const handleSubmit = async () => {
+    setIsLoading(true)
+    setSubmitError(null)
+    try {
+      const weight = parseFloat(formData.packageWeight) || 0
+      const package_type = weight > 10 ? "large" : "standard"
+
+      const res = await fetch("/api/delivery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          package_type,
+          package_description: formData.packageDescription,
+          pickup_address: formData.pickupAddress,
+          pickup_contact: formData.pickupName || undefined,
+          pickup_phone: formData.pickupPhone,
+          delivery_address: formData.dropoffAddress,
+          delivery_contact: formData.dropoffName || undefined,
+          delivery_phone: formData.dropoffPhone,
+          notes: formData.instructions || undefined,
+          vehicle_type: selectedVehicle,
+          delivery_type: selectedDeliveryType,
+          payment_method: "wallet",
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        setSubmitError(data.error ?? "Une erreur est survenue")
+        return
+      }
+      router.push(`/delivery/history?created=${data.tracking_number}`)
+    } catch {
+      setSubmitError("Erreur réseau, veuillez réessayer")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -210,7 +274,10 @@ export default function CreateDeliveryPage() {
                 </div>
               </div>
 
-              <Button onClick={() => setStep(2)} className="w-full h-14 rounded-xl" size="lg">
+              {step1Error && (
+                <p className="text-sm text-destructive text-center">{step1Error}</p>
+              )}
+              <Button onClick={handleStep1Continue} className="w-full h-14 rounded-xl" size="lg">
                 Continuer
                 <ChevronRight className="w-5 h-5 ml-2" />
               </Button>
@@ -347,11 +414,14 @@ export default function CreateDeliveryPage() {
                 </RadioGroup>
               </div>
 
+              {step2Error && (
+                <p className="text-sm text-destructive text-center">{step2Error}</p>
+              )}
               <div className="flex gap-4">
                 <Button variant="outline" onClick={() => setStep(1)} className="flex-1 h-14 rounded-xl" size="lg">
                   Retour
                 </Button>
-                <Button onClick={() => setStep(3)} className="flex-1 h-14 rounded-xl" size="lg">
+                <Button onClick={handleStep2Continue} className="flex-1 h-14 rounded-xl" size="lg">
                   Continuer
                   <ChevronRight className="w-5 h-5 ml-2" />
                 </Button>
@@ -436,15 +506,23 @@ export default function CreateDeliveryPage() {
                 </div>
               </div>
 
+              {submitError && (
+                <p className="text-sm text-destructive text-center">{submitError}</p>
+              )}
               <div className="flex gap-4">
-                <Button variant="outline" onClick={() => setStep(2)} className="flex-1 h-14 rounded-xl" size="lg">
+                <Button variant="outline" onClick={() => setStep(2)} disabled={isLoading} className="flex-1 h-14 rounded-xl" size="lg">
                   Retour
                 </Button>
-                <Link href="/delivery/history" className="flex-1">
-                  <Button className="w-full h-14 rounded-xl" size="lg">
-                    Confirmer et payer
-                  </Button>
-                </Link>
+                <Button onClick={handleSubmit} disabled={isLoading} className="flex-1 h-14 rounded-xl" size="lg">
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Envoi en cours...
+                    </>
+                  ) : (
+                    "Confirmer et payer"
+                  )}
+                </Button>
               </div>
             </motion.div>
           )}
