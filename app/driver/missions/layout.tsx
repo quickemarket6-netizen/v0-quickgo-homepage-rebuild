@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Missions - Driver",
-  description: "Explorez et acceptez des missions de livraison QuickGo",
+  title: "Mes Missions ",
+  description: " QuickGo Driver|Explorez et acceptez des missions de livraison QuickGo",
+  robots: { index: false, follow: false },
 }
 
 export default function MissionsLayout({

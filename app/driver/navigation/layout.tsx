@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Navigation - Driver",
-  description: "Mode navigation immersif pour les livreurs QuickGo",
+  title: "Navigation ",
+  description: " QuickGo Driver|Mode navigation immersif pour les livreurs QuickGo",
+  robots: { index: false, follow: false },
 }
 
 export default function NavigationLayout({

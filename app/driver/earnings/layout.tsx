@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Gains & Analyses - Driver",
-  description: "Analysez vos revenus et performances en tant que livreur QuickGo",
+  title: "Mes Gains ",
+  description: " QuickGo Driver|Analysez vos revenus et performances en tant que livreur QuickGo",
+  robots: { index: false, follow: false },
 }
 
 export default function EarningsLayout({

@@ -1,12 +1,12 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Classement ",
-  description: " QuickGo Driver|Classement et récompenses des livreurs QuickGo",
+  title: "Espace Commerçant | QuickGo Vendor",
+  description: "Gérez votre boutique, vos produits, commandes et finances sur QuickGo.",
   robots: { index: false, follow: false },
 }
 
-export default function RankingLayout({
+export default function VendorLayout({
   children,
 }: {
   children: React.ReactNode

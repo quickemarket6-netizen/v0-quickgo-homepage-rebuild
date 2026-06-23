@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Tableau de bord",
+  title: "Mon espace | QuickGo",
   description: "Gérez vos commandes et votre compte QuickGo",
+  robots: { index: false, follow: false },
 }
 
 export default function DashboardLayout({
