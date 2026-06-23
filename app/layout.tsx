@@ -43,20 +43,11 @@ export const metadata: Metadata = {
     title: "QuickGo - Livraison rapide & sécurisée au Cameroun",
     description:
       "Marketplace locale, livraison express, paiements sécurisés. Tout ce dont vous avez besoin, livré intelligemment.",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "QuickGo - Super App de Livraison",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "QuickGo - Livraison rapide & sécurisée",
     description: "La super application de livraison au Cameroun",
-    images: ["/og-image.jpg"],
   },
   robots: {
     index: true,
