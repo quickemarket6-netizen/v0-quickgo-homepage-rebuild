@@ -5,14 +5,26 @@ export const alt = "QuickGo — Super App Cameroun · Livraison, Marketplace & P
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
-// Brand colors (from globals.css oklch values, converted to hex)
 const LIME = "#C8FF00"
 const BLUE = "#1A6BFF"
 const CYAN = "#00C8FF"
 const BG = "#050A14"
 const BG2 = "#0A1428"
 
-export default function OgImage() {
+export default async function OgImage() {
+  // Fetch the real QuickGo logo from the static public folder
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://quickgo.cm"
+  let logoSrc: string | null = null
+  try {
+    const resp = await fetch(`${appUrl}/quickgo-logo.jpg`, { next: { revalidate: 86400 } })
+    if (resp.ok) {
+      const buf = await resp.arrayBuffer()
+      logoSrc = `data:image/jpeg;base64,${Buffer.from(buf).toString("base64")}`
+    }
+  } catch {
+    // fall back to text logo below
+  }
+
   return new ImageResponse(
     (
       <div
@@ -41,13 +53,12 @@ export default function OgImage() {
           background: `radial-gradient(circle, ${LIME}15 0%, transparent 70%)`,
           display: "flex",
         }} />
-        {/* Scan lines texture */}
+        {/* Scan lines */}
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(255,255,255,0.012) 3px, rgba(255,255,255,0.012) 6px)",
           display: "flex",
         }} />
-
         {/* Top accent bar */}
         <div style={{
           position: "absolute", top: 0, left: 0, right: 0, height: 4,
@@ -66,16 +77,26 @@ export default function OgImage() {
           gap: 0,
         }}>
           {/* Logo row */}
-          <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 28 }}>
-            {/* Q mark */}
-            <div style={{
-              width: 72, height: 72, borderRadius: 18,
-              background: LIME,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: `0 0 40px ${LIME}55`,
-            }}>
-              <span style={{ fontSize: 44, fontWeight: 900, color: "#000", lineHeight: 1 }}>Q</span>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 28 }}>
+            {logoSrc ? (
+              // Real QuickGo logo
+              <img
+                src={logoSrc}
+                width={88}
+                height={88}
+                style={{ borderRadius: 16, objectFit: "contain" }}
+              />
+            ) : (
+              // Fallback text mark
+              <div style={{
+                width: 80, height: 80, borderRadius: 18,
+                background: `linear-gradient(135deg, ${BLUE}, ${CYAN})`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: `0 0 40px ${BLUE}55`,
+              }}>
+                <span style={{ fontSize: 50, fontWeight: 900, color: "#fff", lineHeight: 1 }}>Q</span>
+              </div>
+            )}
             <span style={{
               fontSize: 60, fontWeight: 800, color: "#fff",
               letterSpacing: -2, lineHeight: 1,
@@ -90,7 +111,7 @@ export default function OgImage() {
             lineHeight: 1.25, marginBottom: 16, maxWidth: 780,
             display: "flex",
           }}>
-            Tout ce dont vous avez besoin.{" "}
+            Tout ce dont vous avez besoin.
             <span style={{ color: LIME }}> Livré intelligemment.</span>
           </div>
 
@@ -138,6 +159,6 @@ export default function OgImage() {
         </div>
       </div>
     ),
-    { ...size }
+    { ...size },
   )
 }

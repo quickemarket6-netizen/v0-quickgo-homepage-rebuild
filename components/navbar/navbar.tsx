@@ -132,7 +132,7 @@ export function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 shrink-0">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0007-ezKXkl63WOFNwwQlwNLqPoMzyaOKo5.jpg"
+                src="/quickgo-logo.jpg"
                 alt="QuickGo"
                 width={140}
                 height={40}
@@ -331,7 +331,7 @@ export function Navbar() {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-8">
                   <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0007-ezKXkl63WOFNwwQlwNLqPoMzyaOKo5.jpg"
+                    src="/quickgo-logo.jpg"
                     alt="QuickGo"
                     width={120}
                     height={36}

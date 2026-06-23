@@ -35,6 +35,9 @@ export const metadata: Metadata = {
   creator: "QuickGo",
   publisher: "QuickGo",
   metadataBase: new URL("https://quickgo.cm"),
+  alternates: {
+    canonical: "https://quickgo.cm",
+  },
   openGraph: {
     type: "website",
     locale: "fr_CM",
@@ -43,11 +46,14 @@ export const metadata: Metadata = {
     title: "QuickGo - Livraison rapide & sécurisée au Cameroun",
     description:
       "Marketplace locale, livraison express, paiements sécurisés. Tout ce dont vous avez besoin, livré intelligemment.",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "QuickGo — Super App Cameroun" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "QuickGo - Livraison rapide & sécurisée",
     description: "La super application de livraison au Cameroun",
+    images: ["/opengraph-image"],
+    creator: "@quickgocm",
   },
   robots: {
     index: true,
@@ -60,17 +66,12 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  icons: {
-    icon: [
-      { url: "/icon-light-32x32.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: "/apple-icon.png",
-  },
+  // app/icon.jpg + app/apple-icon.jpg are auto-detected by Next.js
   manifest: "/site.webmanifest",
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0a0f1a",
+  themeColor: "#C8FF00",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
