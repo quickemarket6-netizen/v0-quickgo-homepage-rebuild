@@ -91,6 +91,7 @@ export default function LoginPage() {
       vendor: "/vendor/dashboard",
       driver: "/driver/dashboard",
       admin: "/admin/dashboard",
+      super_admin: "/admin/dashboard",
     }
     const role = profile?.role as string | undefined
     const redirectTo = searchParams.get("redirectTo")

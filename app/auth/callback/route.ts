@@ -1,13 +1,14 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 
-type Role = "client" | "vendor" | "driver" | "admin"
+type Role = "client" | "vendor" | "driver" | "admin" | "super_admin"
 
 const DASHBOARD: Record<Role, string> = {
   client: "/dashboard",
   vendor: "/vendor/dashboard",
   driver: "/driver/dashboard",
   admin: "/admin/dashboard",
+  super_admin: "/admin/dashboard",
 }
 
 function dashboardFor(role: string | undefined | null): string {
