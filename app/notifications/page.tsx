@@ -2,13 +2,13 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { useState } from "react"
-import { 
-  Bell, 
-  Package, 
-  Truck, 
-  CreditCard, 
-  Gift, 
+import { useState, useEffect, useCallback } from "react"
+import {
+  Bell,
+  Package,
+  Truck,
+  CreditCard,
+  Gift,
   MessageSquare,
   Star,
   CheckCircle2,
@@ -16,8 +16,9 @@ import {
   ChevronRight,
   Settings,
   Trash2,
-  Filter,
-  X
+  X,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar/navbar"
@@ -25,8 +26,19 @@ import { Footer } from "@/components/footer/footer"
 
 type NotificationType = "order" | "delivery" | "payment" | "promo" | "message" | "review"
 
+interface ApiNotification {
+  id: string
+  title: string
+  message: string
+  is_read: boolean
+  created_at: string
+  type?: NotificationType
+  action_url?: string
+  action_label?: string
+}
+
 interface Notification {
-  id: number
+  id: string
   type: NotificationType
   title: string
   description: string
@@ -54,85 +66,6 @@ const notificationColors: Record<NotificationType, string> = {
   review: "bg-yellow-500/20 text-yellow-400",
 }
 
-const initialNotifications: Notification[] = [
-  {
-    id: 1,
-    type: "delivery",
-    title: "Livraison en cours",
-    description: "Votre commande #QG-2024-1234 est en route. Le livreur arrivera dans 15 minutes.",
-    time: "Il y a 5 min",
-    read: false,
-    actionUrl: "/tracking?id=QG-2024-1234",
-    actionLabel: "Suivre"
-  },
-  {
-    id: 2,
-    type: "promo",
-    title: "-30% sur les restaurants",
-    description: "Profitez de 30% de reduction sur votre prochaine commande restaurant avec le code FOOD30.",
-    time: "Il y a 1h",
-    read: false,
-    actionUrl: "/marketplace/offers",
-    actionLabel: "Voir l'offre"
-  },
-  {
-    id: 3,
-    type: "order",
-    title: "Commande confirmee",
-    description: "Votre commande #QG-2024-1233 a ete confirmee et sera bientot preparee.",
-    time: "Il y a 2h",
-    read: true,
-    actionUrl: "/marketplace/orders",
-    actionLabel: "Details"
-  },
-  {
-    id: 4,
-    type: "payment",
-    title: "Paiement recu",
-    description: "Votre paiement de 12 500 FCFA a ete effectue avec succes via QuickGo Pay.",
-    time: "Il y a 3h",
-    read: true
-  },
-  {
-    id: 5,
-    type: "review",
-    title: "Donnez votre avis",
-    description: "Comment s'est passee votre derniere commande chez Le Gourmet ? Partagez votre experience !",
-    time: "Il y a 5h",
-    read: false,
-    actionUrl: "#",
-    actionLabel: "Noter"
-  },
-  {
-    id: 6,
-    type: "message",
-    title: "Nouveau message du support",
-    description: "L'equipe QuickGo a repondu a votre demande concernant votre remboursement.",
-    time: "Il y a 1 jour",
-    read: true,
-    actionUrl: "/support",
-    actionLabel: "Repondre"
-  },
-  {
-    id: 7,
-    type: "delivery",
-    title: "Livraison effectuee",
-    description: "Votre commande #QG-2024-1230 a ete livree avec succes. Merci de votre confiance !",
-    time: "Il y a 2 jours",
-    read: true
-  },
-  {
-    id: 8,
-    type: "promo",
-    title: "Bienvenue sur QuickGo !",
-    description: "Utilisez le code BIENVENUE pour obtenir 2 000 FCFA de reduction sur votre premiere commande.",
-    time: "Il y a 3 jours",
-    read: true,
-    actionUrl: "/marketplace",
-    actionLabel: "Commander"
-  },
-]
-
 const filterOptions = [
   { id: "all", label: "Toutes" },
   { id: "unread", label: "Non lues" },
@@ -142,9 +75,55 @@ const filterOptions = [
   { id: "message", label: "Messages" },
 ]
 
+function formatRelativeTime(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime()
+  const minutes = Math.floor(diff / 60_000)
+  if (minutes < 1) return "À l'instant"
+  if (minutes < 60) return `Il y a ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Il y a ${hours}h`
+  const days = Math.floor(hours / 24)
+  if (days === 1) return "Il y a 1 jour"
+  return `Il y a ${days} jours`
+}
+
+function mapApiNotification(n: ApiNotification): Notification {
+  return {
+    id: n.id,
+    type: n.type ?? "message",
+    title: n.title,
+    description: n.message,
+    time: formatRelativeTime(n.created_at),
+    read: n.is_read,
+    actionUrl: n.action_url,
+    actionLabel: n.action_label,
+  }
+}
+
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(initialNotifications)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [filter, setFilter] = useState("all")
+
+  const loadNotifications = useCallback(async () => {
+    setIsLoading(true)
+    setLoadError(null)
+    try {
+      const res = await fetch("/api/notifications")
+      if (!res.ok) throw new Error("Erreur de chargement")
+      const data: ApiNotification[] = await res.json()
+      setNotifications(data.map(mapApiNotification))
+    } catch {
+      setLoadError("Impossible de charger les notifications")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadNotifications()
+  }, [loadNotifications])
 
   const unreadCount = notifications.filter(n => !n.read).length
 
@@ -154,17 +133,25 @@ export default function NotificationsPage() {
     return n.type === filter
   })
 
-  const markAsRead = (id: number) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    )
+  const markAsRead = async (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    await fetch("/api/notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, is_read: true }),
+    })
   }
 
-  const markAllAsRead = () => {
+  const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    await fetch("/api/notifications", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "all" }),
+    })
   }
 
-  const deleteNotification = (id: number) => {
+  const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
@@ -175,7 +162,7 @@ export default function NotificationsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       <main className="pt-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
           {/* Header */}
@@ -189,7 +176,11 @@ export default function NotificationsPage() {
                 Notifications
               </h1>
               <p className="text-muted-foreground">
-                {unreadCount > 0 ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}` : 'Toutes vos notifications sont lues'}
+                {isLoading
+                  ? "Chargement..."
+                  : unreadCount > 0
+                    ? `${unreadCount} notification${unreadCount > 1 ? "s" : ""} non lue${unreadCount > 1 ? "s" : ""}`
+                    : "Toutes vos notifications sont lues"}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -232,76 +223,99 @@ export default function NotificationsPage() {
             ))}
           </motion.div>
 
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <p className="text-muted-foreground text-sm">Chargement des notifications...</p>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!isLoading && loadError && (
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <p className="text-muted-foreground">{loadError}</p>
+              <Button variant="outline" onClick={loadNotifications}>
+                Réessayer
+              </Button>
+            </div>
+          )}
+
           {/* Notifications List */}
-          <div className="space-y-4">
-            {filteredNotifications.map((notification, index) => {
-              const Icon = notificationIcons[notification.type]
-              const colorClass = notificationColors[notification.type]
-              
-              return (
-                <motion.div
-                  key={notification.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`relative p-4 rounded-2xl border transition-all ${
-                    notification.read 
-                      ? "bg-card border-border" 
-                      : "bg-quickgo-blue/5 border-quickgo-blue/30"
-                  }`}
-                  onClick={() => markAsRead(notification.id)}
-                >
-                  {!notification.read && (
-                    <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-quickgo-blue" />
-                  )}
-                  
-                  <div className="flex gap-4">
-                    <div className={`shrink-0 w-12 h-12 rounded-xl ${colorClass} flex items-center justify-center`}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-1">
-                        <h3 className="font-semibold text-foreground">{notification.title}</h3>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteNotification(notification.id)
-                          }}
-                          className="shrink-0 p-1 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+          {!isLoading && !loadError && (
+            <div className="space-y-4">
+              {filteredNotifications.map((notification, index) => {
+                const Icon = notificationIcons[notification.type]
+                const colorClass = notificationColors[notification.type]
+
+                return (
+                  <motion.div
+                    key={notification.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className={`relative p-4 rounded-2xl border transition-all cursor-pointer ${
+                      notification.read
+                        ? "bg-card border-border"
+                        : "bg-quickgo-blue/5 border-quickgo-blue/30"
+                    }`}
+                    onClick={() => markAsRead(notification.id)}
+                  >
+                    {!notification.read && (
+                      <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-quickgo-blue" />
+                    )}
+
+                    <div className="flex gap-4">
+                      <div className={`shrink-0 w-12 h-12 rounded-xl ${colorClass} flex items-center justify-center`}>
+                        <Icon className="w-6 h-6" />
                       </div>
-                      
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {notification.description}
-                      </p>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {notification.time}
-                        </span>
-                        
-                        {notification.actionUrl && (
-                          <Link href={notification.actionUrl}>
-                            <Button size="sm" variant="ghost" className="text-quickgo-blue hover:text-quickgo-blue hover:bg-quickgo-blue/10">
-                              {notification.actionLabel}
-                              <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
-                          </Link>
-                        )}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4 mb-1">
+                          <h3 className="font-semibold text-foreground">{notification.title}</h3>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteNotification(notification.id)
+                            }}
+                            className="shrink-0 p-1 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {notification.description}
+                        </p>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {notification.time}
+                          </span>
+
+                          {notification.actionUrl && (
+                            <Link href={notification.actionUrl}>
+                              <Button size="sm" variant="ghost" className="text-quickgo-blue hover:text-quickgo-blue hover:bg-quickgo-blue/10">
+                                {notification.actionLabel}
+                                <ChevronRight className="w-4 h-4 ml-1" />
+                              </Button>
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
 
           {/* Empty State */}
-          {filteredNotifications.length === 0 && (
+          {!isLoading && !loadError && filteredNotifications.length === 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -314,7 +328,7 @@ export default function NotificationsPage() {
                 Aucune notification
               </h3>
               <p className="text-muted-foreground mb-6">
-                {filter === "all" 
+                {filter === "all"
                   ? "Vous n'avez pas encore de notifications"
                   : "Aucune notification dans cette categorie"
                 }
@@ -328,7 +342,7 @@ export default function NotificationsPage() {
           )}
 
           {/* Clear All */}
-          {notifications.length > 0 && (
+          {!isLoading && !loadError && notifications.length > 0 && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -343,7 +357,7 @@ export default function NotificationsPage() {
           )}
         </div>
       </main>
-      
+
       <Footer />
     </div>
   )
