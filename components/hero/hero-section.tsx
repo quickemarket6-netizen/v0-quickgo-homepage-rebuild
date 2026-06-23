@@ -26,7 +26,25 @@ const backgroundVideos = [
 export function HeroSection() {
   const [isMuted, setIsMuted] = useState(true)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+  const [videoEnabled, setVideoEnabled] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Detect connection speed on mount — only enable video on fast connections.
+  // navigator.connection is not available in all browsers; default to enabled
+  // when the API is absent (desktop browsers that lack it are usually fast).
+  useEffect(() => {
+    const nav = navigator as Navigator & {
+      connection?: { effectiveType?: string; saveData?: boolean }
+    }
+    const conn = nav.connection
+    const slow = conn?.effectiveType === "slow-2g" || conn?.effectiveType === "2g" || conn?.effectiveType === "3g"
+    const saveData = conn?.saveData === true
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+
+    if (!slow && !saveData && !reducedMotion) {
+      setVideoEnabled(true)
+    }
+  }, [])
 
   const toggleMute = () => {
     if (videoRef.current) {
@@ -35,83 +53,83 @@ export function HeroSection() {
     }
   }
 
-  // Handle video end - switch to next video
   const handleVideoEnd = () => {
     setCurrentVideoIndex((prev) => (prev + 1) % backgroundVideos.length)
   }
 
-  // Update video source when index changes
+  // Only load + play when video is enabled and index changes
   useEffect(() => {
+    if (!videoEnabled) return
     const video = videoRef.current
-    if (video) {
-      video.src = backgroundVideos[currentVideoIndex]
-      video.load()
-      
-      const handleCanPlay = () => {
-        video.play().catch(() => {
-          // Ignore play errors - browser autoplay policy
-        })
-      }
-      
-      video.addEventListener('canplay', handleCanPlay, { once: true })
-      
-      return () => {
-        video.removeEventListener('canplay', handleCanPlay)
-      }
+    if (!video) return
+
+    video.src = backgroundVideos[currentVideoIndex]
+    video.load()
+
+    const handleCanPlay = () => {
+      video.play().catch(() => {})
     }
-  }, [currentVideoIndex])
+    video.addEventListener("canplay", handleCanPlay, { once: true })
+    return () => video.removeEventListener("canplay", handleCanPlay)
+  }, [currentVideoIndex, videoEnabled])
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-background pt-20 lg:pt-24">
-      {/* Layer 1: Premium Video Background - All videos looping */}
+      {/* Layer 1: Video Background (skipped on slow connections) */}
       <div className="absolute inset-0">
+        {/* video element always rendered but preload=none — no bytes downloaded until play() */}
         <video
           ref={videoRef}
-          autoPlay
           muted
           playsInline
+          preload="none"
           onEnded={handleVideoEnd}
-          className="absolute inset-0 w-full h-full object-cover opacity-40"
-        >
-          <source src={backgroundVideos[0]} type="video/mp4" />
-        </video>
+          className={`absolute inset-0 w-full h-full object-cover opacity-40 transition-opacity duration-700 ${videoEnabled ? "opacity-40" : "opacity-0"}`}
+        />
+        {/* Static gradient fallback shown on slow connections */}
+        {!videoEnabled && (
+          <div className="absolute inset-0 bg-gradient-to-br from-quickgo-blue/20 via-background to-quickgo-cyan/10" />
+        )}
         {/* Dark overlays for readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/90 to-background/70" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50" />
         {/* Scan lines effect */}
         <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)'
+          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.03) 2px, rgba(255,255,255,0.03) 4px)"
         }} />
       </div>
 
-      {/* Video Sound Control */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        onClick={toggleMute}
-        className="absolute bottom-8 right-8 z-50 p-3 rounded-full bg-card/80 backdrop-blur-xl border border-border/30 hover:bg-card transition-all"
-      >
-        {isMuted ? (
-          <VolumeX className="w-5 h-5 text-muted-foreground" />
-        ) : (
-          <Volume2 className="w-5 h-5 text-quickgo-lime" />
-        )}
-      </motion.button>
+      {/* Sound control + progress — only visible when video is active */}
+      {videoEnabled && (
+        <>
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.5 }}
+            onClick={toggleMute}
+            className="absolute bottom-8 right-8 z-50 p-3 rounded-full bg-card/80 backdrop-blur-xl border border-border/30 hover:bg-card transition-all"
+          >
+            {isMuted ? (
+              <VolumeX className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <Volume2 className="w-5 h-5 text-quickgo-lime" />
+            )}
+          </motion.button>
 
-      {/* Video Progress Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-2">
-        {backgroundVideos.map((_, index) => (
-          <div
-            key={index}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              index === currentVideoIndex 
-                ? 'bg-quickgo-lime w-6' 
-                : 'bg-white/30'
-            }`}
-          />
-        ))}
-      </div>
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex gap-2">
+            {backgroundVideos.map((_, index) => (
+              <div
+                key={index}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentVideoIndex
+                    ? "bg-quickgo-lime w-6"
+                    : "bg-white/30"
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Layer 2: Animated Glow Effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -259,16 +277,28 @@ export function HeroSection() {
                 {/* Phone Frame - Proportional size */}
                 <div className="relative w-[180px] sm:w-[200px] lg:w-[220px] h-[360px] sm:h-[400px] lg:h-[440px] rounded-[32px] bg-gradient-to-br from-gray-800 via-gray-900 to-black p-1.5 shadow-2xl shadow-quickgo-blue/20">
                   <div className="w-full h-full rounded-[26px] overflow-hidden bg-background relative">
-                    {/* Phone Video Content */}
-                    <video
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                    >
-                      <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mokup%20videos%20-MWFOWqEEekv6R5k5Q8dlveU6tmwux9.mp4" type="video/mp4" />
-                    </video>
+                    {videoEnabled ? (
+                      <video
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="none"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      >
+                        <source src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/mokup%20videos%20-MWFOWqEEekv6R5k5Q8dlveU6tmwux9.mp4" type="video/mp4" />
+                      </video>
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-quickgo-blue/30 via-background to-quickgo-cyan/20 flex items-center justify-center">
+                        <div className="text-center p-4">
+                          <div className="w-12 h-12 rounded-full bg-quickgo-lime/20 flex items-center justify-center mx-auto mb-3">
+                            <Zap className="w-6 h-6 text-quickgo-lime" />
+                          </div>
+                          <p className="text-xs text-white font-semibold">QuickGo</p>
+                          <p className="text-[10px] text-muted-foreground">Super App</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {/* Phone Notch */}
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-5 bg-black rounded-full flex items-center justify-center">
