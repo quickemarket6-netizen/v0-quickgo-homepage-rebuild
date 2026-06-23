@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
-  const rl = checkRateLimit(`pin:${user.id}`, PIN_RATE_LIMIT)
+  const rl = await checkRateLimit(`pin:${user.id}`, PIN_RATE_LIMIT)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Trop de tentatives, réessayez dans 15 minutes" }, { status: 429 })
   }

@@ -10,7 +10,7 @@ import { checkRateLimit } from "@/lib/payments/security"
 export async function POST(req: NextRequest) {
   // Rate-limit this endpoint: 30 events per 10 minutes per IP prevents DoS on blocked_ips table
   const ip = extractIP(req.headers)
-  const rl = checkRateLimit(`login-event:${ip}`, { maxRequests: 30, windowMs: 10 * 60 * 1000 })
+  const rl = await checkRateLimit(`login-event:${ip}`, { maxRequests: 30, windowMs: 10 * 60 * 1000 })
   if (!rl.allowed) return NextResponse.json({ recorded: false }, { status: 429 })
 
   const body = await req.json() as {

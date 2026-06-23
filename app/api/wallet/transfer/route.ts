@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
 
-  const rl = checkRateLimit(`transfer:${user.id}`, TRANSFER_RATE_LIMIT)
+  const rl = await checkRateLimit(`transfer:${user.id}`, TRANSFER_RATE_LIMIT)
   if (!rl.allowed) {
     return NextResponse.json({ error: "Trop de transferts, réessayez plus tard" }, { status: 429 })
   }

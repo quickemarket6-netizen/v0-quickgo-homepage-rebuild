@@ -15,7 +15,7 @@ function sanitizeField(v: unknown, max: number): string | undefined {
 
 export async function POST(req: NextRequest) {
   const ip = getClientIP(req)
-  const rateCheck = checkPaymentRateLimit(ip)
+  const rateCheck = await checkPaymentRateLimit(ip)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: "Trop de tentatives. Veuillez patienter." }, { status: 429 })
   }

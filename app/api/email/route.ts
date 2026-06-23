@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       // Rate-limit unauthenticated sensitive flows to prevent spam/brute-force
       const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
         ?? request.headers.get('x-real-ip') ?? 'unknown'
-      const rl = checkRateLimit(`email:${type}:${ip}`, { maxRequests: 3, windowMs: 15 * 60 * 1000 })
+      const rl = await checkRateLimit(`email:${type}:${ip}`, { maxRequests: 3, windowMs: 15 * 60 * 1000 })
       if (!rl.allowed) {
         return NextResponse.json({ error: 'Trop de tentatives, réessayez dans 15 minutes' }, { status: 429 })
       }

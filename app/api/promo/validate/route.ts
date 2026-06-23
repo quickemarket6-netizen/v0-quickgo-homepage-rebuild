@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   // Rate limit: 5 validations per minute per user
-  const rl = checkRateLimit(`promo:${user.id}`, { maxRequests: 5, windowMs: 60 * 1000 })
+  const rl = await checkRateLimit(`promo:${user.id}`, { maxRequests: 5, windowMs: 60 * 1000 })
   if (!rl.allowed) {
     return NextResponse.json({ error: "Trop de tentatives, réessayez dans une minute" }, { status: 429 })
   }
