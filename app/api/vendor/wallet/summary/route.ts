@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   // Rate limit (3 requests / hour)
-  const rateCheck = checkPayoutRateLimit(vendor.id)
+  const rateCheck = await checkPayoutRateLimit(vendor.id)
   if (!rateCheck.allowed) {
     return NextResponse.json({ error: "Trop de demandes de retrait. Réessayez dans 1 heure." }, { status: 429 })
   }

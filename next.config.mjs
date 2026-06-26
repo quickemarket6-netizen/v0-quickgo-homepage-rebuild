@@ -1,10 +1,11 @@
-import withPWA from "@ducanh2912/next-pwa"
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+
+  // Turbopack (Next.js 16 default) — explicit opt-in silences "no turbopack config" warning
+  turbopack: {},
 
   // Images optimization
   images: {
@@ -87,6 +88,12 @@ const nextConfig = {
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
 
+      // Service worker: must not be cached by the browser
+      {
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
+      },
+
       // Long-lived cache for static assets
       {
         source: "/images/:path*",
@@ -121,15 +128,4 @@ const nextConfig = {
   },
 }
 
-const withPWAConfig = withPWA({
-  dest: "public",
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  disable: process.env.NODE_ENV === "development",
-  workboxOptions: {
-    disableDevLogs: true,
-  },
-})
-
-export default withPWAConfig(nextConfig)
+export default nextConfig

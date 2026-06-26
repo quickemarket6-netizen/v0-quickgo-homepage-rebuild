@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   if (!ownership.valid) return NextResponse.json({ error: ownership.error }, { status: 403 })
 
   // Rate limit
-  const rateCheck = checkPayoutRateLimit(vendor_id)
+  const rateCheck = await checkPayoutRateLimit(vendor_id)
   if (!rateCheck.allowed) {
     return NextResponse.json(
       { error: "Trop de demandes de retrait. Veuillez patienter 1 heure." },
