@@ -59,7 +59,7 @@ const QUICK_ACTIONS = [
   { label: "Restaurants", icon: UtensilsCrossed, href: "/marketplace/shops?cat=restaurant",  color: "text-[#f97316]",  bg: "bg-[#f97316]/15" },
   { label: "Pharmacie",   icon: Plus,            href: "/marketplace/shops?cat=pharmacie",   color: "text-[#3b82f6]",  bg: "bg-[#3b82f6]/15" },
   { label: "Livraison",   icon: Bike,            href: "/delivery",                           color: "text-[#8b5cf6]",  bg: "bg-[#8b5cf6]/15" },
-  { label: "Chauffeur",   icon: Car,             href: "/services",                           color: "text-[#eab308]",  bg: "bg-[#eab308]/15" },
+  { label: "Chauffeur",   icon: Car,             href: "/delivery",                           color: "text-[#eab308]",  bg: "bg-[#eab308]/15" },
   { label: "Recharger",   icon: Zap,             href: "/wallet",                             color: "text-[#06b6d4]",  bg: "bg-[#06b6d4]/15" },
   { label: "Plus",        icon: ShoppingCart,    href: "/marketplace/shops",                  color: "text-white/40",   bg: "bg-white/5" },
 ]

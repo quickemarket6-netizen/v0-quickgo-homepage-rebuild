@@ -324,7 +324,7 @@ export default function DLServicesPage() {
                     WhatsApp: +237 690 773 615
                   </Button>
                 </a>
-                <Link href="/vendors/register">
+                <Link href="/vendor/onboarding">
                   <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
                     Devenir partenaire QuickGo
                   </Button>

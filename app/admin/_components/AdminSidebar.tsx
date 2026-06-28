@@ -7,7 +7,7 @@ import {
   Navigation, Wallet, CreditCard, FileText, Activity,
   ShieldCheck, MessageCircle, Bell, MapPin, Settings,
   Layers, Globe, Users, Lock, Plug, Database, Headphones, ChevronDown,
-  Tag, Megaphone, Banknote,
+  Tag, Megaphone, Banknote, FolderTree,
 } from "lucide-react"
 
 const NAV = [
@@ -16,6 +16,7 @@ const NAV = [
   { icon: Store,           label: "Vendeurs",            href: "/admin/vendors"               },
   { icon: Truck,           label: "Chauffeurs",          href: "/admin/drivers"               },
   { icon: Package,         label: "Commandes",           href: "/admin/orders"                },
+  { icon: FolderTree,      label: "Catégories",          href: "/admin/categories"            },
   { icon: Navigation,      label: "Livraisons",          href: "/admin/deliveries"            },
   { icon: Tag,             label: "Tarifs livraison",    href: "/admin/delivery-rates"        },
   { icon: Wallet,          label: "Wallets",             href: "/admin/wallets"               },

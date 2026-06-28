@@ -694,7 +694,7 @@ export default function AdminDashboardPage() {
                     {/* Menu items */}
                     <div className="py-1.5">
                       {[
-                        { icon: User,       label: "Mon profil",      href: "/admin/profile" },
+                        { icon: User,       label: "Mon profil",      href: "/admin/settings" },
                         { icon: Settings,   label: "Paramètres",      href: "/admin/settings" },
                         { icon: BarChart3,  label: "Mes statistiques", href: "/admin/analytics" },
                       ].map(item => (
@@ -2301,7 +2301,7 @@ export default function AdminDashboardPage() {
                 {/* primary actions */}
                 <div className="grid grid-cols-2 gap-1.5">
                   {[
-                    { icon: UserPlus,   label: "Ajouter vendeur",  href: "/admin/vendors/new", color: "#3b82f6", kbd: null },
+                    { icon: UserPlus,   label: "Ajouter vendeur",  href: "/admin/vendors", color: "#3b82f6", kbd: null },
                     { icon: Package,    label: "Voir commandes",   href: "/admin/orders",      color: "#22d3ee", kbd: null },
                     { icon: Wallet,     label: "Lancer payout",    href: "/admin/payouts",     color: "#f59e0b", kbd: null },
                     { icon: Truck,      label: "Gérer livreurs",   href: "/admin/drivers",     color: "#a3e635", kbd: null },

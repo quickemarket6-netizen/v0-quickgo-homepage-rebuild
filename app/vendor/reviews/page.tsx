@@ -508,7 +508,7 @@ export default function ReviewsPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52 bg-[#16161f] border-[#1e1e2e]">
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                    <Link href="/vendor/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
                       <User className="w-4 h-4" /> Mon profil
                     </Link>
                   </DropdownMenuItem>

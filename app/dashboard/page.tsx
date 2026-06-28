@@ -70,7 +70,7 @@ const QUICK_ACTIONS = [
   { label: "Restaurants",  icon: UtensilsCrossed,href: "/marketplace/shops?cat=restaurant",  color: "#f97316" },
   { label: "Pharmacie",    icon: Pill,           href: "/marketplace/shops?cat=pharmacie",   color: "#ec4899" },
   { label: "Livraison",    icon: Bike,           href: "/delivery/create",                   color: "#3b82f6" },
-  { label: "Chauffeur",    icon: Car,            href: "/services",                           color: "#8b5cf6" },
+  { label: "Chauffeur",    icon: Car,            href: "/delivery",                           color: "#8b5cf6" },
   { label: "Recharger",    icon: CreditCard,     href: "/wallet",                            color: "#eab308" },
   { label: "Plus",         icon: MoreHorizontal, href: "/marketplace",                       color: "#06b6d4" },
 ]
@@ -337,7 +337,7 @@ export default function ClientDashboardPage() {
                     <p className="text-[#a3e635] text-xs">{lvl.name} · Niveau {lvl.level}</p>
                   </div>
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
+                    <Link href="/dashboard/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer">
                       <User className="h-4 w-4" /> Mon profil
                     </Link>
                   </DropdownMenuItem>

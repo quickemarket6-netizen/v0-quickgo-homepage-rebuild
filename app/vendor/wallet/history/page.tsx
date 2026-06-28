@@ -303,7 +303,7 @@ export default function VendorWalletHistoryPage() {
                     </span>
                   </div>
                   <DropdownMenuItem asChild>
-                    <Link href="/profile" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer"><User className="h-4 w-4" /> Mon profil</Link>
+                    <Link href="/vendor/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer"><User className="h-4 w-4" /> Mon profil</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/vendor/settings" className="flex items-center gap-2 text-white/70 hover:text-white cursor-pointer"><Settings className="h-4 w-4" /> Paramètres</Link>
