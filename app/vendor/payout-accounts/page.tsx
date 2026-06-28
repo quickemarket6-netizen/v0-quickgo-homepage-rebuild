@@ -22,10 +22,10 @@ interface PayoutAccount {
 }
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/analytics" },
+  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: Package, label: "Produits", href: "/vendor/products" },
   { icon: ShoppingBag, label: "Commandes", href: "/vendor/orders" },
-  { icon: Users, label: "Clients CRM", href: "/vendor/crmdashboard" },
+  { icon: Users, label: "Clients CRM", href: "/vendor/crm" },
   { icon: Wallet, label: "Finances", href: "/vendor/finances", active: true },
   { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
 ]

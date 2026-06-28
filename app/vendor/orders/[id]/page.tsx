@@ -44,7 +44,7 @@ interface Order {
 }
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/analytics" },
+  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: Package, label: "Produits", href: "/vendor/products" },
   { icon: ShoppingBag, label: "Commandes", href: "/vendor/orders", active: true },
   { icon: Users, label: "Clients CRM", href: "/vendor/crm" },
