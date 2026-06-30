@@ -1,5 +1,6 @@
 import { convertToModelMessages, streamText, UIMessage, tool } from 'ai'
 import { z } from 'zod'
+import { isFuguModel, fuguModel } from '@/lib/ai/fugu'
 
 export const maxDuration = 30
 
@@ -89,10 +90,12 @@ const quickGoTools = {
 }
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json()
+  const { messages, model = 'openai/gpt-4o-mini' }: { messages: UIMessage[], model?: string } = await req.json()
+
+  const resolvedModel = isFuguModel(model) ? fuguModel(model) : model
 
   const result = streamText({
-    model: 'openai/gpt-4o-mini',
+    model: resolvedModel,
     system: `Tu es QuickGo Assistant, l'assistant virtuel intelligent de QuickGo, la super application de livraison au Cameroun.
 
 Tu peux aider les utilisateurs avec:

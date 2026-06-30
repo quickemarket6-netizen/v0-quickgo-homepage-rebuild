@@ -10,6 +10,7 @@
     "seed": "npx tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "2.0.54",
     "@ai-sdk/react": "^3.0.193",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@hookform/resolvers": "^3.9.1",

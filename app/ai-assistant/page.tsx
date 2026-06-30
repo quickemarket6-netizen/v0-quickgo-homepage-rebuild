@@ -116,7 +116,29 @@ export default function AIAssistantPage() {
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuLabel>Choisir un modele IA</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                
+
+                {/* Sakana Fugu Models */}
+                <DropdownMenuLabel className="text-xs text-fuchsia-500">Sakana Fugu</DropdownMenuLabel>
+                {AI_MODELS.filter(m => m.provider === 'sakana').map((model) => (
+                  <DropdownMenuItem
+                    key={model.id}
+                    onClick={() => setSelectedModel(model)}
+                    className={cn(
+                      "flex items-center gap-2 cursor-pointer",
+                      selectedModel.id === model.id && "bg-accent"
+                    )}
+                  >
+                    <span>{model.icon}</span>
+                    <div className="flex-1">
+                      <p className="font-medium">{model.name}</p>
+                      <p className="text-xs text-muted-foreground">{model.description}</p>
+                    </div>
+                    {selectedModel.id === model.id && <Check className="w-4 h-4 text-fuchsia-500" />}
+                  </DropdownMenuItem>
+                ))}
+
+                <DropdownMenuSeparator />
+
                 {/* OpenAI Models */}
                 <DropdownMenuLabel className="text-xs text-green-500">OpenAI</DropdownMenuLabel>
                 {AI_MODELS.filter(m => m.provider === 'openai').map((model) => (
