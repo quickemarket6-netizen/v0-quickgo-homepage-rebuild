@@ -11,7 +11,7 @@ const DASHBOARD: Record<string, string> = {
   client: "/dashboard",
   vendor: "/vendor/dashboard",
   driver: "/driver/dashboard",
-  admin: "/admin/dashboard",
+  admin: "/admin",
 }
 
 const roles = [

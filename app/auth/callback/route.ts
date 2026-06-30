@@ -7,8 +7,8 @@ const DASHBOARD: Record<Role, string> = {
   client: "/dashboard",
   vendor: "/vendor/dashboard",
   driver: "/driver/dashboard",
-  admin: "/admin/dashboard",
-  super_admin: "/admin/dashboard",
+  admin: "/admin",
+  super_admin: "/admin",
 }
 
 function dashboardFor(role: string | undefined | null): string {

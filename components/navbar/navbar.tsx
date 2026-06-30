@@ -112,7 +112,7 @@ export function Navbar() {
 
   const dashboardHref =
     profile?.role === "vendor" ? "/vendor/dashboard" :
-    profile?.role === "admin"  ? "/admin/dashboard" :
+    profile?.role === "admin"  ? "/admin" :
     profile?.role === "driver" ? "/driver/dashboard" :
     "/dashboard"
 
