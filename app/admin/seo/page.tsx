@@ -95,6 +95,7 @@ function KpiCard({ label, value, sub, subUp, icon: Icon, iconColor, delay, decim
 export default function SeoPage() {
   const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [activeTab, setActiveTab] = useState<"keywords" | "pages">("keywords")
   const [sortBy, setSortBy] = useState<"position" | "volume" | "clicks" | "ctr">("position")
@@ -103,12 +104,22 @@ export default function SeoPage() {
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
-    const res = await fetch("/api/admin/seo")
-    const json: PageData = await res.json()
-    setData(json)
-    setLastUpdated(new Date())
-    if (isRefresh) setTimeout(() => setRefreshing(false), 600)
-    else setLoading(false)
+    try {
+      const res = await fetch("/api/admin/seo")
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        throw new Error(err?.error ?? `Erreur ${res.status}`)
+      }
+      const json: PageData = await res.json()
+      setData(json)
+      setError(null)
+      setLastUpdated(new Date())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur de chargement")
+    } finally {
+      if (isRefresh) setTimeout(() => setRefreshing(false), 600)
+      else setLoading(false)
+    }
   }
   useEffect(() => { load() }, [])
 
@@ -117,6 +128,23 @@ export default function SeoPage() {
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}>
         <Globe className="w-10 h-10 text-green-400" />
       </motion.div>
+    </div>
+  )
+
+  if (!loading && (error || !data)) return (
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
+      <div className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-8 max-w-md w-full text-center">
+        <div className="w-14 h-14 rounded-2xl bg-red-500/15 flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-7 h-7 text-red-400" />
+        </div>
+        <h2 className="text-[16px] font-bold text-white mb-2">Impossible de charger les données</h2>
+        <p className="text-[13px] text-[#6b6b8a] mb-6">{error ?? "Une erreur est survenue."}</p>
+        <button onClick={() => load()}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-[13px] font-medium transition-colors">
+          <RefreshCw className="w-4 h-4" />
+          Réessayer
+        </button>
+      </div>
     </div>
   )
 

@@ -77,12 +77,6 @@ const METHOD_CFG: Record<string, { color: string; bg: string; border: string }> 
 }
 const METHOD_DEFAULT = { color:"text-[#6b6b8a]", bg:"bg-[#1e1e2e]", border:"border-[#2a2a3e]" }
 
-const FAILED_REASONS: Record<string, string> = {
-  "TRX-4419": "Solde insuffisant",
-  "TRX-4412": "Délai d'attente dépassé",
-  "TRX-4405": "Connexion interrompue",
-}
-
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fmtCFA(n: number) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M"
@@ -145,6 +139,7 @@ function KpiCard({ label, value, format, sub, subColor, icon: Icon, iconColor, d
 // ── main page ─────────────────────────────────────────────────────────────────
 export default function TransactionsPage() {
   const [data, setData]               = useState<PageData | null>(null)
+  const [error, setError]             = useState<string | null>(null)
   const [loading, setLoading]         = useState(true)
   const [refreshing, setRefreshing]   = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
@@ -158,7 +153,22 @@ export default function TransactionsPage() {
     isRefresh ? setRefreshing(true) : setLoading(true)
     try {
       const res = await fetch("/api/admin/transactions")
-      if (res.ok) { setData(await res.json()); setLastUpdated(new Date()) }
+      if (!res.ok) {
+        let message = "Impossible de charger les transactions."
+        if (res.status === 403) message = "Accès refusé. Vous devez être administrateur."
+        else {
+          try {
+            const body = await res.json()
+            if (body?.error) message = body.error
+          } catch { /* ignore non-JSON error body */ }
+        }
+        throw new Error(message)
+      }
+      setData(await res.json())
+      setError(null)
+      setLastUpdated(new Date())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Une erreur est survenue.")
     } finally {
       isRefresh ? setRefreshing(false) : setLoading(false)
     }
@@ -205,6 +215,27 @@ export default function TransactionsPage() {
         transition={{ duration: 1.5, repeat: Infinity }} className="text-[#6b6b8a] text-sm">
         Chargement des transactions…
       </motion.p>
+    </div>
+  )
+
+  if (error) return (
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-8 max-w-sm w-full flex flex-col items-center text-center gap-4">
+        <div className="p-3 rounded-2xl bg-red-500/15">
+          <AlertTriangle className="w-7 h-7 text-red-400" />
+        </div>
+        <div>
+          <h2 className="text-white font-bold text-base">Erreur de chargement</h2>
+          <p className="text-[#6b6b8a] text-sm mt-1.5">{error}</p>
+        </div>
+        <button onClick={() => load()}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 text-sm font-semibold transition-colors">
+          <RefreshCw className="w-4 h-4" />
+          Réessayer
+        </button>
+      </motion.div>
     </div>
   )
 
@@ -440,16 +471,8 @@ export default function TransactionsPage() {
                                     <p className="text-xs text-white">{fmtRelative(t.timestamp)}</p>
                                   </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4 mb-3">
-                                  <div>
-                                    <p className="text-[10px] text-[#4a4a6a] uppercase tracking-wider mb-1">Appareil</p>
-                                    <p className="text-xs text-[#6b6b8a]">Android · QuickGo 3.2.1</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] text-[#4a4a6a] uppercase tracking-wider mb-1">IP</p>
-                                    <p className="text-xs text-[#6b6b8a]">196.207.xxx.xxx</p>
-                                  </div>
-                                </div>
+                                {/* Device / IP forensic fields removed: payment_transactions
+                                    exposes no real device or IP column, so nothing is fabricated here. */}
                                 <div className="flex flex-wrap gap-2">
                                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-300 text-xs font-medium hover:bg-blue-500/25 transition-colors">
@@ -596,7 +619,7 @@ export default function TransactionsPage() {
                       </div>
                       <p className="text-[#6b6b8a] text-[10px] mb-1">{t.id} · {t.order_id}</p>
                       <p className="text-red-400/70 text-[10px] font-medium">
-                        {FAILED_REASONS[t.id] ?? "Erreur inconnue"}
+                        Paiement échoué
                       </p>
                     </div>
                   </motion.div>

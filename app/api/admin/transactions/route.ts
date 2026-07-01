@@ -1,115 +1,176 @@
+import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
-function ts(minutesOffset: number) {
-  return new Date(Date.now() + minutesOffset * 60_000).toISOString()
+// ── Provider → display method mapping ───────────────────────────────────────
+// payment_transactions.payment_provider is one of:
+//   cinetpay | orange_money | mtn_momo | wallet | cash
+const METHOD_LABELS: Record<string, string> = {
+  cinetpay:     "CinetPay",
+  orange_money: "Orange Money",
+  mtn_momo:     "MTN Money",
+  wallet:       "Wallet",
+  cash:         "Espèces",
 }
-
-const TRANSACTIONS = [
-  { id:"TRX-4421", order_id:"CMD-78821", customer_name:"Marie Ngo",         amount:12_500, method:"Orange Money", status:"success",  timestamp:ts(-5),   fee:250,   commission:625  },
-  { id:"TRX-4420", order_id:"CMD-78820", customer_name:"Jean Mballa",        amount:8_200,  method:"MTN Money",   status:"success",  timestamp:ts(-12),  fee:164,   commission:410  },
-  { id:"TRX-4419", order_id:"CMD-78819", customer_name:"Sophie Ateba",       amount:35_000, method:"Wave",        status:"failed",   timestamp:ts(-18),  fee:0,     commission:0    },
-  { id:"TRX-4418", order_id:"CMD-78818", customer_name:"Alain Nguema",       amount:15_750, method:"Orange Money", status:"success", timestamp:ts(-25),  fee:315,   commission:788  },
-  { id:"TRX-4417", order_id:"CMD-78817", customer_name:"Sandrine Mvouma",    amount:4_500,  method:"CinetPay",    status:"pending",  timestamp:ts(-31),  fee:90,    commission:225  },
-  { id:"TRX-4416", order_id:"CMD-78816", customer_name:"Patrick Nzima",      amount:22_000, method:"MTN Money",   status:"success",  timestamp:ts(-40),  fee:440,   commission:1100 },
-  { id:"TRX-4415", order_id:"CMD-78815", customer_name:"Roger Talla",        amount:9_800,  method:"Orange Money", status:"refunded",timestamp:ts(-55),  fee:0,     commission:0    },
-  { id:"TRX-4414", order_id:"CMD-78814", customer_name:"Henriette Owona",    amount:47_500, method:"PayPal",      status:"success",  timestamp:ts(-68),  fee:1425,  commission:2375 },
-  { id:"TRX-4413", order_id:"CMD-78813", customer_name:"Vanessa Abena",      amount:3_200,  method:"Wave",        status:"success",  timestamp:ts(-75),  fee:64,    commission:160  },
-  { id:"TRX-4412", order_id:"CMD-78812", customer_name:"Gaston Mbog",        amount:18_000, method:"MTN Money",   status:"failed",   timestamp:ts(-82),  fee:0,     commission:0    },
-  { id:"TRX-4411", order_id:"CMD-78811", customer_name:"Célestine Bikoe",    amount:6_500,  method:"CinetPay",    status:"success",  timestamp:ts(-90),  fee:130,   commission:325  },
-  { id:"TRX-4410", order_id:"CMD-78810", customer_name:"Armand Essomba",     amount:29_000, method:"Orange Money", status:"success", timestamp:ts(-102), fee:580,   commission:1450 },
-  { id:"TRX-4409", order_id:"CMD-78809", customer_name:"Diane Nkodo",        amount:11_200, method:"Wave",        status:"success",  timestamp:ts(-115), fee:224,   commission:560  },
-  { id:"TRX-4408", order_id:"CMD-78808", customer_name:"Francis Belinga",    amount:85_000, method:"Virement",    status:"success",  timestamp:ts(-130), fee:850,   commission:4250 },
-  { id:"TRX-4407", order_id:"CMD-78807", customer_name:"Yvette Zanga",       amount:5_000,  method:"MTN Money",   status:"pending",  timestamp:ts(-145), fee:100,   commission:250  },
-  { id:"TRX-4406", order_id:"CMD-78806", customer_name:"Bruno Akono",        amount:14_300, method:"Orange Money", status:"success", timestamp:ts(-160), fee:286,   commission:715  },
-  { id:"TRX-4405", order_id:"CMD-78805", customer_name:"Martine Fouda",      amount:2_800,  method:"Wave",        status:"failed",   timestamp:ts(-180), fee:0,     commission:0    },
-  { id:"TRX-4404", order_id:"CMD-78804", customer_name:"Serge Ngono",        amount:38_500, method:"PayPal",      status:"success",  timestamp:ts(-220), fee:1155,  commission:1925 },
-  { id:"TRX-4403", order_id:"CMD-78803", customer_name:"Laure Mbassi",       amount:7_600,  method:"CinetPay",    status:"refunded", timestamp:ts(-360), fee:0,     commission:0    },
-  { id:"TRX-4402", order_id:"CMD-78802", customer_name:"Thierry Nkoulou",    amount:19_900, method:"Orange Money", status:"success", timestamp:ts(-720), fee:398,   commission:995  },
-]
-
-const success  = TRANSACTIONS.filter(t => t.status === "success")
-const failed   = TRANSACTIONS.filter(t => t.status === "failed")
-const refunded = TRANSACTIONS.filter(t => t.status === "refunded")
-const pending  = TRANSACTIONS.filter(t => t.status === "pending")
-
-const totalVolume = success.reduce((s, t) => s + t.amount, 0)
-const totalCommission = TRANSACTIONS.reduce((s, t) => s + t.commission, 0)
-const avgAmount = Math.round(TRANSACTIONS.reduce((s, t) => s + t.amount, 0) / TRANSACTIONS.length)
-
-// count today (within last 24h = last 1440 min)
-const countToday = TRANSACTIONS.filter(t => {
-  const minAgo = (Date.now() - new Date(t.timestamp).getTime()) / 60_000
-  return minAgo <= 1440
-}).length
-
-const yesterdayCount = 14
-
-const successRate = Math.round((success.length / TRANSACTIONS.length) * 100 * 10) / 10
-const commissionRate = Math.round((totalCommission / totalVolume) * 100 * 10) / 10
-
-// Method distribution
-const methodColors: Record<string, string> = {
+const METHOD_COLORS: Record<string, string> = {
   "Orange Money": "#f97316",
   "MTN Money":    "#eab308",
   "Wave":         "#3b82f6",
   "CinetPay":     "#22c55e",
   "PayPal":       "#8b5cf6",
   "Virement":     "#ec4899",
+  "Wallet":       "#06b6d4",
+  "Espèces":      "#6b7280",
 }
 
-const methodCount: Record<string, number> = {}
-TRANSACTIONS.forEach(t => { methodCount[t.method] = (methodCount[t.method] ?? 0) + 1 })
-
-const methodDistribution = Object.entries(methodCount).map(([method, count]) => ({
-  method,
-  count,
-  pct: Math.round((count / TRANSACTIONS.length) * 100),
-  color: methodColors[method] ?? "#6b6b8a",
-}))
-
-// 24h hourly trend — realistic peaks at lunch (12h) and dinner (19h)
-const hourlyTrend = Array.from({ length: 24 }, (_, h) => {
-  const hour = String(h).padStart(2, "0") + "h"
-  let baseVolume = 80_000
-  let baseCount  = 2
-
-  if (h >= 7 && h <= 9)   { baseVolume = 280_000; baseCount = 6 }
-  if (h >= 11 && h <= 13) { baseVolume = 620_000; baseCount = 14 }
-  if (h === 12)            { baseVolume = 840_000; baseCount = 18 }
-  if (h >= 14 && h <= 16) { baseVolume = 350_000; baseCount = 8 }
-  if (h >= 18 && h <= 20) { baseVolume = 720_000; baseCount = 16 }
-  if (h === 19)            { baseVolume = 920_000; baseCount = 21 }
-  if (h >= 21 && h <= 22) { baseVolume = 480_000; baseCount = 11 }
-  if (h >= 0 && h <= 5)   { baseVolume = 40_000;  baseCount = 1  }
-
-  const jitter = 0.85 + Math.random() * 0.3
-  return {
-    hour,
-    volume: Math.round(baseVolume * jitter),
-    count:  Math.max(1, Math.round(baseCount * jitter)),
+// ── DB status → UI status mapping ───────────────────────────────────────────
+// payment_transactions.status: initiated | pending | completed | failed | cancelled | refunded
+function uiStatus(dbStatus: string | null): "success" | "failed" | "refunded" | "pending" {
+  switch (dbStatus) {
+    case "completed": return "success"
+    case "refunded":  return "refunded"
+    case "failed":
+    case "cancelled": return "failed"
+    default:          return "pending" // initiated | pending
   }
-})
+}
 
-// Status distribution
-const statusDistribution = [
-  { status:"Succès",      count: success.length,  color:"#22c55e" },
-  { status:"Échouées",    count: failed.length,   color:"#ef4444" },
-  { status:"Remboursées", count: refunded.length, color:"#3b82f6" },
-  { status:"En cours",    count: pending.length,  color:"#f59e0b" },
-]
+type ProfileRel = { full_name: string | null } | null
+type OrderRel = { order_number: string | null; profiles: ProfileRel } | null
+interface TxnRow {
+  id: string
+  transaction_id: string | null
+  order_id: string | null
+  amount: number | null
+  status: string | null
+  payment_provider: string | null
+  created_at: string
+  orders: OrderRel
+}
+interface CommissionRow {
+  order_id: string
+  quickgo_commission: number | null
+  payment_fees: number | null
+}
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
+  const supabase = await createClient()
+
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+  const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).toISOString()
+
+  // Fetch recent real transactions + related order/customer, and commission logs (for fee/commission).
+  const [txnRes, yesterdayCountRes, commissionRes] = await Promise.all([
+    supabase
+      .from("payment_transactions")
+      .select("id, transaction_id, order_id, amount, status, payment_provider, created_at, orders(order_number, profiles:profiles!orders_customer_id_fkey(full_name))")
+      .order("created_at", { ascending: false })
+      .limit(200),
+    supabase
+      .from("payment_transactions")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", yesterdayStart)
+      .lt("created_at", todayStart),
+    supabase
+      .from("commission_logs")
+      .select("order_id, quickgo_commission, payment_fees"),
+  ])
+
+  const rows = (txnRes.data ?? []) as unknown as TxnRow[]
+
+  // Index commission logs by order_id to enrich each transaction with real fee / commission.
+  const commByOrder: Record<string, { commission: number; fee: number }> = {}
+  for (const c of (commissionRes.data ?? []) as unknown as CommissionRow[]) {
+    if (!c.order_id) continue
+    commByOrder[c.order_id] = {
+      commission: Number(c.quickgo_commission ?? 0),
+      fee:        Number(c.payment_fees ?? 0),
+    }
+  }
+
+  const transactions = rows.map((r) => {
+    const status = uiStatus(r.status)
+    const method = METHOD_LABELS[r.payment_provider ?? ""] ?? (r.payment_provider ?? "Autre")
+    const comm = r.order_id ? commByOrder[r.order_id] : undefined
+    return {
+      id:            r.transaction_id ?? r.id,
+      order_id:      r.orders?.order_number ?? (r.order_id ? r.order_id.slice(0, 8).toUpperCase() : "—"),
+      customer_name: r.orders?.profiles?.full_name ?? "Client QuickGo",
+      amount:        Number(r.amount ?? 0),
+      method,
+      status,
+      timestamp:     r.created_at,
+      fee:           comm?.fee ?? 0,
+      commission:    comm?.commission ?? 0,
+      // NOTE: payment_transactions has no device / IP columns — those forensic
+      // fields are intentionally omitted rather than fabricated.
+    }
+  })
+
+  const success  = transactions.filter((t) => t.status === "success")
+  const failed   = transactions.filter((t) => t.status === "failed")
+  const refunded = transactions.filter((t) => t.status === "refunded")
+  const pending  = transactions.filter((t) => t.status === "pending")
+
+  const totalVolume     = success.reduce((s, t) => s + t.amount, 0)
+  const totalCommission = transactions.reduce((s, t) => s + t.commission, 0)
+  const totalAmount     = transactions.reduce((s, t) => s + t.amount, 0)
+  const avgAmount       = transactions.length ? Math.round(totalAmount / transactions.length) : 0
+
+  const countToday = transactions.filter((t) => t.timestamp >= todayStart).length
+  const yesterdayCount = yesterdayCountRes.count ?? 0
+
+  const successRate    = transactions.length ? Math.round((success.length / transactions.length) * 1000) / 10 : 0
+  const commissionRate = totalVolume > 0 ? Math.round((totalCommission / totalVolume) * 1000) / 10 : 0
+
+  // ── Method distribution ────────────────────────────────────────────────────
+  const methodCount: Record<string, number> = {}
+  transactions.forEach((t) => { methodCount[t.method] = (methodCount[t.method] ?? 0) + 1 })
+  const methodDistribution = Object.entries(methodCount).map(([method, count]) => ({
+    method,
+    count,
+    pct: transactions.length ? Math.round((count / transactions.length) * 100) : 0,
+    color: METHOD_COLORS[method] ?? "#6b6b8a",
+  }))
+
+  // ── 24h hourly trend (real, bucketed by hour of created_at within last 24h) ─
+  const cutoff24h = Date.now() - 24 * 60 * 60 * 1000
+  const hourlyTrend = Array.from({ length: 24 }, (_, h) => ({
+    hour: String(h).padStart(2, "0") + "h",
+    volume: 0,
+    count: 0,
+  }))
+  for (const t of transactions) {
+    const d = new Date(t.timestamp)
+    if (d.getTime() < cutoff24h) continue
+    const bucket = hourlyTrend[d.getHours()]
+    bucket.volume += t.amount
+    bucket.count += 1
+  }
+
+  // ── Status distribution ────────────────────────────────────────────────────
+  const statusDistribution = [
+    { status: "Succès",      count: success.length,  color: "#22c55e" },
+    { status: "Échouées",    count: failed.length,   color: "#ef4444" },
+    { status: "Remboursées", count: refunded.length, color: "#3b82f6" },
+    { status: "En cours",    count: pending.length,  color: "#f59e0b" },
+  ]
+
   return NextResponse.json({
     kpi: {
-      volume_total:      totalVolume,
-      count_today:       countToday,
-      success_rate:      successRate,
-      avg_amount:        avgAmount,
-      failed_count:      failed.length,
-      commission_quickgo:commissionRate,
-      yesterday_count:   yesterdayCount,
+      volume_total:       totalVolume,
+      count_today:        countToday,
+      success_rate:       successRate,
+      avg_amount:         avgAmount,
+      failed_count:       failed.length,
+      commission_quickgo: commissionRate,
+      yesterday_count:    yesterdayCount,
     },
-    transactions:        TRANSACTIONS,
+    transactions,
     method_distribution: methodDistribution,
     hourly_trend:        hourlyTrend,
     status_distribution: statusDistribution,

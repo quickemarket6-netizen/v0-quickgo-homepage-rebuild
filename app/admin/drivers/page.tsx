@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import {
   Truck, Search, Star, Phone, CheckCircle, Clock, Ban,
   Eye, ChevronLeft, ChevronRight, Download, UserPlus, Bike, Car,
+  AlertTriangle, RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +44,7 @@ export default function AdminDriversPage() {
   const [total, setTotal] = useState(0)
   const [summary, setSummary] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [page, setPage] = useState(1)
@@ -53,12 +55,14 @@ export default function AdminDriversPage() {
     try {
       const params = new URLSearchParams({ search: q, status, page: String(p), limit: String(PAGE_SIZE) })
       const res = await fetch(`/api/admin/drivers?${params}`)
-      if (res.ok) {
-        const data = await res.json()
-        setDrivers(data.drivers)
-        setTotal(data.total)
-        setSummary(data.summary ?? {})
-      }
+      if (!res.ok) throw new Error(`Erreur ${res.status} lors du chargement des livreurs`)
+      const data = await res.json()
+      setDrivers(data.drivers)
+      setTotal(data.total)
+      setSummary(data.summary ?? {})
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur de chargement")
     } finally {
       setLoading(false)
     }
@@ -194,6 +198,21 @@ export default function AdminDriversPage() {
               ))}
             </div>
           </div>
+
+          {/* Error banner */}
+          {!loading && error && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
+              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold">Échec du chargement des livreurs</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{error}</p>
+              </div>
+              <Button onClick={() => fetchDrivers(search, statusFilter, page)} size="sm" variant="outline"
+                className="rounded-full gap-2 shrink-0">
+                <RefreshCw className="w-3.5 h-3.5" /> Réessayer
+              </Button>
+            </div>
+          )}
 
           {/* Drivers Grid */}
           {loading ? (

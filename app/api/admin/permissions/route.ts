@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
 function ts(minutesOffset: number) {
   return new Date(Date.now() + minutesOffset * 60_000).toISOString()
@@ -89,6 +90,9 @@ const activeUsers = USERS.filter(u => u.status === "active")
 const with2fa     = USERS.filter(u => u.two_fa)
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
   return NextResponse.json({
     kpi: {
       total_users:    USERS.length,

@@ -344,6 +344,7 @@ function Chart24Tooltip({ active, payload, label }: { active?: boolean; payload?
 export default function AdminDashboardPage() {
   const [data,       setData]       = useState<AdminDashData | null>(null)
   const [loading,    setLoading]    = useState(true)
+  const [error,      setError]      = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [search,     setSearch]     = useState("")
   const [searchOpen, setSearchOpen] = useState(false)
@@ -357,7 +358,14 @@ export default function AdminDashboardPage() {
   const fetchData = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/dashboard")
-      if (res.ok) setData(await res.json())
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? (res.status === 403 ? "Accès refusé — session admin requise" : `Erreur ${res.status}`))
+      }
+      setData(await res.json())
+      setError(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur de chargement du tableau de bord")
     } finally { setLoading(false); setRefreshing(false) }
   }, [])
 
@@ -486,6 +494,20 @@ export default function AdminDashboardPage() {
 
       {/* ── MAIN ───────────────────────────────────────────────────────────── */}
       <main className="flex-1 min-w-0 overflow-auto">
+
+        {/* Error banner — surfaces failed loads instead of showing silent zeros */}
+        {!loading && error && (
+          <div className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3">
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+            <p className="flex-1 text-sm text-red-300">{error}</p>
+            <button
+              onClick={() => { setRefreshing(true); fetchData() }}
+              className="shrink-0 text-sm font-medium text-red-200 hover:text-white px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors"
+            >
+              Réessayer
+            </button>
+          </div>
+        )}
 
         {/* ── HEADER ─────────────────────────────────────────────────────── */}
         <header className="sticky top-0 z-40 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-[#1e1e2e]">

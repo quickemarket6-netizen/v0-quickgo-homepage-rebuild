@@ -156,6 +156,7 @@ function KpiCard({ label, value, sub, subUp, icon: Icon, iconColor, delay, prefi
 export default function ZonesPage() {
   const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
   const [search, setSearch] = useState("")
@@ -165,12 +166,19 @@ export default function ZonesPage() {
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
-    const res = await fetch("/api/admin/zones")
-    const json: PageData = await res.json()
-    setData(json)
-    setLastUpdated(new Date())
-    if (isRefresh) setTimeout(() => setRefreshing(false), 600)
-    else setLoading(false)
+    try {
+      const res = await fetch("/api/admin/zones")
+      if (!res.ok) throw new Error(`Erreur ${res.status} lors du chargement des villes`)
+      const json: PageData = await res.json()
+      setData(json)
+      setError(null)
+      setLastUpdated(new Date())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur de chargement")
+    } finally {
+      if (isRefresh) setTimeout(() => setRefreshing(false), 600)
+      else setLoading(false)
+    }
   }
   useEffect(() => { load() }, [])
 
@@ -179,6 +187,25 @@ export default function ZonesPage() {
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}>
         <MapPin className="w-10 h-10 text-green-400" />
       </motion.div>
+    </div>
+  )
+
+  if (error || !data) return (
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
+      <div className="bg-[#16161f] border border-red-500/30 rounded-2xl p-8 max-w-md w-full flex flex-col items-center text-center gap-4">
+        <div className="w-14 h-14 rounded-2xl bg-red-500/15 flex items-center justify-center">
+          <AlertTriangle className="w-7 h-7 text-red-400" />
+        </div>
+        <div>
+          <h2 className="text-[15px] font-bold text-white">Impossible de charger les villes</h2>
+          <p className="text-[13px] text-[#6b6b8a] mt-1.5">{error ?? "Aucune donnée disponible"}</p>
+        </div>
+        <button onClick={() => { setLoading(true); load() }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-[13px] font-medium transition-colors">
+          <RefreshCw className="w-4 h-4" />
+          Réessayer
+        </button>
+      </div>
     </div>
   )
 

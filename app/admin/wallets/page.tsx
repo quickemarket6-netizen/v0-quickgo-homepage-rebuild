@@ -132,6 +132,7 @@ function KpiCard({ label, value, format, sub, subColor, icon: Icon, iconColor, d
 export default function WalletsPage() {
   const [data, setData]               = useState<PageData | null>(null)
   const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState<string | null>(null)
   const [refreshing, setRefreshing]   = useState(false)
   const [typeFilter, setTypeFilter]   = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -144,7 +145,19 @@ export default function WalletsPage() {
     isRefresh ? setRefreshing(true) : setLoading(true)
     try {
       const res = await fetch("/api/admin/wallets")
-      if (res.ok) { setData(await res.json()); setLastUpdated(new Date()) }
+      if (!res.ok) {
+        let msg = `Erreur ${res.status}`
+        try {
+          const body = await res.json()
+          if (body?.error) msg = body.error
+        } catch {}
+        throw new Error(msg)
+      }
+      setData(await res.json())
+      setError(null)
+      setLastUpdated(new Date())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Impossible de charger les wallets")
     } finally {
       isRefresh ? setRefreshing(false) : setLoading(false)
     }
@@ -192,6 +205,30 @@ export default function WalletsPage() {
         transition={{ duration: 1.5, repeat: Infinity }} className="text-[#6b6b8a] text-sm">
         Chargement des wallets…
       </motion.p>
+    </div>
+  )
+
+  if (!loading && error) return (
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <AdminSidebar />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="bg-[#16161f] border border-red-500/25 rounded-2xl p-8 max-w-md w-full flex flex-col items-center gap-4 text-center">
+          <div className="p-3 rounded-xl bg-red-500/15">
+            <AlertTriangle className="w-7 h-7 text-red-400" />
+          </div>
+          <div>
+            <h2 className="text-white font-bold text-base">Impossible de charger les wallets</h2>
+            <p className="text-[#6b6b8a] text-sm mt-1">{error}</p>
+          </div>
+          <button
+            onClick={() => load()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-sm font-medium transition-all"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Réessayer
+          </button>
+        </div>
+      </div>
     </div>
   )
 

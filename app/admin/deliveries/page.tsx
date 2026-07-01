@@ -228,6 +228,7 @@ function KpiCard({ label, value, format, sub, subColor, icon: Icon, iconColor, p
 export default function LivraisonsPage() {
   const [data, setData]               = useState<PageData | null>(null)
   const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState<string | null>(null)
   const [refreshing, setRefreshing]   = useState(false)
   const [statusFilter, setStatusFilter] = useState("all")
   const [search, setSearch]           = useState("")
@@ -240,7 +241,12 @@ export default function LivraisonsPage() {
     isRefresh ? setRefreshing(true) : setLoading(true)
     try {
       const res = await fetch("/api/admin/deliveries")
-      if (res.ok) { setData(await res.json()); setLastUpdated(new Date()) }
+      if (!res.ok) throw new Error(`Erreur ${res.status} lors du chargement des livraisons`)
+      setData(await res.json())
+      setError(null)
+      setLastUpdated(new Date())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur de chargement")
     } finally {
       isRefresh ? setRefreshing(false) : setLoading(false)
     }
@@ -383,6 +389,22 @@ export default function LivraisonsPage() {
       </motion.header>
 
       <div className="p-6 space-y-5">
+
+        {/* ── ERROR BANNER ────────────────────────────────────────────────── */}
+        {!loading && error && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30">
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-semibold">Échec du chargement des livraisons</p>
+              <p className="text-[#6b6b8a] text-xs mt-0.5">{error}</p>
+            </div>
+            <button onClick={() => load()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-medium transition-colors shrink-0">
+              <RefreshCw className="w-3.5 h-3.5" />
+              Réessayer
+            </button>
+          </div>
+        )}
 
         {/* ── KPI ROW ─────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">

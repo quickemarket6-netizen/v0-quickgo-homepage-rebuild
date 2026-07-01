@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
 function ts(minutesOffset: number) {
   return new Date(Date.now() + minutesOffset * 60_000).toISOString()
@@ -36,6 +37,9 @@ const avgUptime    = Math.round(SERVICES.reduce((sum, s) => sum + s.uptime, 0) /
 const avgResponseMs = Math.round(SERVICES.filter(s => s.response_ms > 0).reduce((sum, s) => sum + s.response_ms, 0) / SERVICES.filter(s => s.response_ms > 0).length)
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
   return NextResponse.json({
     kpi: {
       operational_count: operational.length,

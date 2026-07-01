@@ -33,6 +33,9 @@ const WEBHOOKS = [
 ]
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
   const active   = API_KEYS.filter(k => k.status === "active")
   const revoked  = API_KEYS.filter(k => k.status === "revoked")
   const totalRequests = active.reduce((s, k) => s + k.requests_today, 0)

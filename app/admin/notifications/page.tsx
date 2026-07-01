@@ -117,6 +117,7 @@ function KpiCard({ label, value, sub, subUp, icon: Icon, iconColor, pulse, delay
 export default function NotificationsPage() {
   const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [typeFilter, setTypeFilter] = useState("all")
   const [chanFilter, setChanFilter] = useState("all")
@@ -127,12 +128,22 @@ export default function NotificationsPage() {
 
   async function load(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
-    const res = await fetch("/api/admin/notifications")
-    const json: PageData = await res.json()
-    setData(json)
-    setLastUpdated(new Date())
-    if (isRefresh) setTimeout(() => setRefreshing(false), 600)
-    else setLoading(false)
+    setError(null)
+    try {
+      const res = await fetch("/api/admin/notifications")
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error ?? `Erreur ${res.status}`)
+      }
+      const json: PageData = await res.json()
+      setData(json)
+      setLastUpdated(new Date())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur de chargement")
+    } finally {
+      if (isRefresh) setTimeout(() => setRefreshing(false), 600)
+      else setLoading(false)
+    }
   }
   useEffect(() => { load() }, [])
 
@@ -141,6 +152,26 @@ export default function NotificationsPage() {
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}>
         <Bell className="w-10 h-10 text-blue-400" />
       </motion.div>
+    </div>
+  )
+
+  if (error || !data) return (
+    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-6">
+      <div className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-8 flex flex-col items-center gap-4 max-w-sm text-center">
+        <div className="w-12 h-12 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6 text-red-300" />
+        </div>
+        <div>
+          <h2 className="text-[15px] font-bold text-white">Impossible de charger les notifications</h2>
+          <p className="text-[12px] text-[#6b6b8a] mt-1">{error ?? "Aucune donnée disponible"}</p>
+        </div>
+        <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+          onClick={() => load(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[12px] font-medium transition-colors">
+          <RefreshCw className="w-3.5 h-3.5" />
+          Réessayer
+        </motion.button>
+      </div>
     </div>
   )
 
@@ -159,11 +190,26 @@ export default function NotificationsPage() {
   const filterKey = `${typeFilter}-${chanFilter}-${readFilter}-${search}`
   const unreadCount = allNotifs.filter(n => !n.read && !readIds.has(n.id)).length
 
+  async function persistRead(id: string) {
+    // Optimistic local update already applied; persist to Supabase via PATCH.
+    try {
+      await fetch("/api/admin/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, read: true }),
+      })
+    } catch {
+      // Silent: local state keeps the optimistic "read" mark even if the request fails.
+    }
+  }
   function markRead(id: string) {
     setReadIds(prev => new Set([...prev, id]))
+    persistRead(id)
   }
   function markAllRead() {
+    const unreadNow = allNotifs.filter(n => !n.read && !readIds.has(n.id))
     setReadIds(new Set(allNotifs.map(n => n.id)))
+    unreadNow.forEach(n => persistRead(n.id))
   }
 
   return (

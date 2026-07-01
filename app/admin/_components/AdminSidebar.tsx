@@ -1,13 +1,15 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard, DollarSign, Store, Truck, Package,
   Navigation, Wallet, CreditCard, FileText, Activity,
   ShieldCheck, MessageCircle, Bell, MapPin, Settings,
   Layers, Globe, Users, Lock, Plug, Database, Headphones, ChevronDown,
-  Tag, Megaphone, Banknote, FolderTree,
+  Tag, Megaphone, Banknote, FolderTree, Menu, X,
 } from "lucide-react"
 
 const NAV = [
@@ -40,65 +42,137 @@ const NAV = [
   { icon: Headphones,      label: "Support technique",   href: "/admin/support-tech"  },
 ]
 
-export function AdminSidebar() {
-  const pathname = usePathname()
+// Active only for an exact match or a real sub-path (href + "/…").  Prevents the
+// old `startsWith` collision where /admin/support-tech also lit up /admin/support.
+function isActiveHref(pathname: string, href: string) {
+  if (href === "/admin") return pathname === "/admin"
+  return pathname === href || pathname.startsWith(href + "/")
+}
 
+function Logo() {
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r border-[#1e1e2e] bg-[#0d0d14]">
-      {/* logo */}
-      <div className="p-5 border-b border-[#1e1e2e]">
-        <Link href="/admin" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
-            <span className="text-white font-black text-sm">Q</span>
-          </div>
-          <div>
-            <span className="text-[15px] font-black text-white tracking-tight">QUICK</span>
-            <span className="text-[15px] font-black text-lime-400 tracking-tight">GO</span>
-            <p className="text-[9px] text-red-400 uppercase tracking-widest font-bold leading-none mt-0.5">Admin</p>
-          </div>
-        </Link>
+    <Link href="/admin" className="flex items-center gap-2.5">
+      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
+        <span className="text-white font-black text-sm">Q</span>
       </div>
+      <div>
+        <span className="text-[15px] font-black text-white tracking-tight">QUICK</span>
+        <span className="text-[15px] font-black text-lime-400 tracking-tight">GO</span>
+        <p className="text-[9px] text-red-400 uppercase tracking-widest font-bold leading-none mt-0.5">Admin</p>
+      </div>
+    </Link>
+  )
+}
 
-      {/* nav */}
-      <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-        {NAV.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href))
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-[13px] font-medium group ${
-                isActive
-                  ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-                  : "text-[#6b6b8a] hover:bg-[#16161f] hover:text-white"
-              }`}
-            >
-              <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-400" : "text-[#6b6b8a] group-hover:text-white"}`} />
-              <span className="flex-1 truncate">{item.label}</span>
-              {"arrow" in item && item.arrow && (
-                <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
-              )}
-            </Link>
-          )
-        })}
-      </nav>
+function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  return (
+    <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+      {NAV.map((item) => {
+        const isActive = isActiveHref(pathname, item.href)
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={isActive ? "page" : undefined}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all text-[13px] font-medium group ${
+              isActive
+                ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
+                : "text-[#6b6b8a] hover:bg-[#16161f] hover:text-white"
+            }`}
+          >
+            <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-400" : "text-[#6b6b8a] group-hover:text-white"}`} />
+            <span className="flex-1 truncate">{item.label}</span>
+            {"arrow" in item && item.arrow && (
+              <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
+            )}
+          </Link>
+        )
+      })}
+    </nav>
+  )
+}
 
-      {/* profile footer */}
-      <div className="p-3 border-t border-[#1e1e2e]">
-        <div className="flex items-center gap-2.5 px-2 py-2">
-          <div className="relative shrink-0">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">EA</span>
-            </div>
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#0d0d14]" />
+function ProfileFooter() {
+  return (
+    <div className="p-3 border-t border-[#1e1e2e]">
+      <div className="flex items-center gap-2.5 px-2 py-2">
+        <div className="relative shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <span className="text-white font-bold text-xs">EA</span>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-[13px] font-semibold truncate leading-none">Emmanuel Admin</p>
-            <p className="text-[10px] text-[#6b6b8a] mt-0.5 leading-none">Super Administrateur</p>
-            <p className="text-[10px] text-green-400 mt-0.5 leading-none font-medium">● En ligne</p>
-          </div>
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#0d0d14]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white text-[13px] font-semibold truncate leading-none">Emmanuel Admin</p>
+          <p className="text-[10px] text-[#6b6b8a] mt-0.5 leading-none">Super Administrateur</p>
+          <p className="text-[10px] text-green-400 mt-0.5 leading-none font-medium">● En ligne</p>
         </div>
       </div>
-    </aside>
+    </div>
+  )
+}
+
+export function AdminSidebar() {
+  const pathname = usePathname()
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  return (
+    <>
+      {/* ── Desktop sidebar ─────────────────────────────────────────── */}
+      <aside className="hidden lg:flex w-64 flex-col border-r border-[#1e1e2e] bg-[#0d0d14]">
+        <div className="p-5 border-b border-[#1e1e2e]">
+          <Logo />
+        </div>
+        <NavList pathname={pathname} />
+        <ProfileFooter />
+      </aside>
+
+      {/* ── Mobile trigger (hidden on desktop) ──────────────────────── */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Ouvrir le menu admin"
+        className="lg:hidden fixed bottom-5 left-5 z-50 w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 flex items-center justify-center"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* ── Mobile drawer ───────────────────────────────────────────── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <div className="lg:hidden fixed inset-0 z-[60] flex">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="relative w-72 max-w-[85vw] h-full flex flex-col border-r border-[#1e1e2e] bg-[#0d0d14]"
+            >
+              <div className="p-5 border-b border-[#1e1e2e] flex items-center justify-between">
+                <Logo />
+                <button
+                  type="button"
+                  onClick={() => setMobileOpen(false)}
+                  aria-label="Fermer le menu"
+                  className="p-1.5 rounded-lg text-[#6b6b8a] hover:text-white hover:bg-[#16161f] transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <NavList pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+              <ProfileFooter />
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

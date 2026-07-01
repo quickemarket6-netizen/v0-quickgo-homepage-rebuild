@@ -1,70 +1,223 @@
-import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
+import { NextRequest, NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
-function ts(minutesOffset: number) {
-  return new Date(Date.now() + minutesOffset * 60_000).toISOString()
+// ─── shape helpers ────────────────────────────────────────────────────────────
+// The admin page consumes a fixed shape (see app/admin/notifications/page.tsx):
+//   notifications[]: { id, type, channel, title, body, recipient, read, sent_at, priority }
+//   campaigns[]:     { id, name, type, status, recipients, opened, clicked, sent_at, open_rate }
+// The real tables don't carry every one of those columns, so where a backing
+// column is absent we derive a safe value and comment it as a fallback.
+
+const CHAN_COLOR: Record<string, string> = {
+  push: "#3b82f6",
+  email: "#8b5cf6",
+  sms: "#22c55e",
 }
 
-const NOTIFICATIONS = [
-  { id:"NTF-0201", type:"alert",   channel:"push",  title:"Paiement échoué",          body:"La transaction TRX-4419 de 35 000 FCFA a échoué pour Sophie Ateba.",    recipient:"admin",          read:false, sent_at:ts(-3),   priority:"urgent" },
-  { id:"NTF-0200", type:"info",    channel:"email", title:"Nouveau vendeur inscrit",   body:"Pharma Plus vient de compléter son inscription. Vérification requise.",   recipient:"admin",          read:false, sent_at:ts(-8),   priority:"normal" },
-  { id:"NTF-0199", type:"alert",   channel:"push",  title:"Compte suspect détecté",   body:"Activité inhabituelle détectée sur le compte client WAL-C004.",           recipient:"admin",          read:false, sent_at:ts(-15),  priority:"urgent" },
-  { id:"NTF-0198", type:"success", channel:"push",  title:"Virement de 85 000 FCFA",  body:"La transaction TRX-4408 de Francis Belinga a été traitée avec succès.",   recipient:"admin",          read:true,  sent_at:ts(-22),  priority:"normal" },
-  { id:"NTF-0197", type:"info",    channel:"sms",   title:"Rapport quotidien prêt",   body:"Le rapport du 02/06/2026 est disponible. 248 transactions, 87.5% succès.", recipient:"admin",          read:true,  sent_at:ts(-35),  priority:"normal" },
-  { id:"NTF-0196", type:"warning", channel:"push",  title:"Wallet gelé — La Belle Mode","body":"Le wallet WAL-V006 a été gelé automatiquement suite à une anomalie.",  recipient:"admin",          read:false, sent_at:ts(-48),  priority:"high"   },
-  { id:"NTF-0195", type:"success", channel:"email", title:"Payout traité — batch #023", body:"1 850 000 FCFA versés à Loïc Shop via Wave. Traitement réussi.",         recipient:"vendor_V002",    read:true,  sent_at:ts(-60),  priority:"normal" },
-  { id:"NTF-0194", type:"info",    channel:"push",  title:"Nouvelle commande",        body:"CMD-78821 reçue de Marie Ngo — 12 500 FCFA. Livreur assigné.",            recipient:"vendor_V001",    read:true,  sent_at:ts(-75),  priority:"normal" },
-  { id:"NTF-0193", type:"alert",   channel:"sms",   title:"Livreur hors zone",        body:"Paul Tchamba a quitté la zone de livraison CMD-78452.",                   recipient:"admin",          read:true,  sent_at:ts(-90),  priority:"high"   },
-  { id:"NTF-0192", type:"success", channel:"push",  title:"Livraison confirmée",      body:"CMD-78820 livrée avec succès. Note client : 5/5.",                        recipient:"driver_D001",    read:true,  sent_at:ts(-105), priority:"normal" },
-  { id:"NTF-0191", type:"warning", channel:"email", title:"Solde bas — AfriTech",     body:"Le wallet de AfriTech passe sous 800 000 FCFA.",                          recipient:"vendor_V005",    read:false, sent_at:ts(-120), priority:"normal" },
-  { id:"NTF-0190", type:"info",    channel:"push",  title:"Mise à jour système",      body:"QuickGo v2.4.1 déployée avec succès. 3 nouvelles fonctionnalités.",       recipient:"admin",          read:true,  sent_at:ts(-180), priority:"normal" },
-  { id:"NTF-0189", type:"alert",   channel:"sms",   title:"Ticket escaladé",          body:"TKT-1135 (Davy Store) escaladé. Intervention manager requise.",           recipient:"admin",          read:false, sent_at:ts(-240), priority:"urgent" },
-  { id:"NTF-0188", type:"success", channel:"email", title:"Rapport hebdomadaire",     body:"Week 22: 1 742 commandes, 94.3% de satisfaction client.",                 recipient:"admin",          read:true,  sent_at:ts(-360), priority:"normal" },
-  { id:"NTF-0187", type:"info",    channel:"push",  title:"Promotion activée",        body:"Promo JUIN2026 activée — 15% pour 3 nouvelles villes.",                   recipient:"all_clients",    read:true,  sent_at:ts(-480), priority:"normal" },
-  { id:"NTF-0186", type:"warning", channel:"push",  title:"API rate limit atteint",   body:"L'endpoint /api/orders a atteint 95% de sa limite horaire.",              recipient:"admin",          read:true,  sent_at:ts(-720), priority:"high"   },
-]
-
-const CAMPAIGNS = [
-  { id:"CMP-014", name:"Promo Ramadan 2026",   type:"email", status:"active",   recipients:3_420, opened:1_892, clicked:634, sent_at:ts(-2880),  open_rate:55.3 },
-  { id:"CMP-013", name:"Bienvenue nouveaux",    type:"push",  status:"active",   recipients:1_250, opened:980,   clicked:412, sent_at:ts(-4320),  open_rate:78.4 },
-  { id:"CMP-012", name:"Rappel panier oublié",  type:"sms",   status:"paused",   recipients:876,   opened:721,   clicked:198, sent_at:ts(-7200),  open_rate:82.3 },
-  { id:"CMP-011", name:"Re-engagement inactifs",type:"email", status:"completed",recipients:2_100, opened:840,   clicked:189, sent_at:ts(-10080), open_rate:40.0 },
-  { id:"CMP-010", name:"Flash sale weekend",    type:"push",  status:"completed",recipients:5_800, opened:4_234, clicked:1_872, sent_at:ts(-20160),open_rate:73.0 },
-]
-
-const unread   = NOTIFICATIONS.filter(n => !n.read)
-const urgent   = NOTIFICATIONS.filter(n => n.priority === "urgent")
-const alerts   = NOTIFICATIONS.filter(n => n.type === "alert")
-const today    = NOTIFICATIONS.filter(n => (Date.now() - new Date(n.sent_at).getTime()) < 86_400_000)
-
-const channelCount: Record<string, number> = {}
-NOTIFICATIONS.forEach(n => { channelCount[n.channel] = (channelCount[n.channel] ?? 0) + 1 })
+// Map financial_notifications.type -> the page's TYPE_CFG keys (alert/warning/success/info)
+function mapFinType(type: string | null): string {
+  const t = (type ?? "").toLowerCase()
+  if (t.includes("fail") || t.includes("error") || t.includes("fraud") || t.includes("froze") || t.includes("freeze")) return "alert"
+  if (t.includes("warn") || t.includes("low") || t.includes("pending")) return "warning"
+  if (t.includes("success") || t.includes("paid") || t.includes("complete") || t.includes("payout")) return "success"
+  return "info"
+}
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
+  const supabase = await createClient()
+
+  const [pushResult, finResult, broadcastsResult] = await Promise.all([
+    // push_notifications: id, user_id, title, body, data, sent_at, read
+    supabase
+      .from("push_notifications")
+      .select("id, user_id, title, body, sent_at, read")
+      .order("sent_at", { ascending: false })
+      .limit(100),
+
+    // financial_notifications: id, user_id, type, title, message, amount, reference_id, reference_type, is_read, created_at
+    supabase
+      .from("financial_notifications")
+      .select("id, user_id, type, title, message, is_read, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100),
+
+    // broadcasts: id, title, content, channels[], segment, scheduled_at, sent_at, status, created_at
+    supabase
+      .from("broadcasts")
+      .select("id, title, channels, segment, status, sent_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ])
+
+  const pushRows = pushResult.data ?? []
+  const finRows = finResult.data ?? []
+  const broadcastRows = broadcastsResult.data ?? []
+
+  // ── notifications ──────────────────────────────────────────────────────────
+  const pushNotifs = pushRows.map((n) => ({
+    id: n.id,
+    type: "info", // fallback: push_notifications has no `type` column
+    channel: "push", // these rows are push notifications by table
+    title: n.title,
+    body: n.body,
+    recipient: n.user_id ?? "admin", // fallback: no dedicated recipient label column
+    read: !!n.read,
+    sent_at: n.sent_at,
+    priority: "normal", // fallback: push_notifications has no `priority` column
+  }))
+
+  const finNotifs = finRows.map((n) => ({
+    id: n.id,
+    type: mapFinType(n.type), // derived from financial_notifications.type
+    channel: "email", // fallback: financial_notifications has no channel column; delivered as email
+    title: n.title,
+    body: n.message ?? "", // financial_notifications.message -> body
+    recipient: n.user_id ?? "admin",
+    read: !!n.is_read, // financial_notifications.is_read -> read
+    sent_at: n.created_at, // financial_notifications.created_at -> sent_at
+    priority: mapFinType(n.type) === "alert" ? "urgent" : "normal", // derived, no priority column
+  }))
+
+  const notifications = [...pushNotifs, ...finNotifs].sort(
+    (a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime(),
+  )
+
+  // ── campaigns (from broadcasts) ────────────────────────────────────────────
+  // broadcasts has no recipients/opened/clicked/open_rate columns -> safe fallbacks (0).
+  const campaigns = broadcastRows.map((b) => {
+    const channels: string[] = Array.isArray(b.channels) ? b.channels : []
+    const type = channels[0] ?? "push" // broadcasts carry a channels[] array, not a single type
+    // Map broadcast status lifecycle -> page CAMP_STATUS keys (active/paused/completed)
+    const status =
+      b.status === "sending" || b.status === "scheduled"
+        ? "active"
+        : b.status === "sent"
+          ? "completed"
+          : b.status === "cancelled"
+            ? "paused"
+            : "completed" // draft / unknown -> completed
+    return {
+      id: b.id,
+      name: b.title,
+      type,
+      status,
+      recipients: 0, // fallback: no recipients count column on broadcasts
+      opened: 0, // fallback: no analytics columns on broadcasts
+      clicked: 0, // fallback: no analytics columns on broadcasts
+      sent_at: b.sent_at ?? b.created_at,
+      open_rate: 0, // fallback: no open-rate column on broadcasts
+    }
+  })
+
+  // ── KPIs (computed from real rows) ─────────────────────────────────────────
+  const unread = notifications.filter((n) => !n.read)
+  const urgent = notifications.filter((n) => n.priority === "urgent")
+  const today = notifications.filter(
+    (n) => Date.now() - new Date(n.sent_at).getTime() < 86_400_000,
+  )
+  const campaignsActive = campaigns.filter((c) => c.status === "active").length
+  const avgOpenRate = campaigns.length
+    ? Math.round((campaigns.reduce((s, c) => s + c.open_rate, 0) / campaigns.length) * 10) / 10
+    : 0
+
+  // ── channel distribution (real counts) ─────────────────────────────────────
+  const channelCount: Record<string, number> = {}
+  notifications.forEach((n) => {
+    channelCount[n.channel] = (channelCount[n.channel] ?? 0) + 1
+  })
+  const channel_distribution = Object.entries(channelCount).map(([channel, count]) => ({
+    channel,
+    count,
+    pct: notifications.length ? Math.round((count / notifications.length) * 100) : 0,
+    color: CHAN_COLOR[channel] ?? "#22c55e",
+  }))
+
+  // ── 7-day volume trend (real counts bucketed by day) ───────────────────────
+  const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+  const volume_trend = Array.from({ length: 7 }).map((_, idx) => {
+    const dayStart = new Date()
+    dayStart.setHours(0, 0, 0, 0)
+    dayStart.setDate(dayStart.getDate() - (6 - idx))
+    const dayEnd = new Date(dayStart)
+    dayEnd.setDate(dayEnd.getDate() + 1)
+    const isToday = idx === 6
+    const inDay = notifications.filter((n) => {
+      const t = new Date(n.sent_at).getTime()
+      return t >= dayStart.getTime() && t < dayEnd.getTime()
+    })
+    return {
+      day: isToday ? "Auj" : DAY_LABELS[dayStart.getDay()],
+      push: inDay.filter((n) => n.channel === "push").length,
+      email: inDay.filter((n) => n.channel === "email").length,
+      sms: inDay.filter((n) => n.channel === "sms").length,
+    }
+  })
+
   return NextResponse.json({
     kpi: {
-      unread_count:    unread.length,
-      urgent_count:    urgent.length,
-      sent_today:      today.length,
-      campaigns_active: CAMPAIGNS.filter(c => c.status === "active").length,
-      avg_open_rate:   Math.round(CAMPAIGNS.reduce((s,c) => s + c.open_rate, 0) / CAMPAIGNS.length * 10) / 10,
-      delivery_rate:   98.7,
+      unread_count: unread.length,
+      urgent_count: urgent.length,
+      sent_today: today.length,
+      campaigns_active: campaignsActive,
+      avg_open_rate: avgOpenRate,
+      // fallback: no delivery-tracking column exists on the notification tables.
+      // Assume 100% delivery when there is data, else 0.
+      delivery_rate: notifications.length ? 100 : 0,
     },
-    notifications: NOTIFICATIONS,
-    campaigns: CAMPAIGNS,
-    channel_distribution: Object.entries(channelCount).map(([channel, count]) => ({
-      channel,
-      count,
-      pct: Math.round(count / NOTIFICATIONS.length * 100),
-      color: channel === "push" ? "#3b82f6" : channel === "email" ? "#8b5cf6" : "#22c55e",
-    })),
-    volume_trend: [
-      { day:"Lun", push:42, email:18, sms:8  },
-      { day:"Mar", push:56, email:24, sms:12 },
-      { day:"Mer", push:38, email:15, sms:6  },
-      { day:"Jeu", push:71, email:31, sms:15 },
-      { day:"Ven", push:85, email:38, sms:18 },
-      { day:"Sam", push:94, email:42, sms:22 },
-      { day:"Auj", push:today.filter(n=>n.channel==="push").length, email:today.filter(n=>n.channel==="email").length, sms:today.filter(n=>n.channel==="sms").length },
-    ],
+    notifications,
+    campaigns,
+    channel_distribution,
+    volume_trend,
   })
+}
+
+// ─── PATCH: persist a "mark read" ─────────────────────────────────────────────
+// Sets push_notifications.read = true for the given id. push_notifications uses
+// the column name `read` (see supabase/migrations/add_communication_tables.sql).
+// If the id belongs to financial_notifications instead, we fall back to updating
+// its `is_read` column.
+export async function PATCH(req: NextRequest) {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
+  let body: { id?: string; read?: boolean }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 })
+  }
+
+  const { id } = body
+  if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 })
+  const read = body.read ?? true
+
+  const supabase = await createClient()
+
+  // Try push_notifications first (`read` column).
+  const pushUpdate = await supabase
+    .from("push_notifications")
+    .update({ read })
+    .eq("id", id)
+    .select("id")
+
+  if (pushUpdate.data && pushUpdate.data.length > 0) {
+    return NextResponse.json({ success: true, id, read, table: "push_notifications" })
+  }
+
+  // Fall back to financial_notifications (`is_read` column).
+  const finUpdate = await supabase
+    .from("financial_notifications")
+    .update({ is_read: read })
+    .eq("id", id)
+    .select("id")
+
+  if (finUpdate.data && finUpdate.data.length > 0) {
+    return NextResponse.json({ success: true, id, read, table: "financial_notifications" })
+  }
+
+  return NextResponse.json({ error: "Notification introuvable" }, { status: 404 })
 }

@@ -30,6 +30,9 @@ const SCHEDULES = [
 ]
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
   const success = BACKUPS.filter(b => b.status === "success")
   const failed  = BACKUPS.filter(b => b.status === "failed")
   const totalStorage = success.reduce((s, b) => s + b.size_mb, 0)
