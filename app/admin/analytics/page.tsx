@@ -107,6 +107,31 @@ export default function AdminAnalyticsPage() {
   const maxOrders = Math.max(1, ...weeklyData.map(d => d.orders))
   const currentMonth = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
 
+  const exportCsv = () => {
+    if (topCities.length === 0 && topCategories.length === 0) {
+      toast.info("Aucune donnée à exporter")
+      return
+    }
+    const rows: (string | number)[][] = []
+    rows.push(["Top villes"])
+    rows.push(["Ville", "Commandes", "Pourcentage"])
+    topCities.forEach((c) => rows.push([c.name, c.orders, `${c.percentage}%`]))
+    rows.push([])
+    rows.push(["Performance par catégorie"])
+    rows.push(["Catégorie", "Commandes", "Revenus (CFA)", "Croissance"])
+    topCategories.forEach((cat) => rows.push([cat.name, cat.orders, Math.round(cat.revenue), signedPct(cat.growth)]))
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `analytics-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success("Rapport exporté")
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex">
@@ -141,7 +166,7 @@ export default function AdminAnalyticsPage() {
               <Calendar className="h-4 w-4 text-[#6b6b8a]" />
               <span className="text-sm text-white">{data?.period_days ?? 30} derniers jours</span>
             </div>
-            <Button variant="outline" className="gap-2 border-[#1e1e2e] bg-[#16161f] text-white hover:bg-[#1e1e2e]">
+            <Button onClick={exportCsv} variant="outline" className="gap-2 border-[#1e1e2e] bg-[#16161f] text-white hover:bg-[#1e1e2e]">
               <Download className="h-4 w-4" />
               Rapport
             </Button>

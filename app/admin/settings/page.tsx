@@ -12,6 +12,7 @@ import {
   Key, Save, AlertCircle, CheckCircle, Loader2, MessageCircle, Truck,
 } from "lucide-react"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 const settingsSections = [
   { id: "general",       label: "Général",       icon: Settings  },
@@ -435,7 +436,11 @@ export default function AdminSettingsPage() {
                           disabled
                           className="bg-[#0a0a0f]/50 border-[#1e1e2e] text-[#6b6b8a] font-mono text-sm"
                         />
-                        <Button variant="outline" className="border-[#1e1e2e] bg-[#16161f] text-white hover:bg-[#1e1e2e]">
+                        <Button
+                          variant="outline"
+                          onClick={() => toast.info("Régénération de clé API — bientôt disponible")}
+                          className="border-[#1e1e2e] bg-[#16161f] text-white hover:bg-[#1e1e2e]"
+                        >
                           Regénérer
                         </Button>
                       </div>

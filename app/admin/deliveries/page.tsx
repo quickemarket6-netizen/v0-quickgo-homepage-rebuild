@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 import {
   ArrowLeft, RefreshCw, Download, Search, Truck, Package,
   CheckCircle, XCircle, Clock, MapPin, Star, Navigation,
@@ -298,6 +299,34 @@ export default function LivraisonsPage() {
     { name:"Annulées",   value: kpi?.cancelled ?? 0,                                                                color:"#ef4444" },
   ].filter(d => d.value > 0)
 
+  const exportCsv = () => {
+    if (filtered.length === 0) { toast.info("Aucune donnée à exporter"); return }
+    const header = [
+      "ID", "Commande", "Client", "Livreur", "Note livreur", "Ville",
+      "Départ", "Destination", "Statut", "Distance (km)", "Montant (FCFA)",
+      "Assignée", "Estimée", "Livrée",
+    ]
+    const rows = filtered.map((d) => [
+      d.id, d.order_id, d.customer_name, d.driver_name, String(d.driver_rating),
+      d.city, d.pickup, d.destination,
+      STATUS_CFG[d.status]?.label ?? d.status,
+      String(d.distance_km), String(d.amount),
+      new Date(d.assigned_at).toLocaleString("fr-FR"),
+      new Date(d.estimated_at).toLocaleString("fr-FR"),
+      d.delivered_at ? new Date(d.delivered_at).toLocaleString("fr-FR") : "",
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `livraisons-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success(`${filtered.length} livraison(s) exportée(s)`)
+  }
+
   // ── loading skeleton ──────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -346,11 +375,8 @@ export default function LivraisonsPage() {
             <div className="flex items-center gap-2.5">
               <h1 className="text-white font-bold text-base leading-none">Livraisons</h1>
               <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/20">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
-                </span>
-                <span className="text-green-400 text-[10px] font-semibold">Temps réel</span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+                <span className="text-green-400 text-[10px] font-semibold">Données démo</span>
               </span>
             </div>
             <p className="text-[#4a4a6a] text-[11px] mt-0.5 leading-none">
@@ -381,7 +407,7 @@ export default function LivraisonsPage() {
             Actualiser
           </button>
 
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-medium transition-all shrink-0">
+          <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-medium transition-all shrink-0">
             <Download className="w-3.5 h-3.5" />
             Exporter CSV
           </button>

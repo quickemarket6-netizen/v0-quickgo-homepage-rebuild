@@ -461,6 +461,57 @@ export default function AdminFinancesPage() {
       )
     : []
 
+  function exportCsv() {
+    const download = (header: string[], rows: (string | number)[][], name: string) => {
+      const csv = [header, ...rows]
+        .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+        .join("\n")
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+      const a = document.createElement("a")
+      a.href = URL.createObjectURL(blob)
+      a.download = `${name}-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    }
+
+    if (activeTab === "payouts") {
+      if (payoutsToShow.length === 0) { toast.info("Aucune donnée à exporter"); return }
+      download(
+        ["ID", "Vendeur", "Montant", "Méthode", "Téléphone", "Statut", "Demandé le"],
+        payoutsToShow.map((p) => [
+          p.id, p.vendors?.name ?? "—", Math.round(p.amount),
+          p.payout_method, p.payout_phone, p.status, formatDate(p.created_at),
+        ]),
+        "retraits",
+      )
+      toast.success(`${payoutsToShow.length} retrait${payoutsToShow.length > 1 ? "s" : ""} exporté${payoutsToShow.length > 1 ? "s" : ""}`)
+    } else if (activeTab === "wallets") {
+      if (filteredWallets.length === 0) { toast.info("Aucune donnée à exporter"); return }
+      download(
+        ["Vendeur", "En attente", "Disponible", "Retiré", "Total gagné", "Ventes", "Gelé"],
+        filteredWallets.map((w) => [
+          w.vendors?.name ?? "—", Math.round(w.pending_balance), Math.round(w.available_balance),
+          Math.round(w.withdrawn_balance), Math.round(w.total_earned), w.total_sales,
+          w.frozen ? "Oui" : "Non",
+        ]),
+        "portefeuilles",
+      )
+      toast.success(`${filteredWallets.length} portefeuille${filteredWallets.length > 1 ? "s" : ""} exporté${filteredWallets.length > 1 ? "s" : ""}`)
+    } else {
+      const txns = (data?.recent_transactions as Array<Record<string, unknown>>) ?? []
+      if (txns.length === 0) { toast.info("Aucune donnée à exporter"); return }
+      download(
+        ["ID transaction", "Montant", "Statut", "Date"],
+        txns.map((t) => [
+          String(t.transaction_id ?? "—"), Math.round(Number(t.amount ?? 0)),
+          String(t.status ?? ""), formatDate(String(t.created_at)),
+        ]),
+        "transactions",
+      )
+      toast.success(`${txns.length} transaction${txns.length > 1 ? "s" : ""} exportée${txns.length > 1 ? "s" : ""}`)
+    }
+  }
+
   function openApprove(p: PendingPayout) { setSelectedPayout(p); setPayoutAction("approve") }
   function openReject(p: PendingPayout) { setSelectedPayout(p); setPayoutAction("reject") }
   function closeModal() { setSelectedPayout(null); setPayoutAction(null) }
@@ -524,7 +575,7 @@ export default function AdminFinancesPage() {
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               Actualiser
             </Button>
-            <Button size="sm" className="gap-2 bg-gradient-to-r from-quickgo-blue to-quickgo-cyan text-white border-0">
+            <Button size="sm" onClick={exportCsv} className="gap-2 bg-gradient-to-r from-quickgo-blue to-quickgo-cyan text-white border-0">
               <Download size={14} />
               Exporter
             </Button>

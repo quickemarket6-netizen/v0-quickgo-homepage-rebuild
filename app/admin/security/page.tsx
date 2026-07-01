@@ -9,6 +9,7 @@ import {
   Users, Server, Cpu, HardDrive, Wifi, ShieldAlert,
   ShieldCheck, ShieldX, MapPin, Fingerprint, Bug
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -83,6 +84,32 @@ export default function SecurityDashboardPage() {
     return true
   })
 
+  const exportCsv = () => {
+    if (filteredThreats.length === 0) { toast.info("Aucune donnée à exporter"); return }
+    const header = ["ID", "Type", "Niveau", "IP", "Pays", "Ville", "Endpoint", "Bloque", "Horodatage"]
+    const rows = filteredThreats.map((t) => [
+      t.id,
+      THREAT_TYPE_LABELS[t.type] ?? t.type,
+      t.level,
+      t.ip,
+      t.country,
+      t.city,
+      t.endpoint,
+      t.blocked ? "Oui" : "Non",
+      t.timestamp.toLocaleString("fr-FR"),
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `securite-menaces-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success(`${filteredThreats.length} menace(s) exportée(s)`)
+  }
+
   const unblockIP = async (ip: string) => {
     setActioning(true)
     try {
@@ -154,7 +181,7 @@ export default function SecurityDashboardPage() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Actualiser
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={exportCsv}>
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>

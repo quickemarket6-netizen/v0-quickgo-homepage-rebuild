@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { createClient } from "@/lib/supabase/client"
 import {
   LayoutDashboard, DollarSign, Store, Truck, Package,
   Navigation, Wallet, CreditCard, FileText, Activity,
@@ -93,19 +94,35 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
   )
 }
 
-function ProfileFooter() {
+interface AdminProfile { name: string; roleLabel: string; initials: string }
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super Administrateur",
+  admin: "Administrateur",
+}
+
+function initialsFrom(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return "?"
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase()
+}
+
+function ProfileFooter({ profile }: { profile: AdminProfile | null }) {
+  const name = profile?.name ?? "Administrateur"
+  const roleLabel = profile?.roleLabel ?? "Compte admin"
+  const initials = profile?.initials ?? "AD"
   return (
     <div className="p-3 border-t border-[#1e1e2e]">
       <div className="flex items-center gap-2.5 px-2 py-2">
         <div className="relative shrink-0">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <span className="text-white font-bold text-xs">EA</span>
+            <span className="text-white font-bold text-xs">{initials}</span>
           </div>
           <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#0d0d14]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white text-[13px] font-semibold truncate leading-none">Emmanuel Admin</p>
-          <p className="text-[10px] text-[#6b6b8a] mt-0.5 leading-none">Super Administrateur</p>
+          <p className="text-white text-[13px] font-semibold truncate leading-none">{name}</p>
+          <p className="text-[10px] text-[#6b6b8a] mt-0.5 leading-none truncate">{roleLabel}</p>
           <p className="text-[10px] text-green-400 mt-0.5 leading-none font-medium">● En ligne</p>
         </div>
       </div>
@@ -116,6 +133,33 @@ function ProfileFooter() {
 export function AdminSidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [profile, setProfile] = useState<AdminProfile | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", user.id)
+          .single()
+        if (cancelled) return
+        const name = data?.full_name || user.email?.split("@")[0] || "Administrateur"
+        setProfile({
+          name,
+          roleLabel: ROLE_LABELS[data?.role ?? ""] ?? "Compte admin",
+          initials: initialsFrom(name),
+        })
+      } catch {
+        /* keep the neutral fallback */
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <>
@@ -125,7 +169,7 @@ export function AdminSidebar() {
           <Logo />
         </div>
         <NavList pathname={pathname} />
-        <ProfileFooter />
+        <ProfileFooter profile={profile} />
       </aside>
 
       {/* ── Mobile trigger (hidden on desktop) ──────────────────────── */}
@@ -168,7 +212,7 @@ export function AdminSidebar() {
                 </button>
               </div>
               <NavList pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-              <ProfileFooter />
+              <ProfileFooter profile={profile} />
             </motion.aside>
           </div>
         )}

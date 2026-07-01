@@ -68,12 +68,12 @@ export async function GET() {
     supabase.from("commission_logs").select("quickgo_commission, vendor_net_amount")
       .gte("created_at", prevMonthStart).lt("created_at", monthStart),
     // 11. Pending payouts count
-    supabase.from("payouts").select("id, amount").eq("status", "pending"),
+    supabase.from("vendor_payouts").select("id, amount").eq("status", "pending"),
     // 12. Failed payments
     supabase.from("payment_transactions").select("id, amount").eq("status", "failed").gte("created_at", monthStart),
     // 13. Pending payouts list (top 5)
-    supabase.from("payouts")
-      .select("id, amount, payment_method, vendor_id, vendors(name, logo_url)")
+    supabase.from("vendor_payouts")
+      .select("id, amount, payout_method, vendor_id, vendors(name, logo_url)")
       .eq("status", "pending").order("amount", { ascending: false }).limit(5),
     // 14. Recent orders (for activities)
     supabase.from("orders").select("id, order_number, status, total_amount, created_at")
@@ -190,7 +190,7 @@ export async function GET() {
   }))
 
   // ── Pending payouts list ──────────────────────────────────────────────────
-  type PayoutRow = { id: string; amount: number | null; payment_method: string | null; vendors: { name: string; logo_url: string | null } | null }
+  type PayoutRow = { id: string; amount: number | null; payout_method: string | null; vendors: { name: string; logo_url: string | null } | null }
   const pendingPayoutsList = (pendingPayoutsListRes.data ?? []).map(p => {
     const r = p as unknown as PayoutRow
     return {
@@ -198,7 +198,7 @@ export async function GET() {
       vendor_name: r.vendors?.name     ?? "Vendeur",
       vendor_logo: r.vendors?.logo_url ?? null,
       amount:      Number(r.amount ?? 0),
-      method:      r.payment_method ?? "Orange Money",
+      method:      r.payout_method ?? "Orange Money",
     }
   })
 

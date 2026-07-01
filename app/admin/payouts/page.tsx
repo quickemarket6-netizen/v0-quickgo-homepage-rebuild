@@ -266,6 +266,29 @@ export default function PayoutsPage() {
   const typeBreakdown = data?.type_breakdown ?? []
   const volumeTrend = data?.volume_trend ?? []
 
+  const exportCsv = () => {
+    if (filtered.length === 0) { toast.info("Aucune donnée à exporter"); return }
+    const header = ["ID", "Bénéficiaire", "Type", "Montant", "Méthode", "Statut", "Demandé le", "Traité le", "Note"]
+    const rows = filtered.map(p => [
+      p.id, p.owner_name, p.owner_type === "vendor" ? "Vendeur" : "Livreur",
+      String(Math.round(p.amount)), p.method,
+      STATUS_CFG[p.status]?.label ?? p.status,
+      new Date(p.requested_at).toLocaleString("fr-FR"),
+      p.processed_at ? new Date(p.processed_at).toLocaleString("fr-FR") : "",
+      p.note ?? "",
+    ])
+    const csv = [header, ...rows]
+      .map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `payouts-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success(`${filtered.length} payout${filtered.length > 1 ? "s" : ""} exporté${filtered.length > 1 ? "s" : ""}`)
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4">
       <motion.div animate={{ rotate:360 }} transition={{ duration:1, repeat:Infinity, ease:"linear" }}>
@@ -343,7 +366,7 @@ export default function PayoutsPage() {
             </motion.span>
             Actualiser
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#6b6b8a] hover:text-white text-xs font-medium transition-all shrink-0">
+          <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#6b6b8a] hover:text-white text-xs font-medium transition-all shrink-0">
             <Download className="w-3.5 h-3.5" />
             Exporter
           </button>

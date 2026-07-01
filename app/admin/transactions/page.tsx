@@ -14,6 +14,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface TransactionItem {
@@ -206,6 +207,27 @@ export default function TransactionsPage() {
 
   const methodOptions = ["all", ...Array.from(new Set(allTx.map(t => t.method)))]
 
+  const exportCsv = () => {
+    if (filtered.length === 0) { toast.info("Aucune donnée à exporter"); return }
+    const header = ["ID", "Commande", "Client", "Montant", "Méthode", "Statut", "Frais", "Commission", "Date"]
+    const rows = filtered.map(t => [
+      t.id, t.order_id, t.customer_name, String(Math.round(t.amount)), t.method,
+      STATUS_CFG[t.status]?.label ?? t.status,
+      String(Math.round(t.fee)), String(Math.round(t.commission)),
+      new Date(t.timestamp).toLocaleString("fr-FR"),
+    ])
+    const csv = [header, ...rows]
+      .map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `transactions-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success(`${filtered.length} transaction${filtered.length > 1 ? "s" : ""} exportée${filtered.length > 1 ? "s" : ""}`)
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4">
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
@@ -278,7 +300,7 @@ export default function TransactionsPage() {
             </motion.span>
             Actualiser
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#6b6b8a] hover:text-white text-xs font-medium transition-all shrink-0">
+          <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#6b6b8a] hover:text-white text-xs font-medium transition-all shrink-0">
             <Download className="w-3.5 h-3.5" />
             Exporter
           </button>

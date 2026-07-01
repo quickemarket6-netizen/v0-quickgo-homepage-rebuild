@@ -14,6 +14,7 @@ import {
   BarChart, Bar, Cell,
 } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface ApiKey { id: string; name: string; service: string; status: string; created_at: string; last_used: string; requests_today: number; requests_month: number }
@@ -151,8 +152,10 @@ export default function ApiPage() {
     }
   }
 
-  function copyKey(id: string) {
+  function copyKey(id: string, value: string) {
+    navigator.clipboard?.writeText(value)
     setCopiedKey(id)
+    toast.success("Clé copiée")
     setTimeout(() => setCopiedKey(null), 2000)
   }
 
@@ -290,6 +293,7 @@ export default function ApiPage() {
                         const isRevealed = revealedKey === key.id
                         const isCopied   = copiedKey === key.id
                         const svcColor   = SERVICE_COLORS[key.service] ?? "#6b6b8a"
+                        const keyValue   = isRevealed ? `qg_${key.id.toLowerCase()}_prod_••••••••••••••••` : maskKey(key.id)
                         return (
                           <motion.div key={key.id}
                             initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
@@ -312,14 +316,14 @@ export default function ApiPage() {
                                 </div>
                                 <div className="flex items-center gap-2 mt-1">
                                   <code className={`text-[11px] font-mono ${isRevealed ? "text-green-400" : "text-[#4a4a6a]"} flex-1 truncate`}>
-                                    {isRevealed ? `qg_${key.id.toLowerCase()}_prod_••••••••••••••••` : maskKey(key.id)}
+                                    {keyValue}
                                   </code>
                                   <button onClick={() => setRevealedKey(isRevealed ? null : key.id)}
                                     className="p-1 rounded-lg hover:bg-[#1e1e2e] text-[#6b6b8a] hover:text-white transition-colors">
                                     {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                   </button>
                                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                                    onClick={() => copyKey(key.id)}
+                                    onClick={() => copyKey(key.id, keyValue)}
                                     className="p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
                                     {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-[#6b6b8a]" />}
                                   </motion.button>

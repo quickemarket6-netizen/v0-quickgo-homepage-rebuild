@@ -14,6 +14,7 @@ import {
   BarChart, Bar, Cell,
 } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface Backup { id: string; type: string; status: string; size_mb: number; duration_s: number; created_at: string; storage: string; compressed: boolean; encrypted: boolean }
@@ -411,11 +412,13 @@ export default function BackupsPage() {
               <p className="text-[12px] text-[#6b6b8a] mb-4">Dernier backup complet: <span className="text-white font-medium">{data!.backups.find(b => b.type === "full" && b.status === "success") ? fmtRelative(data!.backups.find(b => b.type === "full" && b.status === "success")!.created_at) : "—"}</span></p>
               <div className="space-y-2">
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => toast.info("Restauration de backup — bientôt disponible")}
                   className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-amber-600/20 border border-amber-500/30 text-amber-400 text-[13px] font-medium hover:bg-amber-600/30 transition-colors">
                   <RotateCcw className="w-4 h-4" />
                   Restaurer dernier backup
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => toast.info("Téléchargement de backup — bientôt disponible")}
                   className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-[#6b6b8a] text-[13px] font-medium hover:text-white transition-colors">
                   <Download className="w-4 h-4" />
                   Télécharger backup

@@ -9,6 +9,7 @@ import {
   Terminal, Wifi, Database,
 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
@@ -169,6 +170,30 @@ export default function LogsPage() {
 
   const filterKey = `${levelFilter}-${serviceFilter}-${search}`
 
+  const exportCsv = () => {
+    if (filtered.length === 0) { toast.info("Aucune donnée à exporter"); return }
+    const header = ["Horodatage", "Niveau", "Service", "Message", "IP", "Utilisateur", "Durée (ms)"]
+    const rows = filtered.map((l) => [
+      new Date(l.ts).toLocaleString("fr-FR"),
+      l.level,
+      l.service,
+      l.message,
+      l.ip,
+      l.user,
+      String(l.duration_ms),
+    ])
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `logs-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success(`${filtered.length} log(s) exporté(s)`)
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
       <AdminSidebar />
@@ -206,6 +231,7 @@ export default function LogsPage() {
               Actualiser
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={exportCsv}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[12px] font-medium transition-colors">
               <Download className="w-3.5 h-3.5" />
               Exporter

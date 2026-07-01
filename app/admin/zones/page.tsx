@@ -14,6 +14,7 @@ import {
   AreaChart, Area, Cell,
 } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 // ─── types ───────────────────────────────────────────────────────────────────
 interface Zone { id: string; name: string; status: string; drivers: number; orders_today: number }
@@ -252,6 +253,7 @@ export default function ZonesPage() {
               Actualiser
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={() => toast.info("Ajout de ville — bientôt disponible")}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-[12px] font-medium transition-colors">
               <Plus className="w-3.5 h-3.5" />
               Ajouter ville

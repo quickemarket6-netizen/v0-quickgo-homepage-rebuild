@@ -9,6 +9,7 @@ import {
   TrendingUp, KeyRound,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────
@@ -70,6 +71,7 @@ function KpiCard({ label, value, sub, subUp, icon: Icon, iconColor, delay, suffi
 
 // ─── main page ───────────────────────────────────────────────────────────────
 export default function PermissionsPage() {
+  const router = useRouter()
   const [data, setData] = useState<PageData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -167,6 +169,7 @@ export default function PermissionsPage() {
               Actualiser
             </motion.button>
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={() => router.push("/admin/roles")}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[12px] font-medium transition-colors">
               <Plus className="w-3.5 h-3.5" />
               Nouveau rôle
@@ -176,6 +179,19 @@ export default function PermissionsPage() {
       </div>
 
       <div className="p-6 space-y-6">
+        {/* info banner — real role management lives at /admin/roles */}
+        <div className="flex items-center gap-3 rounded-xl border border-purple-500/25 bg-purple-500/10 px-4 py-3">
+          <Shield className="w-4 h-4 text-purple-400 shrink-0" />
+          <p className="text-[12px] text-[#aaaacc] flex-1">
+            La création et l'édition des rôles s'effectuent dans la gestion des rôles.
+          </p>
+          <Link href="/admin/roles"
+            className="shrink-0 inline-flex items-center gap-1 text-[12px] font-medium text-purple-400 hover:text-purple-300 transition-colors">
+            Gérer les rôles
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
         {/* KPIs */}
         <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
           <KpiCard label="Utilisateurs"     value={kpi.total_users}    sub="Comptes admin"         icon={Users}       iconColor="#3b82f6" delay={0}    />

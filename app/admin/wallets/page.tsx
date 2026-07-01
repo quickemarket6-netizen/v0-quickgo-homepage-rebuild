@@ -15,6 +15,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface WalletItem {
@@ -196,6 +197,28 @@ export default function WalletsPage() {
   const volumeTrend = data?.volume_trend ?? []
   const recentTxns = data?.recent_transactions ?? []
 
+  const exportCsv = () => {
+    if (filtered.length === 0) { toast.info("Aucune donnée à exporter"); return }
+    const header = ["ID", "Propriétaire", "Type", "Balance", "En attente retrait", "Total gagné", "Total retiré", "Statut", "Transactions", "Dernière transaction"]
+    const rows = filtered.map(w => [
+      w.id, w.owner_name, TYPE_CFG[w.owner_type]?.label ?? w.owner_type,
+      String(Math.round(w.balance)), String(Math.round(w.pending_withdrawal)),
+      String(Math.round(w.total_earned)), String(Math.round(w.total_withdrawn)),
+      STATUS_CFG[w.status]?.label ?? w.status, String(w.transactions_count),
+      new Date(w.last_transaction).toLocaleString("fr-FR"),
+    ])
+    const csv = [header, ...rows]
+      .map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";"))
+      .join("\n")
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" })
+    const a = document.createElement("a")
+    a.href = URL.createObjectURL(blob)
+    a.download = `wallets-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+    toast.success(`${filtered.length} wallet${filtered.length > 1 ? "s" : ""} exporté${filtered.length > 1 ? "s" : ""}`)
+  }
+
   if (loading) return (
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4">
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
@@ -281,7 +304,7 @@ export default function WalletsPage() {
             </motion.span>
             Actualiser
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#6b6b8a] hover:text-white text-xs font-medium transition-all shrink-0">
+          <button onClick={exportCsv} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#6b6b8a] hover:text-white text-xs font-medium transition-all shrink-0">
             <Download className="w-3.5 h-3.5" />
             Exporter
           </button>
