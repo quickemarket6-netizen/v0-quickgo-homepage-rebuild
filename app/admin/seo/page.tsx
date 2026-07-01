@@ -167,7 +167,7 @@ export default function SeoPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -204,7 +204,7 @@ export default function SeoPage() {
         </div>
 
         {/* main grid */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* keywords / pages table – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -259,7 +259,7 @@ export default function SeoPage() {
                           return (
                             <motion.tr key={kw.id}
                               initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3, delay: i * 0.04 }}
+                              transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.4) }}
                               className="border-b border-[#1e1e2e] last:border-0 hover:bg-[#1e1e2e]/40 transition-colors"
                             >
                               <td className="px-4 py-3">
@@ -303,7 +303,7 @@ export default function SeoPage() {
                       {data!.pages.map((page, i) => (
                         <motion.div key={page.url}
                           initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.05 }}
+                          transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
                           className="px-4 py-3 hover:bg-[#1e1e2e]/40 transition-colors"
                         >
                           <div className="flex items-start justify-between gap-3">

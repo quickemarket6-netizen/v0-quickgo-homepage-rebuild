@@ -187,7 +187,7 @@ export default function BackupsPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -232,7 +232,7 @@ export default function BackupsPage() {
         </div>
 
         {/* main grid */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* backups list – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -275,7 +275,7 @@ export default function BackupsPage() {
                         return (
                           <motion.tr key={backup.id}
                             initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.25, delay: i * 0.04 }}
+                            transition={{ duration: 0.25, delay: Math.min(i * 0.04, 0.4) }}
                             className="border-b border-[#1e1e2e] last:border-0 hover:bg-[#1e1e2e]/40 transition-colors"
                           >
                             <td className="px-4 py-3">
@@ -344,6 +344,7 @@ export default function BackupsPage() {
                         <tCfg.Icon className={`w-3.5 h-3.5 ${tCfg.color}`} />
                         <span className="text-[12px] font-medium text-white flex-1">{sched.name}</span>
                         <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                          aria-label={enabled ? "Désactiver la planification" : "Activer la planification"}
                           onClick={() => setToggledSchedules(prev => {
                             const next = new Set(prev)
                             next.has(sched.id) ? next.delete(sched.id) : next.add(sched.id)

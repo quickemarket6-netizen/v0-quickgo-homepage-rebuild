@@ -91,7 +91,7 @@ function CategoryFormModal({
           <h2 className="text-lg font-bold text-white">
             {isNew ? "Nouvelle catégorie" : "Modifier la catégorie"}
           </h2>
-          <button onClick={onClose} className="text-[#6b6b8a] hover:text-white p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
+          <button onClick={onClose} aria-label="Fermer" className="text-[#6b6b8a] hover:text-white p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -335,7 +335,7 @@ export default function AdminCategoriesPage() {
                     key={cat.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03 }}
+                    transition={{ delay: Math.min(i * 0.03, 0.4) }}
                     className={`flex items-center gap-4 px-6 py-4 hover:bg-[#1e1e2e]/40 transition-colors ${!cat.is_active ? "opacity-50" : ""}`}
                   >
                     {/* Order */}
@@ -367,6 +367,7 @@ export default function AdminCategoriesPage() {
                       <button
                         onClick={() => toggleActive(cat)}
                         title={cat.is_active ? "Désactiver" : "Activer"}
+                        aria-label={cat.is_active ? "Désactiver" : "Activer"}
                         className={`p-2 rounded-lg transition-colors ${
                           cat.is_active
                             ? "text-green-400 hover:bg-green-500/10"
@@ -377,6 +378,7 @@ export default function AdminCategoriesPage() {
                       </button>
                       <button
                         onClick={() => openEdit(cat)}
+                        aria-label="Modifier"
                         className="p-2 rounded-lg text-[#a3e635] hover:bg-[#a3e635]/10 transition-colors"
                       >
                         <Edit2 size={16} />
@@ -384,6 +386,7 @@ export default function AdminCategoriesPage() {
                       <button
                         onClick={() => deleteCategory(cat.id)}
                         disabled={deleting === cat.id}
+                        aria-label="Supprimer"
                         className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
                       >
                         {deleting === cat.id

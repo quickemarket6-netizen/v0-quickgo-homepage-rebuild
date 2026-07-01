@@ -229,7 +229,7 @@ export default function ZonesPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -274,7 +274,7 @@ export default function ZonesPage() {
         </div>
 
         {/* main grid */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* city list – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -310,7 +310,7 @@ export default function ZonesPage() {
                       <div key={city.id} className="border-b border-[#1e1e2e] last:border-0">
                         <motion.div
                           initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.05 }}
+                          transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
                           className={`px-4 py-4 hover:bg-[#1e1e2e]/50 cursor-pointer transition-colors ${isSelected ? "bg-green-500/5 border-l-2 border-green-500" : ""}`}
                           onClick={() => {
                             setSelectedCity(isSelected ? null : city.id)
@@ -377,7 +377,7 @@ export default function ZonesPage() {
                                 {city.zones.map((zone, zi) => (
                                   <motion.div key={zone.id}
                                     initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.2, delay: zi * 0.05 }}
+                                    transition={{ duration: 0.2, delay: Math.min(zi * 0.05, 0.4) }}
                                     className="flex items-center justify-between p-2.5 bg-[#0a0a0f] rounded-xl"
                                   >
                                     <div className="flex items-center gap-2">

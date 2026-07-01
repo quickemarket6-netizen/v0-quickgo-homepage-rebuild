@@ -219,7 +219,7 @@ export default function NotificationsPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -278,7 +278,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* main grid */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* notification list – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -332,7 +332,7 @@ export default function NotificationsPage() {
                     return (
                       <motion.div key={notif.id}
                         initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.4), ease: [0.22, 1, 0.36, 1] }}
                         className={`flex items-start gap-3 px-4 py-3 border-b border-[#1e1e2e] last:border-0 transition-colors hover:bg-[#1e1e2e]/40 ${!isRead ? "bg-blue-500/5" : ""}`}
                       >
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${typeCfg.bg} border ${typeCfg.border}`}>
@@ -355,6 +355,7 @@ export default function NotificationsPage() {
                         {!isRead && (
                           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                             onClick={() => markRead(notif.id)}
+                            aria-label="Marquer comme lu"
                             className="shrink-0 p-1.5 rounded-lg hover:bg-green-500/20 text-[#6b6b8a] hover:text-green-400 transition-colors mt-0.5">
                             <CheckCircle2 className="w-4 h-4" />
                           </motion.button>

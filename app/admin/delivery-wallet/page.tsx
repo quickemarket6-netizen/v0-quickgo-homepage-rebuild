@@ -116,7 +116,7 @@ function PayDriverModal({
             <CheckCircle2 className="text-green-400" size={24} />
             <h2 className="text-lg font-bold text-white">Rémunérer le chauffeur</h2>
           </div>
-          <button onClick={onClose} className="text-[#6b6b8a] hover:text-white p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
+          <button onClick={onClose} aria-label="Fermer" className="text-[#6b6b8a] hover:text-white p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -277,7 +277,7 @@ export default function AdminDeliveryWalletPage() {
 
         <main className="flex-1 p-8 space-y-6">
           {/* Wallet balance cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: "Total collecté",         value: wallet?.total_collected       ?? 0, icon: TrendingUp,  gradient: "from-green-500 to-emerald-600", sub: "Frais de livraison reçus"  },
               { label: "Versé aux chauffeurs",   value: wallet?.total_paid_to_drivers ?? 0, icon: TrendingDown, gradient: "from-blue-500 to-cyan-600",    sub: "Total rémunérations"       },
@@ -289,7 +289,7 @@ export default function AdminDeliveryWalletPage() {
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
+                transition={{ delay: Math.min(i * 0.05, 0.4) }}
                 className={`bg-[#16161f] rounded-2xl p-5 border ${(c as { highlight?: boolean }).highlight ? "border-blue-500/30" : "border-[#1e1e2e]"} relative overflow-hidden`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -381,7 +381,7 @@ export default function AdminDeliveryWalletPage() {
                     key={delivery.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.02 }}
+                    transition={{ delay: Math.min(i * 0.02, 0.4) }}
                     className="flex items-center gap-4 px-6 py-4 hover:bg-[#1e1e2e]/40 transition-colors"
                   >
                     {/* Driver avatar */}

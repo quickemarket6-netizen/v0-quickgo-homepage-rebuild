@@ -217,7 +217,7 @@ export default function CmsPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -262,7 +262,7 @@ export default function CmsPage() {
         </div>
 
         {/* main grid */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* pages / blocks list – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -329,7 +329,7 @@ export default function CmsPage() {
                             return (
                               <motion.tr key={page.id}
                                 initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: i * 0.04 }}
+                                transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.4) }}
                                 className="border-b border-[#1e1e2e] last:border-0 hover:bg-[#1e1e2e]/40 transition-colors"
                               >
                                 <td className="px-4 py-3">
@@ -368,7 +368,7 @@ export default function CmsPage() {
                         return (
                           <motion.div key={block.id}
                             initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.06 }}
+                            transition={{ duration: 0.3, delay: Math.min(i * 0.06, 0.4) }}
                             className="flex items-center gap-3 px-4 py-3 hover:bg-[#1e1e2e]/40 transition-colors"
                           >
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${enabled ? "bg-blue-500/15" : "bg-[#1e1e2e]"}`}>
@@ -387,6 +387,7 @@ export default function CmsPage() {
                                 next.has(block.id) ? next.delete(block.id) : next.add(block.id)
                                 return next
                               })}
+                              aria-label={enabled ? "Désactiver le bloc" : "Activer le bloc"}
                               className="shrink-0">
                               {enabled
                                 ? <ToggleRight className="w-6 h-6 text-green-400" />

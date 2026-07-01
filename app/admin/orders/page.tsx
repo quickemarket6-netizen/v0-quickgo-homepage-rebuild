@@ -287,6 +287,7 @@ export default function AdminOrdersPage() {
                           variant="outline"
                           className="h-8 w-8 rounded-full border-red-500/30 text-red-400 hover:bg-red-500/10 shrink-0"
                           title="Annuler"
+                          aria-label="Annuler"
                           onClick={() => patchOrder(order.id, "cancelled")}
                         >
                           <XCircle className="h-4 w-4" />

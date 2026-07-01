@@ -293,7 +293,7 @@ export default function SecurityDashboardPage() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: 20 }}
-                          transition={{ delay: index * 0.05 }}
+                          transition={{ delay: Math.min(index * 0.05, 0.4) }}
                           onClick={() => setSelectedThreat(threat)}
                           className={`p-4 rounded-xl border cursor-pointer transition-all hover:shadow-md ${
                             THREAT_LEVEL_CONFIG[threat.level].bg
@@ -451,9 +451,10 @@ export default function SecurityDashboardPage() {
                         className="flex items-center justify-between p-2 rounded-lg bg-red-500/10"
                       >
                         <span className="font-mono text-sm">{ip}</span>
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           variant="ghost"
+                          aria-label="Débloquer l'IP"
                           onClick={() => unblockIP(ip)}
                         >
                           <Unlock className="w-4 h-4" />

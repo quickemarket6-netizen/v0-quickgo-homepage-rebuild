@@ -145,7 +145,7 @@ export default function PermissionsPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -203,7 +203,7 @@ export default function PermissionsPage() {
         </div>
 
         {/* main content */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* left panel – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -239,7 +239,7 @@ export default function PermissionsPage() {
                       {roles.map((role, i) => (
                         <motion.div key={role.id}
                           initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.06 }}
+                          transition={{ duration: 0.3, delay: Math.min(i * 0.06, 0.4) }}
                           className={`px-4 py-4 cursor-pointer hover:bg-[#1e1e2e]/50 transition-colors ${selectedRole === role.id ? "bg-purple-500/5 border-l-2 border-purple-500" : ""}`}
                           onClick={() => setSelectedRole(selectedRole === role.id ? null : role.id)}
                         >
@@ -278,7 +278,7 @@ export default function PermissionsPage() {
                         return (
                           <motion.div key={user.id}
                             initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.05 }}
+                            transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
                             className="flex items-center gap-3 px-4 py-3 hover:bg-[#1e1e2e]/40 transition-colors"
                           >
                             <div className="relative shrink-0">
@@ -331,7 +331,7 @@ export default function PermissionsPage() {
                               {data!.permissions.filter(p => p.module === mod).map((perm, pi) => (
                                 <motion.tr key={perm.key}
                                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                  transition={{ duration: 0.2, delay: pi * 0.02 }}
+                                  transition={{ duration: 0.2, delay: Math.min(pi * 0.02, 0.4) }}
                                   className="border-b border-[#1e1e2e]/50 last:border-0 hover:bg-[#1e1e2e]/30 transition-colors"
                                 >
                                   <td className="px-4 py-2.5 sticky left-0 bg-[#16161f]">

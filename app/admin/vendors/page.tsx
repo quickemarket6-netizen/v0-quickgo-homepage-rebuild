@@ -120,7 +120,7 @@ export default function AdminVendorsPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {statsCards.map(({ key, label, icon: Icon, color }, i) => (
               <motion.div key={key}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.05, 0.4) }}
                 className="bg-card/50 rounded-2xl p-5 border border-border/30"
               >
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-3`}>
@@ -240,6 +240,7 @@ export default function AdminVendorsPage() {
                             {vendor.status === "pending" && (
                               <button
                                 title="Approuver"
+                                aria-label="Approuver"
                                 onClick={() => patchVendor(vendor.id, { status: "active", is_verified: true })}
                                 className="p-1.5 hover:bg-green-500/20 rounded-lg transition-colors"
                               >
@@ -249,6 +250,7 @@ export default function AdminVendorsPage() {
                             {vendor.status === "pending" && (
                               <button
                                 title="Rejeter"
+                                aria-label="Rejeter"
                                 onClick={() => patchVendor(vendor.id, { status: "suspended" })}
                                 className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
                               >
@@ -258,6 +260,7 @@ export default function AdminVendorsPage() {
                             {vendor.status === "active" && (
                               <button
                                 title="Suspendre"
+                                aria-label="Suspendre"
                                 onClick={() => patchVendor(vendor.id, { status: "suspended" })}
                                 className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
                               >
@@ -267,13 +270,14 @@ export default function AdminVendorsPage() {
                             {vendor.status === "suspended" && (
                               <button
                                 title="Réactiver"
+                                aria-label="Réactiver"
                                 onClick={() => patchVendor(vendor.id, { status: "active" })}
                                 className="p-1.5 hover:bg-green-500/20 rounded-lg transition-colors"
                               >
                                 <CheckCircle className="w-4 h-4 text-green-400" />
                               </button>
                             )}
-                            <button className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                            <button aria-label="Voir le vendeur" className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
                               <Eye className="w-4 h-4 text-muted-foreground" />
                             </button>
                           </div>

@@ -363,6 +363,7 @@ export default function LivraisonsPage() {
       >
         <div className="flex items-center gap-3 px-6 py-3">
           <Link href="/admin"
+            aria-label="Retour au tableau de bord"
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors shrink-0">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
@@ -502,6 +503,7 @@ export default function LivraisonsPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
                       onClick={() => setSearch("")}
+                      aria-label="Effacer la recherche"
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4a4a6a] hover:text-white transition-colors"
                     >
                       <XCircle className="w-3.5 h-3.5" />
@@ -555,7 +557,7 @@ export default function LivraisonsPage() {
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: 12, transition: { duration: 0.15 } }}
-                        transition={{ duration: 0.22, delay: i * 0.025 }}
+                        transition={{ duration: 0.22, delay: Math.min(i * 0.025, 0.4) }}
                         className={`border-b border-[#1a1a28] last:border-0 transition-colors ${
                           isActive ? "hover:bg-blue-500/[0.04]" : "hover:bg-white/[0.02]"
                         }`}

@@ -184,7 +184,7 @@ export default function CommunicationDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Communication</h1>
-            <p className="text-muted-foreground">Gerez vos notifications et campagnes marketing</p>
+            <p className="text-muted-foreground">Gérez vos notifications et campagnes marketing</p>
           </div>
           <Button className="gap-2 bg-lime-500 hover:bg-lime-600 text-black">
             <Plus className="w-4 h-4" />
@@ -195,7 +195,7 @@ export default function CommunicationDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Messages envoyes', value: stats.totalSent.toLocaleString(), icon: Send, color: 'text-blue-400' },
+            { label: 'Messages envoyés', value: stats.totalSent.toLocaleString(), icon: Send, color: 'text-blue-400' },
             { label: 'Taux d\'ouverture', value: `${stats.openRate}%`, icon: TrendingUp, color: 'text-green-400' },
             { label: 'Taux de clic', value: `${stats.clickRate}%`, icon: BarChart3, color: 'text-purple-400' },
             { label: 'Utilisateurs actifs', value: stats.activeUsers.toLocaleString(), icon: Users, color: 'text-lime-400' },
@@ -204,7 +204,7 @@ export default function CommunicationDashboard() {
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+              transition={{ delay: Math.min(i * 0.1, 0.4) }}
               className="bg-gray-900/50 border border-gray-800 rounded-xl p-4"
             >
               <div className="flex items-center gap-3">
@@ -306,13 +306,13 @@ export default function CommunicationDashboard() {
                 <div>
                   <label className="text-sm text-muted-foreground mb-2 block">Message</label>
                   <textarea 
-                    placeholder="Redigez votre message ici..."
+                    placeholder="Rédigez votre message ici..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={4}
                     className="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-700 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-lime-500/50 resize-none"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">{message.length}/500 caracteres</p>
+                  <p className="text-xs text-muted-foreground mt-1">{message.length}/500 caractères</p>
                 </div>
               </div>
 
@@ -358,7 +358,7 @@ export default function CommunicationDashboard() {
                   onClick={() => setShowPreview(true)}
                   disabled={!title || !message}
                 >
-                  Apercu
+                  Aperçu
                 </Button>
                 <Button variant="ghost">
                   Sauvegarder brouillon
@@ -369,7 +369,7 @@ export default function CommunicationDashboard() {
             {/* Recent Campaigns */}
             <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-foreground">Campagnes recentes</h2>
+                <h2 className="text-lg font-bold text-foreground">Campagnes récentes</h2>
                 <Button variant="ghost" size="sm" className="text-lime-400">
                   Voir tout <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
@@ -404,7 +404,7 @@ export default function CommunicationDashboard() {
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div>
                         <p className="text-lg font-bold text-foreground">{campaign.sent.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Envoyes</p>
+                        <p className="text-xs text-muted-foreground">Envoyés</p>
                       </div>
                       <div>
                         <p className="text-lg font-bold text-green-400">{campaign.opened.toLocaleString()}</p>
@@ -585,7 +585,7 @@ export default function CommunicationDashboard() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-md w-full"
           >
-            <h3 className="text-lg font-bold text-foreground mb-4">Apercu du message</h3>
+            <h3 className="text-lg font-bold text-foreground mb-4">Aperçu du message</h3>
             
             <div className="bg-gray-800 rounded-xl p-4 mb-4">
               <div className="flex items-start gap-3">

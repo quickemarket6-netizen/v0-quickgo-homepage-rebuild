@@ -231,7 +231,7 @@ export default function SupportPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -283,7 +283,7 @@ export default function SupportPage() {
         </div>
 
         {/* main content */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* ticket table – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -344,7 +344,7 @@ export default function SupportPage() {
                       <div key={ticket.id} className="border-b border-[#1e1e2e] last:border-0">
                         <motion.div
                           initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                          transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.4), ease: [0.22, 1, 0.36, 1] }}
                           className="px-4 py-3 hover:bg-[#1e1e2e]/50 cursor-pointer transition-colors"
                           onClick={() => setExpandedRow(isExpanded ? null : ticket.id)}
                         >
@@ -419,6 +419,7 @@ export default function SupportPage() {
                                     className="flex-1 bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl px-3 py-2 text-[12px] text-white placeholder-[#6b6b8a] outline-none focus:border-blue-500/50"
                                   />
                                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                    aria-label="Envoyer la réponse"
                                     className="p-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-colors">
                                     <Send className="w-4 h-4" />
                                   </motion.button>
@@ -429,6 +430,7 @@ export default function SupportPage() {
                                     </motion.button>
                                   ) : null}
                                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                                    aria-label="Plus d'options"
                                     className="p-2 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] text-[#6b6b8a] hover:text-white transition-colors">
                                     <MoreVertical className="w-4 h-4" />
                                   </motion.button>

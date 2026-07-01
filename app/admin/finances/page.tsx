@@ -178,7 +178,7 @@ function PayoutActionModal({
                 {action === "approve" ? "Approuver le paiement" : "Refuser le paiement"}
               </h2>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            <button onClick={onClose} aria-label="Fermer" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
         </div>
 
@@ -304,7 +304,7 @@ function FreezeModal({
                 {isFrozen ? "Réactiver le portefeuille" : "Geler le portefeuille"}
               </h2>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            <button onClick={onClose} aria-label="Fermer" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
           </div>
         </div>
         <div className="p-6 space-y-4">
@@ -627,7 +627,7 @@ export default function AdminFinancesPage() {
           )}
 
           {/* Stat Cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {loading
               ? Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="bg-white rounded-2xl p-5 animate-pulse h-28">
@@ -640,7 +640,7 @@ export default function AdminFinancesPage() {
                     key={i}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
+                    transition={{ delay: Math.min(i * 0.05, 0.4) }}
                     className={`bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden ${card.alert ? "ring-2 ring-red-200" : ""}`}
                   >
                     <div className="flex items-start justify-between mb-3">

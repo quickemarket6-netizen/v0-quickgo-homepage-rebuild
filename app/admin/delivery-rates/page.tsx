@@ -93,7 +93,7 @@ function RateFormModal({
           <h2 className="text-lg font-bold text-white">
             {isNew ? "Nouveau tarif de livraison" : "Modifier le tarif"}
           </h2>
-          <button onClick={onClose} className="text-[#6b6b8a] hover:text-white p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
+          <button onClick={onClose} aria-label="Fermer" className="text-[#6b6b8a] hover:text-white p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -289,7 +289,7 @@ export default function AdminDeliveryRatesPage() {
 
         <main className="flex-1 p-8 space-y-6">
           {/* Summary cards */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: "Tarifs actifs",   value: activeCount,   icon: CheckCircle2, color: "text-green-400",  bg: "bg-green-500/20"  },
               { label: "Tarifs inactifs", value: inactiveCount, icon: EyeOff,       color: "text-[#6b6b8a]", bg: "bg-[#1e1e2e]"     },
@@ -343,7 +343,7 @@ export default function AdminDeliveryRatesPage() {
                     key={rate.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03 }}
+                    transition={{ delay: Math.min(i * 0.03, 0.4) }}
                     className={`flex items-center gap-4 px-6 py-4 hover:bg-[#1e1e2e]/40 transition-colors ${!rate.is_active ? "opacity-50" : ""}`}
                   >
                     {/* Priority badge */}
@@ -381,6 +381,7 @@ export default function AdminDeliveryRatesPage() {
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       <button
                         onClick={() => toggleActive(rate)}
+                        aria-label={rate.is_active ? "Désactiver le tarif" : "Activer le tarif"}
                         title={rate.is_active ? "Désactiver" : "Activer"}
                         className={`p-2 rounded-lg transition-colors ${
                           rate.is_active
@@ -392,6 +393,7 @@ export default function AdminDeliveryRatesPage() {
                       </button>
                       <button
                         onClick={() => openEdit(rate)}
+                        aria-label="Modifier le tarif"
                         className="p-2 rounded-lg text-blue-400 hover:bg-blue-500/10 transition-colors"
                       >
                         <Edit2 size={16} />
@@ -399,6 +401,7 @@ export default function AdminDeliveryRatesPage() {
                       <button
                         onClick={() => deleteRate(rate.id)}
                         disabled={deleting === rate.id}
+                        aria-label="Supprimer le tarif"
                         className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
                       >
                         {deleting === rate.id

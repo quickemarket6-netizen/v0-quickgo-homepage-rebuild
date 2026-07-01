@@ -201,7 +201,7 @@ export default function LogsPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -252,7 +252,7 @@ export default function LogsPage() {
         </div>
 
         {/* main grid */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* logs terminal – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -303,7 +303,7 @@ export default function LogsPage() {
                     return (
                       <motion.div key={log.id}
                         initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.2, delay: i * 0.02 }}
+                        transition={{ duration: 0.2, delay: Math.min(i * 0.02, 0.4) }}
                         className={`flex items-start gap-2 px-2 py-1.5 rounded-lg hover:bg-[#16161f]/80 transition-colors group text-[11px]`}
                       >
                         <span className="text-[#4a4a6a] shrink-0 pt-0.5 w-20">{fmtTime(log.ts)}</span>

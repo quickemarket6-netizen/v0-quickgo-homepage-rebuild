@@ -317,7 +317,7 @@ export default function AdminDriversPage() {
                 {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, total)} sur {total.toLocaleString()} livreurs
               </p>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                <Button variant="outline" size="icon" aria-label="Page précédente" className="h-8 w-8" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 {[...Array(Math.min(3, totalPages))].map((_, i) => {
@@ -329,7 +329,7 @@ export default function AdminDriversPage() {
                 {totalPages > 3 && (
                   <Button variant="ghost" size="sm" className="h-8 min-w-8" onClick={() => setPage(totalPages)}>{totalPages}</Button>
                 )}
-                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                <Button variant="outline" size="icon" aria-label="Page suivante" className="h-8 w-8" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>

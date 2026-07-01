@@ -205,7 +205,7 @@ export default function ApiPage() {
       {/* header */}
       <div className="sticky top-0 z-30 bg-[#0a0a0f]/90 backdrop-blur border-b border-[#1e1e2e] px-6 py-4">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
+          <Link href="/admin" aria-label="Retour au tableau de bord" className="p-2 rounded-xl hover:bg-[#1e1e2e] transition-colors">
             <ArrowLeft className="w-4 h-4 text-[#6b6b8a]" />
           </Link>
           <div className="flex items-center gap-3 flex-1">
@@ -250,7 +250,7 @@ export default function ApiPage() {
         </div>
 
         {/* main grid */}
-        <div className="grid grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {/* keys / webhooks – 3/5 */}
           <motion.div
             initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -297,7 +297,7 @@ export default function ApiPage() {
                         return (
                           <motion.div key={key.id}
                             initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: i * 0.05 }}
+                            transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
                             className={`px-4 py-4 hover:bg-[#1e1e2e]/40 transition-colors ${key.status === "revoked" ? "opacity-50" : ""}`}
                           >
                             <div className="flex items-start gap-3">
@@ -319,11 +319,13 @@ export default function ApiPage() {
                                     {keyValue}
                                   </code>
                                   <button onClick={() => setRevealedKey(isRevealed ? null : key.id)}
+                                    aria-label={isRevealed ? "Masquer la clé" : "Afficher la clé"}
                                     className="p-1 rounded-lg hover:bg-[#1e1e2e] text-[#6b6b8a] hover:text-white transition-colors">
                                     {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                   </button>
                                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                                     onClick={() => copyKey(key.id, keyValue)}
+                                    aria-label="Copier la clé"
                                     className="p-1 rounded-lg hover:bg-[#1e1e2e] transition-colors">
                                     {isCopied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5 text-[#6b6b8a]" />}
                                   </motion.button>
@@ -346,7 +348,7 @@ export default function ApiPage() {
                       {filteredWebhooks.map((wh, i) => (
                         <motion.div key={wh.id}
                           initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: i * 0.06 }}
+                          transition={{ duration: 0.3, delay: Math.min(i * 0.06, 0.4) }}
                           className="px-4 py-4 hover:bg-[#1e1e2e]/40 transition-colors"
                         >
                           <div className="flex items-start gap-3">

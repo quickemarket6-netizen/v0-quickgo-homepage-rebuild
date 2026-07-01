@@ -546,7 +546,7 @@ export default function AdminDashboardPage() {
                   className="flex-1 bg-transparent text-white placeholder-[#4a4a6a] text-sm outline-none min-w-0"
                 />
                 {search.length > 0 ? (
-                  <button onClick={() => setSearch("")} className="p-0.5 hover:bg-white/10 rounded shrink-0">
+                  <button onClick={() => setSearch("")} aria-label="Effacer la recherche" className="p-0.5 hover:bg-white/10 rounded shrink-0">
                     <X className="w-3 h-3 text-[#6b6b8a]" />
                   </button>
                 ) : (
@@ -581,6 +581,7 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => { setRefreshing(true); fetchData() }}
               title="Actualiser"
+              aria-label="Actualiser"
               className="shrink-0 p-2 rounded-xl bg-[#16161f] border border-[#2a2a3e] hover:border-blue-500/40 hover:bg-[#1e1e2e] transition-colors"
             >
               <RefreshCw className={`w-4 h-4 text-[#6b6b8a] ${refreshing ? "animate-spin" : ""}`} />
@@ -590,6 +591,7 @@ export default function AdminDashboardPage() {
             <div className="relative shrink-0" ref={notifRef}>
               <button
                 onClick={() => { setNotifOpen(v => !v); setUserOpen(false) }}
+                aria-label="Notifications"
                 className={`p-2 rounded-xl border transition-colors relative ${notifOpen ? "bg-[#1e1e2e] border-[#2a2a3e]" : "bg-[#16161f] border-[#2a2a3e] hover:border-blue-500/40 hover:bg-[#1e1e2e]"}`}
               >
                 <Bell className="w-4 h-4 text-[#6b6b8a]" />
@@ -663,7 +665,7 @@ export default function AdminDashboardPage() {
 
             {/* Messages / Support */}
             <div className="relative shrink-0">
-              <Link href="/admin/support" title="Support CRM"
+              <Link href="/admin/support" title="Support CRM" aria-label="Support CRM"
                 className="p-2 rounded-xl bg-[#16161f] border border-[#2a2a3e] hover:border-blue-500/40 hover:bg-[#1e1e2e] transition-colors flex items-center justify-center"
               >
                 <MessageCircle className="w-4 h-4 text-[#6b6b8a]" />
@@ -815,7 +817,7 @@ export default function AdminDashboardPage() {
                   key={card.id}
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.07, duration: 0.4, ease: "easeOut" }}
+                  transition={{ delay: Math.min(i * 0.07, 0.4), duration: 0.4, ease: "easeOut" }}
                   whileHover={{ y: -2, transition: { duration: 0.15 } }}
                   className="group relative bg-[#16161f] border rounded-2xl overflow-hidden cursor-pointer"
                   style={{ borderColor: "#1e1e2e" }}
@@ -918,7 +920,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-[#6b6b8a] bg-[#1e1e2e] px-2.5 py-1 rounded-full border border-[#2a2a3e]">Ce mois</span>
-                  <Link href="/admin/finances" className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                  <Link href="/admin/finances" aria-label="Ouvrir les finances" className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
                     <ExternalLink className="w-3.5 h-3.5 text-[#4a4a6a] hover:text-white transition-colors" />
                   </Link>
                 </div>
@@ -1528,7 +1530,7 @@ export default function AdminDashboardPage() {
                       <>
                         {/* col headers */}
                         <div className="flex items-center gap-2 px-5 pb-1 border-b border-[#1e1e2e]">
-                          <button onClick={toggleAll}
+                          <button onClick={toggleAll} aria-label="Tout sélectionner"
                             className={`w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
                               allSel ? "bg-blue-500 border-blue-500" : "border-[#2a2a3e] hover:border-blue-500/50"
                             }`}
@@ -1566,6 +1568,7 @@ export default function AdminDashboardPage() {
                                   <button
                                     disabled={isPaid}
                                     onClick={() => toggleRow(p.id)}
+                                    aria-label="Sélectionner ce payout"
                                     className={`w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
                                       isPaid   ? "border-[#2a2a3e] opacity-30 cursor-not-allowed" :
                                       isSel    ? "bg-blue-500 border-blue-500" :
@@ -1816,7 +1819,7 @@ export default function AdminDashboardPage() {
                                   initial={{ opacity: 0, x: -8 }}
                                   animate={{ opacity: 1, x: 0 }}
                                   exit={{ opacity: 0, x: 8 }}
-                                  transition={{ delay: i * 0.06, duration: 0.25 }}
+                                  transition={{ delay: Math.min(i * 0.06, 0.4), duration: 0.25 }}
                                   className="flex gap-3 relative group py-3"
                                 >
                                   {/* icon bubble */}
@@ -1980,7 +1983,7 @@ export default function AdminDashboardPage() {
                               initial={{ opacity: 0, x: 12, height: 0 }}
                               animate={{ opacity: 1, x: 0, height: "auto" }}
                               exit={{ opacity: 0, x: 12, height: 0 }}
-                              transition={{ delay: i * 0.05, duration: 0.2 }}
+                              transition={{ delay: Math.min(i * 0.05, 0.4), duration: 0.2 }}
                               className="mb-2 overflow-hidden"
                             >
                               <div
@@ -2201,7 +2204,7 @@ export default function AdminDashboardPage() {
                       {loading ? "…" : `${data?.top_categories.length ?? 0} catégories actives`}
                     </p>
                   </div>
-                  <Link href="/admin/categories" className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                  <Link href="/admin/categories" aria-label="Ouvrir les catégories" className="p-1.5 rounded-lg hover:bg-white/5 transition-colors">
                     <ExternalLink className="w-3.5 h-3.5 text-[#4a4a6a] hover:text-white transition-colors" />
                   </Link>
                 </div>
