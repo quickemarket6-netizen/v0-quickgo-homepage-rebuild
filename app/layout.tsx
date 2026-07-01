@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
+import { MotionProvider } from "@/components/motion-provider"
 import { SITE_URL } from "@/lib/site-config"
 import "./globals.css"
 
@@ -90,9 +91,11 @@ export default function RootLayout({
         className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <Toaster position="top-right" richColors closeButton />
-          {process.env.NODE_ENV === "production" && <Analytics />}
+          <MotionProvider>
+            {children}
+            <Toaster position="top-right" richColors closeButton />
+            {process.env.NODE_ENV === "production" && <Analytics />}
+          </MotionProvider>
         </ThemeProvider>
       </body>
     </html>
