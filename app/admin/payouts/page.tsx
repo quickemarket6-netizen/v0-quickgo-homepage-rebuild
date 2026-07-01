@@ -14,6 +14,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { toast } from "sonner"
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface PayoutItem {
@@ -210,12 +211,47 @@ export default function PayoutsPage() {
   }, 0)
 
   async function handlePay() {
+    const ids = confirmModal?.ids ?? selectedPending
+    if (!ids.length) return
     setPaying(true)
-    await new Promise(r => setTimeout(r, 1600))
-    setPaidIds(prev => new Set([...prev, ...selectedPending]))
+
+    // Real payout: approve + deduct wallet + initiate CinetPay transfer per payout.
+    const results = await Promise.allSettled(
+      ids.map(async (id) => {
+        const res = await fetch(`/api/payouts/${id}/approve`, { method: "POST" })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(body.error ?? `Échec (${res.status})`)
+        return id
+      }),
+    )
+
+    const succeeded = results
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+      .map((r) => r.value)
+    const failures = results.filter(
+      (r): r is PromiseRejectedResult => r.status === "rejected",
+    )
+
+    if (succeeded.length) {
+      // Optimistically hide the approved rows until the server refetch lands.
+      setPaidIds((prev) => new Set([...prev, ...succeeded]))
+      toast.success(
+        succeeded.length === 1
+          ? "Paiement initié avec succès"
+          : `${succeeded.length} paiements initiés avec succès`,
+      )
+    }
+    if (failures.length) {
+      toast.error(
+        `${failures.length} paiement(s) en échec : ${failures[0].reason?.message ?? "erreur serveur"}`,
+      )
+    }
+
     setSelected(new Set())
     setConfirmModal(null)
     setPaying(false)
+    // Refresh from the server so statuses reflect the real transfer state.
+    load(true)
   }
 
   const TABS = [

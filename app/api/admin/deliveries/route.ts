@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
 function ts(minutesOffset: number) {
   return new Date(Date.now() + minutesOffset * 60_000).toISOString()
@@ -48,6 +49,9 @@ const hourly_trend = [
 ]
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
   const in_progress = DELIVERIES.filter(d => ["in_transit","picking_up"].includes(d.status)).length
 
   return NextResponse.json({

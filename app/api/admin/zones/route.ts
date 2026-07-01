@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { verifyAdmin } from "@/lib/payments/security"
 
 function ts(minutesOffset: number) {
   return new Date(Date.now() + minutesOffset * 60_000).toISOString()
@@ -95,6 +96,9 @@ const totalRevenue = CITIES.reduce((s, c) => s + c.revenue_today, 0)
 const totalDrivers = CITIES.reduce((s, c) => s + c.drivers_active, 0)
 
 export async function GET() {
+  const admin = await verifyAdmin()
+  if (!admin.valid) return NextResponse.json({ error: admin.error ?? "Accès refusé" }, { status: 403 })
+
   return NextResponse.json({
     kpi: {
       cities_active:   active.length,

@@ -58,14 +58,30 @@ export default function AdminSettingsPage() {
         if (data) {
           const db: Record<string, string> = {}
           data.forEach((item: { key: string; value: string }) => { db[item.key] = item.value })
+          const bool = (v: string | undefined, d: boolean) => (v == null ? d : v === "true")
           setSettings(prev => ({
             ...prev,
             siteName:             db.company_name           || prev.siteName,
+            siteUrl:              db.site_url               || prev.siteUrl,
             supportEmail:         db.company_email          || prev.supportEmail,
             supportPhone:         db.support_phone          || prev.supportPhone,
             whatsappNumber:       db.whatsapp_number        || prev.whatsappNumber,
+            currency:             db.currency               || prev.currency,
+            timezone:             db.timezone               || prev.timezone,
             minDeliveryFee:       db.min_delivery_fee       || prev.minDeliveryFee,
             maxDeliveryDistance:  db.max_delivery_distance  || prev.maxDeliveryDistance,
+            sessionTimeout:       db.session_timeout        || prev.sessionTimeout,
+            orderNotifications:   bool(db.order_notifications,   prev.orderNotifications),
+            driverNotifications:  bool(db.driver_notifications,  prev.driverNotifications),
+            marketingEmails:      bool(db.marketing_emails,      prev.marketingEmails),
+            smsAlerts:            bool(db.sms_alerts,            prev.smsAlerts),
+            twoFactorAuth:        bool(db.two_factor_auth,       prev.twoFactorAuth),
+            ipWhitelist:          bool(db.ip_whitelist,          prev.ipWhitelist),
+            mobileMoneyEnabled:   bool(db.mobile_money_enabled,  prev.mobileMoneyEnabled),
+            cardPaymentsEnabled:  bool(db.card_payments_enabled, prev.cardPaymentsEnabled),
+            cashOnDelivery:       bool(db.cash_on_delivery,      prev.cashOnDelivery),
+            apiEnabled:           bool(db.api_enabled,           prev.apiEnabled),
+            webhooksEnabled:      bool(db.webhooks_enabled,      prev.webhooksEnabled),
           }))
         }
       } catch (error) {
@@ -82,25 +98,45 @@ export default function AdminSettingsPage() {
     setSaveStatus("idle")
     try {
       const supabase = createClient()
+      const b = (v: boolean) => (v ? "true" : "false")
+      // Persist EVERY field (previously only 6 of 21 were saved, silently
+      // discarding all toggles + site URL / currency / timezone / timeouts).
       const rows = [
         { key: "company_name",          value: settings.siteName            },
+        { key: "site_url",              value: settings.siteUrl             },
         { key: "company_email",         value: settings.supportEmail        },
         { key: "support_phone",         value: settings.supportPhone        },
         { key: "whatsapp_number",       value: settings.whatsappNumber      },
+        { key: "currency",              value: settings.currency            },
+        { key: "timezone",              value: settings.timezone            },
         { key: "min_delivery_fee",      value: settings.minDeliveryFee      },
         { key: "max_delivery_distance", value: settings.maxDeliveryDistance },
+        { key: "session_timeout",       value: settings.sessionTimeout      },
+        { key: "order_notifications",   value: b(settings.orderNotifications)  },
+        { key: "driver_notifications",  value: b(settings.driverNotifications) },
+        { key: "marketing_emails",      value: b(settings.marketingEmails)     },
+        { key: "sms_alerts",            value: b(settings.smsAlerts)           },
+        { key: "two_factor_auth",       value: b(settings.twoFactorAuth)       },
+        { key: "ip_whitelist",          value: b(settings.ipWhitelist)         },
+        { key: "mobile_money_enabled",  value: b(settings.mobileMoneyEnabled)  },
+        { key: "card_payments_enabled", value: b(settings.cardPaymentsEnabled) },
+        { key: "cash_on_delivery",      value: b(settings.cashOnDelivery)      },
+        { key: "api_enabled",           value: b(settings.apiEnabled)          },
+        { key: "webhooks_enabled",      value: b(settings.webhooksEnabled)     },
       ]
-      for (const row of rows) {
-        await supabase
-          .from("admin_settings")
-          .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: "key" })
-      }
+      const now = new Date().toISOString()
+      const { error } = await supabase
+        .from("admin_settings")
+        .upsert(rows.map(r => ({ ...r, updated_at: now })), { onConflict: "key" })
+      if (error) throw error
+
       mutate("/api/settings")
       setSaveStatus("success")
       setTimeout(() => setSaveStatus("idle"), 3000)
     } catch (error) {
       console.error("Error saving settings:", error)
       setSaveStatus("error")
+      setTimeout(() => setSaveStatus("idle"), 5000)
     } finally {
       setSaving(false)
     }
@@ -130,16 +166,24 @@ export default function AdminSettingsPage() {
           <Button
             onClick={handleSaveSettings}
             disabled={saving}
-            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white mt-4 sm:mt-0"
+            className={`gap-2 text-white mt-4 sm:mt-0 ${
+              saveStatus === "error" ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : saveStatus === "success" ? (
               <CheckCircle className="h-4 w-4" />
+            ) : saveStatus === "error" ? (
+              <AlertCircle className="h-4 w-4" />
             ) : (
               <Save className="h-4 w-4" />
             )}
-            {saveStatus === "success" ? "Sauvegardé !" : "Sauvegarder"}
+            {saveStatus === "success"
+              ? "Sauvegardé !"
+              : saveStatus === "error"
+                ? "Échec — réessayer"
+                : "Sauvegarder"}
           </Button>
         </motion.div>
 
