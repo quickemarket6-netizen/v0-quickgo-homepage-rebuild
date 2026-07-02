@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  
+
   Wallet, TrendingUp, DollarSign, ArrowUpRight, Download,
   RefreshCw, CreditCard,
   CheckCircle2, XCircle, AlertTriangle, Lock, Unlock,
@@ -100,13 +100,13 @@ function RevenueChart({ data }: { data: DailyPoint[] }) {
       {last7.map((d, i) => (
         <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
           <div
-            className="w-full rounded-t-sm bg-gradient-to-t from-quickgo-blue/60 to-quickgo-cyan/80 transition-all duration-300 group-hover:from-quickgo-blue group-hover:to-quickgo-cyan cursor-pointer"
+            className="w-full rounded-t-sm bg-gradient-to-t from-blue-600/60 to-cyan-500/80 transition-all duration-300 group-hover:from-blue-600 group-hover:to-cyan-500 cursor-pointer"
             style={{ height: `${Math.max(4, (d.revenue / maxRev) * 100)}%` }}
           />
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#16161f] border border-[#2a2a3e] text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
             {d.date.slice(5)} — {formatCFA(d.revenue)}
           </div>
-          <span className="text-[8px] text-gray-500 truncate w-full text-center">{d.date.slice(8)}</span>
+          <span className="text-[8px] text-[#6b6b8a] truncate w-full text-center">{d.date.slice(8)}</span>
         </div>
       ))}
     </div>
@@ -163,53 +163,53 @@ function PayoutActionModal({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+        className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl shadow-2xl w-full max-w-md"
       >
-        <div className={`p-6 rounded-t-2xl ${action === "approve" ? "bg-green-50 border-b border-green-100" : "bg-red-50 border-b border-red-100"}`}>
+        <div className={`p-6 rounded-t-2xl ${action === "approve" ? "bg-green-500/10 border-b border-green-500/20" : "bg-red-500/10 border-b border-red-500/20"}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {action === "approve"
-                ? <CheckCircle2 className="text-green-600" size={24} />
-                : <XCircle className="text-red-600" size={24} />}
-              <h2 className="text-lg font-bold text-gray-900">
+                ? <CheckCircle2 className="text-green-400" size={24} />
+                : <XCircle className="text-red-400" size={24} />}
+              <h2 className="text-lg font-bold text-white">
                 {action === "approve" ? "Approuver le paiement" : "Refuser le paiement"}
               </h2>
             </div>
-            <button onClick={onClose} aria-label="Fermer" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            <button onClick={onClose} aria-label="Fermer" className="text-[#6b6b8a] hover:text-white"><X size={20} /></button>
           </div>
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+          <div className="bg-[#0a0a0f] rounded-xl p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Vendeur</span>
-              <span className="font-semibold text-gray-900">{payout.vendors?.name ?? "—"}</span>
+              <span className="text-[#6b6b8a]">Vendeur</span>
+              <span className="font-semibold text-white">{payout.vendors?.name ?? "—"}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Montant</span>
-              <span className="font-bold text-xl text-gray-900">{formatCFA(payout.amount)}</span>
+              <span className="text-[#6b6b8a]">Montant</span>
+              <span className="font-bold text-xl text-white">{formatCFA(payout.amount)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Méthode</span>
-              <span className="font-medium capitalize text-gray-700">{payout.payout_method.replace("_", " ")}</span>
+              <span className="text-[#6b6b8a]">Méthode</span>
+              <span className="font-medium capitalize text-[#6b6b8a]">{payout.payout_method.replace("_", " ")}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Téléphone</span>
-              <span className="font-medium text-gray-700">{payout.payout_phone}</span>
+              <span className="text-[#6b6b8a]">Téléphone</span>
+              <span className="font-medium text-[#6b6b8a]">{payout.payout_phone}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Demandé le</span>
-              <span className="text-gray-700">{formatDate(payout.created_at)}</span>
+              <span className="text-[#6b6b8a]">Demandé le</span>
+              <span className="text-[#6b6b8a]">{formatDate(payout.created_at)}</span>
             </div>
           </div>
 
           {action === "reject" && (
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Raison du refus <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-[#6b6b8a] mb-2 block">Raison du refus <span className="text-red-500">*</span></label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-300 focus:border-red-400 outline-none resize-none"
+                className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl p-3 text-sm text-white placeholder-[#4a4a6a] focus:ring-2 focus:ring-red-500/40 focus:border-red-500/50 outline-none resize-none"
                 rows={3}
                 placeholder="Ex: Informations de compte incorrectes..."
               />
@@ -217,9 +217,9 @@ function PayoutActionModal({
           )}
 
           {action === "approve" && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-3">
-              <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={16} />
-              <p className="text-xs text-amber-800">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex gap-3">
+              <AlertTriangle className="text-amber-400 shrink-0 mt-0.5" size={16} />
+              <p className="text-xs text-amber-300">
                 Ce paiement sera immédiatement initié via CinetPay. Le montant sera débité du portefeuille vendeur et transféré vers {payout.payout_method.replace("_", " ")} au {payout.payout_phone}.
               </p>
             </div>
@@ -291,30 +291,30 @@ function FreezeModal({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+        className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl shadow-2xl w-full max-w-md"
       >
-        <div className={`p-6 rounded-t-2xl ${isFrozen ? "bg-green-50 border-b border-green-100" : "bg-orange-50 border-b border-orange-100"}`}>
+        <div className={`p-6 rounded-t-2xl ${isFrozen ? "bg-green-500/10 border-b border-green-500/20" : "bg-orange-500/10 border-b border-orange-500/20"}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {isFrozen ? <Unlock className="text-green-600" size={24} /> : <Lock className="text-orange-600" size={24} />}
-              <h2 className="text-lg font-bold text-gray-900">
+              {isFrozen ? <Unlock className="text-green-400" size={24} /> : <Lock className="text-orange-400" size={24} />}
+              <h2 className="text-lg font-bold text-white">
                 {isFrozen ? "Réactiver le portefeuille" : "Geler le portefeuille"}
               </h2>
             </div>
-            <button onClick={onClose} aria-label="Fermer" className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            <button onClick={onClose} aria-label="Fermer" className="text-[#6b6b8a] hover:text-white"><X size={20} /></button>
           </div>
         </div>
         <div className="p-6 space-y-4">
-          <p className="text-sm text-gray-600">
-            Vendeur: <span className="font-semibold text-gray-900">{wallet.vendors?.name}</span>
+          <p className="text-sm text-[#6b6b8a]">
+            Vendeur: <span className="font-semibold text-white">{wallet.vendors?.name}</span>
           </p>
           {!isFrozen && (
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Raison du gel <span className="text-red-500">*</span></label>
+              <label className="text-sm font-medium text-[#6b6b8a] mb-2 block">Raison du gel <span className="text-red-500">*</span></label>
               <textarea
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-orange-300 outline-none resize-none"
+                className="w-full bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl p-3 text-sm text-white placeholder-[#4a4a6a] focus:ring-2 focus:ring-orange-500/40 outline-none resize-none"
                 rows={3}
                 placeholder="Ex: Activité suspecte détectée..."
               />
@@ -402,7 +402,7 @@ export default function AdminFinancesPage() {
           value: formatCFA(summary.total_commissions),
           sub: "7% moyen",
           icon: TrendingUp,
-          gradient: "from-quickgo-blue to-quickgo-cyan",
+          gradient: "from-blue-600 to-cyan-500",
           trend: "+12.1%",
           up: true,
         },
@@ -430,7 +430,7 @@ export default function AdminFinancesPage() {
           value: `${summary.frozen_wallets}`,
           sub: "Fraude / vérif.",
           icon: Shield,
-          gradient: summary.frozen_wallets > 0 ? "from-red-500 to-rose-600" : "from-gray-400 to-gray-500",
+          gradient: summary.frozen_wallets > 0 ? "from-red-500 to-rose-600" : "from-[#2a2a3e] to-[#1e1e2e]",
           alert: summary.frozen_wallets > 0,
         },
         {
@@ -518,12 +518,12 @@ export default function AdminFinancesPage() {
 
   const statusBadge = (status: string) => {
     const map: Record<string, string> = {
-      pending: "bg-amber-100 text-amber-700",
-      approved: "bg-blue-100 text-blue-700",
-      processing: "bg-purple-100 text-purple-700",
-      completed: "bg-green-100 text-green-700",
-      rejected: "bg-red-100 text-red-700",
-      failed: "bg-gray-100 text-gray-600",
+      pending: "bg-amber-500/15 text-amber-300",
+      approved: "bg-blue-500/15 text-blue-300",
+      processing: "bg-purple-500/15 text-purple-300",
+      completed: "bg-green-500/15 text-green-300",
+      rejected: "bg-red-500/15 text-red-300",
+      failed: "bg-[#1e1e2e] text-[#6b6b8a]",
     }
     const labels: Record<string, string> = {
       pending: "En attente",
@@ -534,29 +534,29 @@ export default function AdminFinancesPage() {
       failed: "Échoué",
     }
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? "bg-gray-100 text-gray-600"}`}>
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${map[status] ?? "bg-[#1e1e2e] text-[#6b6b8a]"}`}>
         {labels[status] ?? status}
       </span>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
       <AdminSidebar />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-100 px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <header className="bg-[#16161f] border-b border-[#1e1e2e] px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Tableau de bord financier</h1>
-            <p className="text-sm text-gray-500">Escrow · Commissions · Retraits vendeurs</p>
+            <h1 className="text-xl font-bold text-white">Tableau de bord financier</h1>
+            <p className="text-sm text-[#6b6b8a]">Escrow · Commissions · Retraits vendeurs</p>
           </div>
           <div className="flex items-center gap-3">
             <select
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-quickgo-blue/20"
+              className="text-sm border border-[#1e1e2e] rounded-lg px-3 py-1.5 bg-[#0a0a0f] text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             >
               <option value="7">7 derniers jours</option>
               <option value="30">30 derniers jours</option>
@@ -572,7 +572,7 @@ export default function AdminFinancesPage() {
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               Actualiser
             </Button>
-            <Button size="sm" onClick={exportCsv} className="gap-2 bg-gradient-to-r from-quickgo-blue to-quickgo-cyan text-white border-0">
+            <Button size="sm" onClick={exportCsv} className="gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0">
               <Download size={14} />
               Exporter
             </Button>
@@ -585,14 +585,14 @@ export default function AdminFinancesPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4"
+              className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4"
             >
-              <AlertTriangle className="text-amber-600 shrink-0" size={24} />
+              <AlertTriangle className="text-amber-400 shrink-0" size={24} />
               <div>
-                <p className="font-semibold text-amber-900">
+                <p className="font-semibold text-amber-200">
                   {summary?.pending_payouts_count} retraits en attente de validation
                 </p>
-                <p className="text-sm text-amber-700">
+                <p className="text-sm text-amber-300">
                   Montant total: {formatCFA(summary?.pending_payouts_total ?? 0)} — Action requise
                 </p>
               </div>
@@ -611,14 +611,14 @@ export default function AdminFinancesPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-4"
+              className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-4"
             >
-              <Shield className="text-red-600 shrink-0" size={24} />
+              <Shield className="text-red-400 shrink-0" size={24} />
               <div>
-                <p className="font-semibold text-red-900">
+                <p className="font-semibold text-red-200">
                   {summary?.frozen_wallets} portefeuille{(summary?.frozen_wallets ?? 0) > 1 ? "s" : ""} gelé{(summary?.frozen_wallets ?? 0) > 1 ? "s" : ""}
                 </p>
-                <p className="text-sm text-red-700">Activités suspectes signalées — vérification en cours</p>
+                <p className="text-sm text-red-300">Activités suspectes signalées — vérification en cours</p>
               </div>
             </motion.div>
           )}
@@ -627,9 +627,9 @@ export default function AdminFinancesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {loading
               ? Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl p-5 animate-pulse h-28">
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-3" />
-                    <div className="h-7 bg-gray-200 rounded w-3/4" />
+                  <div key={i} className="bg-[#16161f] rounded-2xl p-5 animate-pulse h-28">
+                    <div className="h-4 bg-[#1e1e2e] rounded w-1/2 mb-3" />
+                    <div className="h-7 bg-[#1e1e2e] rounded w-3/4" />
                   </div>
                 ))
               : statCards.map((card, i) => (
@@ -638,21 +638,21 @@ export default function AdminFinancesPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(i * 0.05, 0.4) }}
-                    className={`bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden ${card.alert ? "ring-2 ring-red-200" : ""}`}
+                    className={`bg-[#16161f] rounded-2xl p-5 shadow-sm border border-[#1e1e2e] relative overflow-hidden ${card.alert ? "ring-2 ring-red-500/30" : ""}`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
                         <card.icon className="text-white" size={18} />
                       </div>
                       {card.trend && (
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.up ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${card.up ? "bg-green-500/15 text-green-300" : "bg-red-500/15 text-red-300"}`}>
                           {card.trend}
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mb-1">{card.label}</p>
-                    <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                    {card.sub && <p className="text-xs text-gray-400 mt-1">{card.sub}</p>}
+                    <p className="text-xs text-[#6b6b8a] mb-1">{card.label}</p>
+                    <p className="text-2xl font-bold text-white">{card.value}</p>
+                    {card.sub && <p className="text-xs text-[#4a4a6a] mt-1">{card.sub}</p>}
                     {card.sparkline && card.sparkline.length > 1 && (
                       <div className="absolute bottom-3 right-3 opacity-50">
                         <Sparkline data={card.sparkline} color="#3B82F6" />
@@ -664,15 +664,15 @@ export default function AdminFinancesPage() {
 
           {/* Revenue Chart */}
           {!loading && data && data.daily_trend.length > 0 && (
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-[#16161f] rounded-2xl p-6 shadow-sm border border-[#1e1e2e]">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="font-bold text-gray-900">Évolution des revenus</h2>
-                  <p className="text-sm text-gray-500">Chiffre d&apos;affaires journalier — {period} jours</p>
+                  <h2 className="font-bold text-white">Évolution des revenus</h2>
+                  <p className="text-sm text-[#6b6b8a]">Chiffre d&apos;affaires journalier — {period} jours</p>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
+                <div className="flex items-center gap-4 text-xs text-[#6b6b8a]">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-quickgo-blue to-quickgo-cyan" />
+                    <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-blue-600 to-cyan-500" />
                     Revenus bruts
                   </span>
                 </div>
@@ -682,15 +682,15 @@ export default function AdminFinancesPage() {
           )}
 
           {/* Tabs */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center border-b border-gray-100 px-6 gap-1">
+          <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] overflow-hidden">
+            <div className="flex items-center border-b border-[#1e1e2e] px-6 gap-1">
               {(["payouts", "wallets", "transactions"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`px-4 py-4 text-sm font-medium border-b-2 transition-all ${activeTab === tab
-                    ? "border-quickgo-blue text-quickgo-blue"
-                    : "border-transparent text-gray-500 hover:text-gray-900"}`}
+                    ? "border-blue-500 text-blue-400"
+                    : "border-transparent text-[#6b6b8a] hover:text-white"}`}
                 >
                   {tab === "payouts" ? "Retraits vendeurs" : tab === "wallets" ? "Portefeuilles" : "Transactions"}
                   {tab === "payouts" && (summary?.pending_payouts_count ?? 0) > 0 && (
@@ -702,19 +702,19 @@ export default function AdminFinancesPage() {
               ))}
               <div className="ml-auto flex items-center gap-2 py-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4a4a6a]" size={14} />
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Rechercher..."
-                    className="pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-quickgo-blue/20 w-48"
+                    className="pl-8 pr-3 py-1.5 text-sm bg-[#0a0a0f] border border-[#1e1e2e] text-white placeholder-[#4a4a6a] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-48"
                   />
                 </div>
                 {activeTab === "payouts" && (
                   <select
                     value={payoutsFilter}
                     onChange={(e) => setPayoutsFilter(e.target.value)}
-                    className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none"
+                    className="text-sm border border-[#1e1e2e] rounded-lg px-2 py-1.5 bg-[#0a0a0f] text-white focus:outline-none"
                   >
                     <option value="pending">En attente</option>
                     <option value="approved">Approuvés</option>
@@ -729,16 +729,16 @@ export default function AdminFinancesPage() {
 
             {/* Payouts Tab */}
             {activeTab === "payouts" && (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#1e1e2e]">
                 {loadingAllPayouts ? (
                   <div className="p-12 flex items-center justify-center">
-                    <RefreshCw className="animate-spin text-quickgo-blue" size={24} />
+                    <RefreshCw className="animate-spin text-blue-400" size={24} />
                   </div>
                 ) : payoutsToShow.length === 0 ? (
                   <div className="p-12 text-center">
-                    <Wallet className="mx-auto text-gray-300 mb-3" size={40} />
-                    <p className="text-gray-500 font-medium">Aucun retrait trouvé</p>
-                    <p className="text-sm text-gray-400">Aucun retrait avec ce statut pour le moment</p>
+                    <Wallet className="mx-auto text-[#4a4a6a] mb-3" size={40} />
+                    <p className="text-[#6b6b8a] font-medium">Aucun retrait trouvé</p>
+                    <p className="text-sm text-[#4a4a6a]">Aucun retrait avec ce statut pour le moment</p>
                   </div>
                 ) : (
                   payoutsToShow.map((payout) => (
@@ -746,23 +746,23 @@ export default function AdminFinancesPage() {
                       key={payout.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors"
+                      className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors"
                     >
                       <div className="text-2xl">{payoutMethodIcon(payout.payout_method)}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-gray-900 truncate">
+                          <p className="font-semibold text-white truncate">
                             {payout.vendors?.name ?? "Vendeur inconnu"}
                           </p>
                           {statusBadge(payout.status)}
                         </div>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-[#6b6b8a]">
                           {payout.payout_phone} · {payout.payout_method.replace("_", " ")} · {formatDate(payout.created_at)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900 text-lg">{formatCFA(payout.amount)}</p>
-                        <p className="text-xs text-gray-400">{payout.id.slice(0, 8).toUpperCase()}</p>
+                        <p className="font-bold text-white text-lg">{formatCFA(payout.amount)}</p>
+                        <p className="text-xs text-[#4a4a6a]">{payout.id.slice(0, 8).toUpperCase()}</p>
                       </div>
                       {payout.status === "pending" && (
                         <div className="flex gap-2 ml-2">
@@ -778,7 +778,7 @@ export default function AdminFinancesPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => openReject(payout)}
-                            className="border-red-200 text-red-600 hover:bg-red-50 gap-1"
+                            className="border-red-500/30 text-red-400 hover:bg-red-500/10 gap-1"
                           >
                             <XCircle size={14} />
                             Refuser
@@ -793,47 +793,47 @@ export default function AdminFinancesPage() {
 
             {/* Wallets Tab */}
             {activeTab === "wallets" && (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#1e1e2e]">
                 {loading ? (
                   <div className="p-12 flex items-center justify-center">
-                    <RefreshCw className="animate-spin text-quickgo-blue" size={24} />
+                    <RefreshCw className="animate-spin text-blue-400" size={24} />
                   </div>
                 ) : filteredWallets.length === 0 ? (
                   <div className="p-12 text-center">
-                    <Wallet className="mx-auto text-gray-300 mb-3" size={40} />
-                    <p className="text-gray-500">Aucun portefeuille trouvé</p>
+                    <Wallet className="mx-auto text-[#4a4a6a] mb-3" size={40} />
+                    <p className="text-[#6b6b8a]">Aucun portefeuille trouvé</p>
                   </div>
                 ) : (
                   filteredWallets.map((w) => (
-                    <div key={w.vendor_id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-quickgo-blue/20 to-quickgo-cyan/20 flex items-center justify-center text-quickgo-blue font-bold text-sm shrink-0">
+                    <div key={w.vendor_id} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center text-blue-400 font-bold text-sm shrink-0">
                         {w.vendors?.name?.charAt(0) ?? "?"}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-semibold text-gray-900 truncate">{w.vendors?.name ?? "—"}</p>
+                          <p className="font-semibold text-white truncate">{w.vendors?.name ?? "—"}</p>
                           {w.frozen && (
-                            <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="bg-red-500/15 text-red-300 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
                               <Lock size={10} /> Gelé
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                          <span>En attente: <b className="text-amber-600">{formatCFA(w.pending_balance)}</b></span>
-                          <span>Disponible: <b className="text-green-600">{formatCFA(w.available_balance)}</b></span>
-                          <span>Retiré: <b className="text-gray-700">{formatCFA(w.withdrawn_balance)}</b></span>
+                        <div className="flex items-center gap-4 mt-1 text-xs text-[#6b6b8a]">
+                          <span>En attente: <b className="text-amber-400">{formatCFA(w.pending_balance)}</b></span>
+                          <span>Disponible: <b className="text-green-400">{formatCFA(w.available_balance)}</b></span>
+                          <span>Retiré: <b className="text-[#6b6b8a]">{formatCFA(w.withdrawn_balance)}</b></span>
                           <span>{w.total_sales} ventes</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">{formatCFA(w.total_earned)}</p>
-                        <p className="text-xs text-gray-400">Total gagné</p>
+                        <p className="font-bold text-white">{formatCFA(w.total_earned)}</p>
+                        <p className="text-xs text-[#4a4a6a]">Total gagné</p>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setSelectedWallet(w)}
-                        className={`ml-2 gap-1 ${w.frozen ? "border-green-200 text-green-600 hover:bg-green-50" : "border-orange-200 text-orange-600 hover:bg-orange-50"}`}
+                        className={`ml-2 gap-1 ${w.frozen ? "border-green-500/30 text-green-400 hover:bg-green-500/10" : "border-orange-500/30 text-orange-400 hover:bg-orange-500/10"}`}
                       >
                         {w.frozen ? <Unlock size={14} /> : <Lock size={14} />}
                         {w.frozen ? "Réactiver" : "Geler"}
@@ -846,30 +846,30 @@ export default function AdminFinancesPage() {
 
             {/* Transactions Tab */}
             {activeTab === "transactions" && (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#1e1e2e]">
                 {loading ? (
                   <div className="p-12 flex items-center justify-center">
-                    <RefreshCw className="animate-spin text-quickgo-blue" size={24} />
+                    <RefreshCw className="animate-spin text-blue-400" size={24} />
                   </div>
                 ) : (data?.recent_transactions ?? []).length === 0 ? (
                   <div className="p-12 text-center">
-                    <CreditCard className="mx-auto text-gray-300 mb-3" size={40} />
-                    <p className="text-gray-500">Aucune transaction récente</p>
+                    <CreditCard className="mx-auto text-[#4a4a6a] mb-3" size={40} />
+                    <p className="text-[#6b6b8a]">Aucune transaction récente</p>
                   </div>
                 ) : (
                   (data?.recent_transactions as Array<Record<string, unknown>> ?? []).map((txn, i) => (
-                    <div key={i} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${txn.status === "completed" ? "bg-green-100" : txn.status === "failed" ? "bg-red-100" : "bg-amber-100"}`}>
-                        <CreditCard size={16} className={txn.status === "completed" ? "text-green-600" : txn.status === "failed" ? "text-red-600" : "text-amber-600"} />
+                    <div key={i} className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${txn.status === "completed" ? "bg-green-500/15" : txn.status === "failed" ? "bg-red-500/15" : "bg-amber-500/15"}`}>
+                        <CreditCard size={16} className={txn.status === "completed" ? "text-green-400" : txn.status === "failed" ? "text-red-400" : "text-amber-400"} />
                       </div>
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">
+                        <p className="font-medium text-white text-sm">
                           Transaction #{String(txn.transaction_id ?? "—").slice(0, 12)}
                         </p>
-                        <p className="text-xs text-gray-500">{formatDate(String(txn.created_at))}</p>
+                        <p className="text-xs text-[#6b6b8a]">{formatDate(String(txn.created_at))}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-gray-900">{formatCFA(Number(txn.amount ?? 0))}</p>
+                        <p className="font-bold text-white">{formatCFA(Number(txn.amount ?? 0))}</p>
                         {statusBadge(String(txn.status ?? ""))}
                       </div>
                     </div>

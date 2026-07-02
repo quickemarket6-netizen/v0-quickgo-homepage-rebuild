@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Bell,
   Send,
@@ -174,17 +174,17 @@ export default function CommunicationDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-[#0a0a0f] flex">
       <AdminSidebar />
       <div className="flex-1 overflow-auto p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Communication</h1>
-            <p className="text-muted-foreground">Gérez vos notifications et campagnes marketing</p>
+            <h1 className="text-3xl font-bold text-white">Communication</h1>
+            <p className="text-[#6b6b8a]">Gérez vos notifications et campagnes marketing</p>
           </div>
-          <Button className="gap-2 bg-lime-500 hover:bg-lime-600 text-black">
+          <Button className="gap-2 bg-blue-600 hover:bg-blue-500 text-white">
             <Plus className="w-4 h-4" />
             Nouvelle campagne
           </Button>
@@ -196,22 +196,22 @@ export default function CommunicationDashboard() {
             { label: 'Messages envoyés', value: stats.totalSent.toLocaleString(), icon: Send, color: 'text-blue-400' },
             { label: 'Taux d\'ouverture', value: `${stats.openRate}%`, icon: TrendingUp, color: 'text-green-400' },
             { label: 'Taux de clic', value: `${stats.clickRate}%`, icon: BarChart3, color: 'text-purple-400' },
-            { label: 'Utilisateurs actifs', value: stats.activeUsers.toLocaleString(), icon: Users, color: 'text-lime-400' },
+            { label: 'Utilisateurs actifs', value: stats.activeUsers.toLocaleString(), icon: Users, color: 'text-blue-400' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.1, 0.4) }}
-              className="bg-gray-900/50 border border-gray-800 rounded-xl p-4"
+              className="bg-[#16161f]/50 border border-[#1e1e2e] rounded-xl p-4"
             >
               <div className="flex items-center gap-3">
-                <div className={cn("p-2 rounded-lg bg-gray-800", stat.color)}>
+                <div className={cn("p-2 rounded-lg bg-[#1e1e2e]", stat.color)}>
                   <stat.icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-[#6b6b8a]">{stat.label}</p>
                 </div>
               </div>
             </motion.div>
@@ -221,71 +221,86 @@ export default function CommunicationDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Compose Message */}
           <div className="lg:col-span-2 space-y-6">
-            <div ref={composeRef} className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-bold text-foreground mb-4">Nouveau message</h2>
+            <div ref={composeRef} className="bg-[#16161f]/50 border border-[#1e1e2e] rounded-xl p-6">
+              <h2 className="text-lg font-bold text-white mb-4">Nouveau message</h2>
               
               {/* Channels */}
               <div className="mb-6">
-                <label className="text-sm text-muted-foreground mb-2 block">Canaux de diffusion</label>
+                <label className="text-sm text-[#6b6b8a] mb-2 block">Canaux de diffusion</label>
                 <div className="flex flex-wrap gap-2">
-                  {channels.map(channel => (
-                    <button
+                  {channels.map((channel, i) => (
+                    <motion.button
                       key={channel.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.05, 0.4) }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => toggleChannel(channel.id)}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all",
                         selectedChannels.includes(channel.id)
                           ? `${channel.bgColor} border-current ${channel.color}`
-                          : "bg-gray-800/50 border-gray-700 text-muted-foreground hover:border-gray-600"
+                          : "bg-[#1e1e2e]/50 border-[#1e1e2e] text-[#6b6b8a] hover:border-[#2a2a3e]"
                       )}
                     >
                       <channel.icon className="w-4 h-4" />
                       <span className="text-sm font-medium">{channel.label}</span>
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
 
               {/* Segment */}
               <div className="mb-6">
-                <label className="text-sm text-muted-foreground mb-2 block">Destinataires</label>
+                <label className="text-sm text-[#6b6b8a] mb-2 block">Destinataires</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {segments.map(segment => (
-                    <button
+                  {segments.map((segment, i) => (
+                    <motion.button
                       key={segment.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.05, 0.4) }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedSegment(segment.id)}
                       className={cn(
                         "p-3 rounded-lg border text-left transition-all",
                         selectedSegment === segment.id
-                          ? "bg-lime-500/10 border-lime-500/50 text-lime-400"
-                          : "bg-gray-800/50 border-gray-700 text-muted-foreground hover:border-gray-600"
+                          ? "bg-blue-500/20 border-blue-500/30 text-blue-400"
+                          : "bg-[#1e1e2e]/50 border-[#1e1e2e] text-[#6b6b8a] hover:border-[#2a2a3e]"
                       )}
                     >
                       <p className="font-medium text-sm">{segment.label}</p>
                       <p className="text-xs opacity-70">{segment.count.toLocaleString()}</p>
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
 
               {/* Message Type */}
               <div className="mb-6">
-                <label className="text-sm text-muted-foreground mb-2 block">Type de message</label>
+                <label className="text-sm text-[#6b6b8a] mb-2 block">Type de message</label>
                 <div className="flex flex-wrap gap-2">
-                  {messageTypes.map(type => (
-                    <button
+                  {messageTypes.map((type, i) => (
+                    <motion.button
                       key={type.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.05, 0.4) }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => setSelectedType(type.id)}
                       className={cn(
                         "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-all",
                         selectedType === type.id
-                          ? "bg-lime-500/10 border-lime-500/50 text-lime-400"
-                          : "bg-gray-800/50 border-gray-700 text-muted-foreground hover:border-gray-600"
+                          ? "bg-blue-500/20 border-blue-500/30 text-blue-400"
+                          : "bg-[#1e1e2e]/50 border-[#1e1e2e] text-[#6b6b8a] hover:border-[#2a2a3e]"
                       )}
                     >
                       <type.icon className="w-4 h-4" />
                       {type.label}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -293,24 +308,24 @@ export default function CommunicationDashboard() {
               {/* Title & Message */}
               <div className="space-y-4 mb-6">
                 <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Titre</label>
+                  <label className="text-sm text-[#6b6b8a] mb-2 block">Titre</label>
                   <Input 
                     placeholder="Ex: Promo exceptionnelle -30%!"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="bg-gray-800/50 border-gray-700"
+                    className="bg-[#1e1e2e]/50 border-[#1e1e2e]"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground mb-2 block">Message</label>
+                  <label className="text-sm text-[#6b6b8a] mb-2 block">Message</label>
                   <textarea 
                     placeholder="Rédigez votre message ici..."
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-3 rounded-lg bg-gray-800/50 border border-gray-700 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-lime-500/50 resize-none"
+                    className="w-full px-4 py-3 rounded-lg bg-[#1e1e2e]/50 border border-[#1e1e2e] text-white placeholder:text-[#6b6b8a] focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">{message.length}/500 caractères</p>
+                  <p className="text-xs text-[#6b6b8a] mt-1">{message.length}/500 caractères</p>
                 </div>
               </div>
 
@@ -321,9 +336,9 @@ export default function CommunicationDashboard() {
                     type="checkbox"
                     checked={isScheduled}
                     onChange={(e) => setIsScheduled(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-lime-500 focus:ring-lime-500"
+                    className="w-4 h-4 rounded border-[#1e1e2e] text-blue-500 focus:ring-blue-500"
                   />
-                  <span className="text-sm text-foreground">Programmer l&apos;envoi</span>
+                  <span className="text-sm text-white">Programmer l&apos;envoi</span>
                 </label>
                 {isScheduled && (
                   <div className="mt-3">
@@ -331,7 +346,7 @@ export default function CommunicationDashboard() {
                       type="datetime-local"
                       value={scheduledDate}
                       onChange={(e) => setScheduledDate(e.target.value)}
-                      className="bg-gray-800/50 border-gray-700 w-auto"
+                      className="bg-[#1e1e2e]/50 border-[#1e1e2e] w-auto"
                     />
                   </div>
                 )}
@@ -342,7 +357,7 @@ export default function CommunicationDashboard() {
                 <Button 
                   onClick={handleSend}
                   disabled={isSending || !title || !message || selectedChannels.length === 0}
-                  className="gap-2 bg-lime-500 hover:bg-lime-600 text-black"
+                  className="gap-2 bg-blue-600 hover:bg-blue-500 text-white"
                 >
                   {isSending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -365,24 +380,27 @@ export default function CommunicationDashboard() {
             </div>
 
             {/* Recent Campaigns */}
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div className="bg-[#16161f]/50 border border-[#1e1e2e] rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-foreground">Campagnes récentes</h2>
-                <Button variant="ghost" size="sm" className="text-lime-400">
+                <h2 className="text-lg font-bold text-white">Campagnes récentes</h2>
+                <Button variant="ghost" size="sm" className="text-blue-400">
                   Voir tout <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>
 
               <div className="space-y-3">
-                {campaigns.map(campaign => (
-                  <div 
+                {campaigns.map((campaign, i) => (
+                  <motion.div
                     key={campaign.id}
-                    className="p-4 rounded-lg bg-gray-800/30 border border-gray-800 hover:border-gray-700 transition-colors"
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
+                    className="p-4 rounded-lg bg-[#1e1e2e]/30 border border-[#1e1e2e] hover:border-[#2a2a3e] transition-colors"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h3 className="font-medium text-foreground">{campaign.title}</h3>
-                        <p className="text-xs text-muted-foreground">{campaign.date}</p>
+                        <h3 className="font-medium text-white">{campaign.title}</h3>
+                        <p className="text-xs text-[#6b6b8a]">{campaign.date}</p>
                       </div>
                       <div className="flex gap-1">
                         {campaign.channels.map(ch => {
@@ -401,19 +419,19 @@ export default function CommunicationDashboard() {
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div>
-                        <p className="text-lg font-bold text-foreground">{campaign.sent.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Envoyés</p>
+                        <p className="text-lg font-bold text-white">{campaign.sent.toLocaleString()}</p>
+                        <p className="text-xs text-[#6b6b8a]">Envoyés</p>
                       </div>
                       <div>
                         <p className="text-lg font-bold text-green-400">{campaign.opened.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Ouverts</p>
+                        <p className="text-xs text-[#6b6b8a]">Ouverts</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-lime-400">{campaign.clicked.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Clics</p>
+                        <p className="text-lg font-bold text-blue-400">{campaign.clicked.toLocaleString()}</p>
+                        <p className="text-xs text-[#6b6b8a]">Clics</p>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -422,8 +440,8 @@ export default function CommunicationDashboard() {
           {/* Quick Actions & Templates */}
           <div className="space-y-6">
             {/* Quick Send */}
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-bold text-foreground mb-4">Envoi rapide</h2>
+            <div className="bg-[#16161f]/50 border border-[#1e1e2e] rounded-xl p-6">
+              <h2 className="text-lg font-bold text-white mb-4">Envoi rapide</h2>
               
               <div className="space-y-3">
                 <QuickSendButton
@@ -458,8 +476,8 @@ export default function CommunicationDashboard() {
             </div>
 
             {/* Templates */}
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-bold text-foreground mb-4">Templates</h2>
+            <div className="bg-[#16161f]/50 border border-[#1e1e2e] rounded-xl p-6">
+              <h2 className="text-lg font-bold text-white mb-4">Templates</h2>
               
               <div className="space-y-2">
                 {[
@@ -468,25 +486,30 @@ export default function CommunicationDashboard() {
                   { name: 'Commande confirmee', type: 'order' },
                   { name: 'Livraison en cours', type: 'delivery' },
                   { name: 'Rappel panier', type: 'reminder' },
-                ].map(template => (
-                  <button
+                ].map((template, i) => (
+                  <motion.button
                     key={template.name}
-                    className="w-full p-3 rounded-lg bg-gray-800/30 border border-gray-700 hover:border-lime-500/50 transition-colors text-left group"
+                    initial={{ opacity: 0, x: 12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full p-3 rounded-lg bg-[#1e1e2e]/30 border border-[#1e1e2e] hover:border-blue-500/30 transition-colors text-left group"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-foreground group-hover:text-lime-400 transition-colors">
+                      <span className="text-sm text-white group-hover:text-blue-400 transition-colors">
                         {template.name}
                       </span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-lime-400 transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-[#6b6b8a] group-hover:text-blue-400 transition-colors" />
                     </div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
 
             {/* Support Contacts */}
-            <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-              <h2 className="text-lg font-bold text-foreground mb-4">Contacts DL Solutions</h2>
+            <div className="bg-[#16161f]/50 border border-[#1e1e2e] rounded-xl p-6">
+              <h2 className="text-lg font-bold text-white mb-4">Contacts DL Solutions</h2>
               
               <div className="space-y-3">
                 <a 
@@ -497,8 +520,8 @@ export default function CommunicationDashboard() {
                 >
                   <MessageSquare className="w-5 h-5 text-green-400" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">+237 694 341 586</p>
-                    <p className="text-xs text-muted-foreground">WhatsApp Cameroun</p>
+                    <p className="text-sm font-medium text-white">+237 694 341 586</p>
+                    <p className="text-xs text-[#6b6b8a]">WhatsApp Cameroun</p>
                   </div>
                 </a>
                 <a 
@@ -509,8 +532,8 @@ export default function CommunicationDashboard() {
                 >
                   <MessageSquare className="w-5 h-5 text-green-400" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">+237 690 773 615</p>
-                    <p className="text-xs text-muted-foreground">WhatsApp Cameroun</p>
+                    <p className="text-sm font-medium text-white">+237 690 773 615</p>
+                    <p className="text-xs text-[#6b6b8a]">WhatsApp Cameroun</p>
                   </div>
                 </a>
                 <a 
@@ -521,8 +544,8 @@ export default function CommunicationDashboard() {
                 >
                   <MessageSquare className="w-5 h-5 text-blue-400" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">+41 77 976 87 68</p>
-                    <p className="text-xs text-muted-foreground">WhatsApp Suisse</p>
+                    <p className="text-sm font-medium text-white">+41 77 976 87 68</p>
+                    <p className="text-xs text-[#6b6b8a]">WhatsApp Suisse</p>
                   </div>
                 </a>
               </div>
@@ -532,17 +555,24 @@ export default function CommunicationDashboard() {
       </div>
 
       {/* Quick Send Modal */}
+      <AnimatePresence>
       {quickModal.type && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-sm w-full"
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-6 max-w-sm w-full"
           >
-            <h3 className="text-lg font-bold text-foreground mb-1">
+            <h3 className="text-lg font-bold text-white mb-1">
               {quickModal.type === "call" ? "Appeler un client" : "WhatsApp"}
             </h3>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-[#6b6b8a] mb-4">
               {quickModal.type === "call"
                 ? "Entrez le numéro à appeler"
                 : "Entrez le numéro WhatsApp du destinataire"}
@@ -552,7 +582,7 @@ export default function CommunicationDashboard() {
               value={quickModal.phone}
               onChange={(e) => setQuickModal(prev => ({ ...prev, phone: e.target.value }))}
               onKeyDown={(e) => e.key === "Enter" && confirmQuickModal()}
-              className="bg-gray-800/50 border-gray-700 mb-4"
+              className="bg-[#1e1e2e]/50 border-[#1e1e2e] mb-4"
               autoFocus
             />
             <div className="flex gap-3">
@@ -564,7 +594,7 @@ export default function CommunicationDashboard() {
                 Annuler
               </Button>
               <Button
-                className="flex-1 bg-lime-500 hover:bg-lime-600 text-black"
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
                 onClick={confirmQuickModal}
                 disabled={!quickModal.phone.trim()}
               >
@@ -572,33 +602,41 @@ export default function CommunicationDashboard() {
               </Button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Preview Modal */}
+      <AnimatePresence>
       {showPreview && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-gray-900 border border-gray-800 rounded-2xl p-6 max-w-md w-full"
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl p-6 max-w-md w-full"
           >
-            <h3 className="text-lg font-bold text-foreground mb-4">Aperçu du message</h3>
+            <h3 className="text-lg font-bold text-white mb-4">Aperçu du message</h3>
             
-            <div className="bg-gray-800 rounded-xl p-4 mb-4">
+            <div className="bg-[#1e1e2e] rounded-xl p-4 mb-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-lime-500 flex items-center justify-center">
-                  <span className="text-black font-bold">Q</span>
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+                  <span className="text-white font-bold">Q</span>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-foreground">{title || 'Titre du message'}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{message || 'Contenu du message...'}</p>
+                  <p className="font-bold text-white">{title || 'Titre du message'}</p>
+                  <p className="text-sm text-[#6b6b8a] mt-1">{message || 'Contenu du message...'}</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs text-muted-foreground">Canaux:</span>
+              <span className="text-xs text-[#6b6b8a]">Canaux:</span>
               {selectedChannels.map(ch => {
                 const channel = channels.find(c => c.id === ch)
                 if (!channel) return null
@@ -614,13 +652,14 @@ export default function CommunicationDashboard() {
               <Button onClick={() => setShowPreview(false)} variant="outline" className="flex-1">
                 Fermer
               </Button>
-              <Button onClick={() => { setShowPreview(false); handleSend(); }} className="flex-1 bg-lime-500 hover:bg-lime-600 text-black">
+              <Button onClick={() => { setShowPreview(false); handleSend(); }} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white">
                 Envoyer
               </Button>
             </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
       </div>
     </div>
   )
@@ -640,18 +679,20 @@ function QuickSendButton({
   onClick: () => void
 }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 rounded-lg bg-gray-800/30 border border-gray-700 hover:border-gray-600 transition-colors text-left group"
+      className="w-full flex items-center gap-3 p-3 rounded-lg bg-[#1e1e2e]/30 border border-[#1e1e2e] hover:border-[#2a2a3e] transition-colors text-left group"
     >
-      <div className={cn("p-2 rounded-lg bg-gray-800", color)}>
+      <div className={cn("p-2 rounded-lg bg-[#1e1e2e]", color)}>
         <Icon className="w-5 h-5" />
       </div>
       <div className="flex-1">
-        <p className="font-medium text-foreground group-hover:text-lime-400 transition-colors">{label}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="font-medium text-white group-hover:text-blue-400 transition-colors">{label}</p>
+        <p className="text-xs text-[#6b6b8a]">{description}</p>
       </div>
-      <ChevronRight className="w-4 h-4 text-muted-foreground" />
-    </button>
+      <ChevronRight className="w-4 h-4 text-[#6b6b8a]" />
+    </motion.button>
   )
 }
