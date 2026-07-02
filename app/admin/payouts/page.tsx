@@ -7,12 +7,10 @@ import {
   ArrowLeft, RefreshCw, Download, Search, CreditCard,
   Store, Truck, XCircle, ChevronRight, CheckCircle,
   Clock, DollarSign, TrendingUp, AlertTriangle,
-  MoreHorizontal, Eye, X, Check, Loader2,
-} from "lucide-react"
+  MoreHorizontal, Eye, X, Check, Loader2 } from "lucide-react"
 import {
-  AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
-  XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from "recharts"
+  AreaChart, Area, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 import { toast } from "sonner"
 

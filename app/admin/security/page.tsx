@@ -3,11 +3,9 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Shield, AlertTriangle, Ban, Activity, Globe, Clock,
-  Smartphone, Monitor, ChevronRight, RefreshCw, Search,
-  Eye, Lock, Unlock, Download, Filter, Zap, TrendingUp,
-  Users, Server, Cpu, HardDrive, Wifi, ShieldAlert,
-  ShieldCheck, ShieldX, MapPin, Fingerprint, Bug
+  Shield, AlertTriangle, Ban, Globe, Clock, RefreshCw, Search,
+  Eye, Unlock, Download, ShieldAlert,
+  ShieldCheck, ShieldX, MapPin, Bug
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'

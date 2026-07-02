@@ -1,17 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
-  Settings, Wallet, TrendingUp, TrendingDown, DollarSign,
-  ArrowDownLeft, ArrowUpRight, Filter, Download, ShieldCheck,
-  RefreshCw, ChevronRight, CreditCard, Banknote, Smartphone,
-  CheckCircle2, XCircle, AlertTriangle, Eye, Lock, Unlock,
-  Clock, Search, MoreVertical, ChevronDown, X, Activity,
-  Shield, Bell,
-} from "lucide-react"
+  
+  Wallet, TrendingUp, DollarSign, ArrowUpRight, Download,
+  RefreshCw, CreditCard,
+  CheckCircle2, XCircle, AlertTriangle, Lock, Unlock,
+  Clock, Search, X, Activity,
+  Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"

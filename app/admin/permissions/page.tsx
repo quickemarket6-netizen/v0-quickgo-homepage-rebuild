@@ -5,9 +5,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Lock, ArrowLeft, RefreshCw, Plus, Search,
   ShieldCheck, Shield, User, Users, CheckCircle2,
-  AlertCircle, ChevronRight, Clock, Star, Eye, Edit3,
-  TrendingUp, KeyRound,
-} from "lucide-react"
+  AlertCircle, ChevronRight, Clock, Star,
+  TrendingUp, KeyRound } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"

@@ -4,16 +4,13 @@ import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FileText, ArrowLeft, RefreshCw, Download, Search,
-  AlertCircle, AlertTriangle, Info, CheckCircle2,
-  Server, Clock, TrendingUp, Filter, ChevronDown,
-  Terminal, Wifi, Database,
-} from "lucide-react"
+  AlertCircle, AlertTriangle, Info,
+  Server, Clock, TrendingUp,
+  Terminal } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell,
-} from "recharts"
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────

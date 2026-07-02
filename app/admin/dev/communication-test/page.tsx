@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
 import {
   Bell,
   MessageCircle,
@@ -17,11 +16,9 @@ import {
   Megaphone,
   Users,
   Building2,
-  User,
-} from "lucide-react"
+  User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { NotificationProvider, useNotifications, NotificationBell } from "@/components/ui/notification-provider"
 import { QuickContact } from "@/components/ui/quick-contact"
 

@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import Link from "next/link"
 import {
-  LayoutDashboard, Package, Users, Truck, BarChart3, Settings,
-  Search, Eye, Clock, CheckCircle, XCircle, AlertCircle,
-  ChevronLeft, ChevronRight, Download, RefreshCw, Phone, Wallet,
-} from "lucide-react"
+  Package, Truck,
+  Search, Clock, CheckCircle, XCircle, AlertCircle,
+  ChevronLeft, ChevronRight, Download, RefreshCw, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Store } from "lucide-react"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {

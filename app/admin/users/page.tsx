@@ -2,13 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import Link from "next/link"
 import {
-  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
-  Settings, Search, Mail, Phone, MapPin, Calendar, Ban,
-  CheckCircle, Eye, Download, UserPlus, ChevronLeft, ChevronRight, Wallet,
-  AlertTriangle, RefreshCw,
-} from "lucide-react"
+  Users, Search, Phone, Calendar, Eye, Download, UserPlus, ChevronLeft, ChevronRight,
+  AlertTriangle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"

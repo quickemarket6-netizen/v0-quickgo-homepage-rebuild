@@ -3,16 +3,13 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Database, ArrowLeft, RefreshCw, Plus, Download,
+  Database, ArrowLeft, RefreshCw, Download,
   CheckCircle2, AlertCircle, Clock, HardDrive, Shield,
   TrendingUp, Archive, Play, Pause, RotateCcw, Zap,
-  Lock, Cloud,
-} from "lucide-react"
+  Lock, Cloud } from "lucide-react"
 import Link from "next/link"
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell,
-} from "recharts"
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 import { toast } from "sonner"
 

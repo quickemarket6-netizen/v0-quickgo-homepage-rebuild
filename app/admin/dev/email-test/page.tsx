@@ -12,8 +12,7 @@ import {
   CreditCard,
   Truck,
   MessageCircle,
-  UserPlus,
-  KeyRound
+  UserPlus
 } from "lucide-react"
 
 const emailTypes = [

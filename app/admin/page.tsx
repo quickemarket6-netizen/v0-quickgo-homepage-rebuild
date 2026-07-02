@@ -6,20 +6,18 @@ import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard, Package, Users, Truck, Store, BarChart3,
-  Settings, Bell, ChevronDown, TrendingUp, TrendingDown, DollarSign,
+  Settings, Bell, ChevronDown, TrendingUp, DollarSign,
   MapPin, RefreshCw, Eye, Activity, ShieldCheck, Wallet, Search,
-  MessageCircle, Megaphone, Star, Shield, FileText, ShoppingBag,
-  Tag, Percent, CreditCard, AlertTriangle, CheckCircle, XCircle,
-  Zap, UserPlus, LogOut, ChevronRight, MoreHorizontal, ArrowUpRight,
+  MessageCircle, Shield, FileText, ShoppingBag,
+  Tag, CreditCard, AlertTriangle, CheckCircle, XCircle,
+  Zap, UserPlus, LogOut, ChevronRight, ArrowUpRight,
   ArrowDownRight, Clock, Globe, X, User, ExternalLink,
-  Navigation, Layers, Lock, Plug, Database, Headphones,
-} from "lucide-react"
+  Navigation, Layers, Lock, Plug, Database, Headphones } from "lucide-react"
 import {
-  AreaChart, Area, BarChart, Bar,
-  PieChart, Pie, Cell, RadialBarChart, RadialBar,
+  AreaChart, Area,
+  PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
-  ReferenceLine, CartesianGrid,
-} from "recharts"
+  ReferenceLine, CartesianGrid } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ── helpers ──────────────────────────────────────────────────────────────────

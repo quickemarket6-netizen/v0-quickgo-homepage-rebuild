@@ -2,13 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion } from "framer-motion"
-import Link from "next/link"
 import {
-  LayoutDashboard, Package, Users, Truck, Store, BarChart3,
-  Settings, Search, CheckCircle, XCircle, Clock, Eye, Edit2,
-  ChevronLeft, ChevronRight, Plus, ShieldCheck, Wallet,
-  UserCheck, UserX, Ban, AlertTriangle, RefreshCw,
-} from "lucide-react"
+  Store, Search, CheckCircle, XCircle, Clock, Eye,
+  ChevronLeft, ChevronRight, Plus, ShieldCheck,
+  UserCheck, UserX, Ban, AlertTriangle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"

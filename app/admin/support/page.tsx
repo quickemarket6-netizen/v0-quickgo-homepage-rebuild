@@ -1,19 +1,16 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  MessageCircle, ArrowLeft, RefreshCw, Download, Search,
-  ChevronDown, ChevronRight, AlertTriangle, Clock, CheckCircle2,
+  MessageCircle, ArrowLeft, RefreshCw, Download, Search, ChevronRight, AlertTriangle, Clock, CheckCircle2,
   User, Store, Truck, TrendingUp, TrendingDown, Circle,
-  AlertCircle, Flame, ShieldAlert, Tag, Loader2, Send,
-  MoreVertical, Filter, UserCheck, Phone, Mail,
-} from "lucide-react"
+  AlertCircle, Flame, ShieldAlert, Tag, Send,
+  MoreVertical, UserCheck } from "lucide-react"
 import Link from "next/link"
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar,
-} from "recharts"
+  PieChart, Pie, Cell } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────

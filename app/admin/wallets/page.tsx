@@ -8,12 +8,10 @@ import {
   Store, Truck, User, XCircle, ChevronRight,
   Eye, MoreHorizontal, Lock, Plus, AlertTriangle,
   Activity, Clock, DollarSign, TrendingUp,
-  ArrowUpRight, ArrowDownLeft, RotateCcw,
-} from "lucide-react"
+  ArrowUpRight, ArrowDownLeft, RotateCcw } from "lucide-react"
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from "recharts"
+  AreaChart, Area, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 import { toast } from "sonner"
 

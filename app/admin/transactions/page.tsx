@@ -6,13 +6,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft, RefreshCw, Download, Search, DollarSign,
   XCircle, ChevronRight, CheckCircle, Clock, TrendingUp,
-  AlertTriangle, MoreHorizontal, Eye, RotateCcw, Loader2,
-  Activity, Zap, Filter,
-} from "lucide-react"
+  AlertTriangle, MoreHorizontal, Eye, RotateCcw,
+  Activity, Zap, Filter } from "lucide-react"
 import {
   AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
-  XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from "recharts"
+  XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 import { toast } from "sonner"
 

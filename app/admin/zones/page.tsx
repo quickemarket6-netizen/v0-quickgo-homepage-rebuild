@@ -4,15 +4,13 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   MapPin, ArrowLeft, RefreshCw, Plus, Search,
-  ChevronRight, ChevronDown, Truck, Store, Package,
-  TrendingUp, Circle, CheckCircle2, Clock, AlertTriangle,
-  DollarSign, Map, Layers, Globe,
-} from "lucide-react"
+  ChevronRight, Truck, Package,
+  TrendingUp, CheckCircle2, Clock, AlertTriangle,
+  DollarSign, Layers, Globe } from "lucide-react"
 import Link from "next/link"
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  AreaChart, Area, Cell,
-} from "recharts"
+  AreaChart, Area, Cell } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 import { toast } from "sonner"
 

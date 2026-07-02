@@ -3,15 +3,13 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Globe, ArrowLeft, RefreshCw, Search, TrendingUp, TrendingDown,
+  Globe, ArrowLeft, RefreshCw, Search, TrendingUp,
   ArrowUp, ArrowDown, Minus, Eye, MousePointer, BarChart2,
-  CheckCircle2, AlertCircle, ExternalLink, Star, Link2,
-} from "lucide-react"
+  CheckCircle2, AlertCircle, Star, Link2 } from "lucide-react"
 import Link from "next/link"
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  ComposedChart, Bar, Line,
-} from "recharts"
+  Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ComposedChart, Bar } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────

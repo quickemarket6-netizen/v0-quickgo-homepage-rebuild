@@ -3,14 +3,11 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Headphones, ArrowLeft, RefreshCw, AlertTriangle, CheckCircle2,
-  Clock, Activity, Server, Cpu, HardDrive, TrendingUp,
-  AlertCircle, Info, Wrench, Globe, Zap, Shield,
-} from "lucide-react"
+  Headphones, ArrowLeft, RefreshCw, AlertTriangle, CheckCircle2, Activity, Server, Cpu, HardDrive, TrendingUp,
+  AlertCircle, Info, Wrench, Globe, Zap, Shield } from "lucide-react"
 import Link from "next/link"
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from "recharts"
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────

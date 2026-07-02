@@ -4,15 +4,11 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Layers, ArrowLeft, RefreshCw, Plus, Search,
-  Eye, Edit3, Archive, Globe, FileText, TrendingUp,
-  CheckCircle2, Clock, AlertCircle, BarChart2, Star,
-  ToggleLeft, ToggleRight, Download, Tag,
-} from "lucide-react"
+  Eye, Archive, Globe, FileText, TrendingUp, AlertCircle, Star,
+  ToggleLeft, ToggleRight, Tag } from "lucide-react"
 import Link from "next/link"
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell,
-} from "recharts"
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
 // ─── types ───────────────────────────────────────────────────────────────────
