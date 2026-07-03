@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS public.drivers (
   id             UUID         DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id        UUID         REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  user_id        UUID         REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE NOT NULL,
   status         TEXT         NOT NULL DEFAULT 'offline'
                               CHECK (status IN ('online', 'delivering', 'offline', 'suspended')),
   vehicle_type   TEXT         CHECK (vehicle_type IN ('moto', 'voiture', 'velo', 'tricycle')),
