@@ -35,6 +35,8 @@ CREATE INDEX IF NOT EXISTS idx_tracking_events_order_id
 -- ── RLS ───────────────────────────────────────────────────────────────────────
 ALTER TABLE public.tracking_events ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "tracking_events_customer_read" ON public.tracking_events
+;
 CREATE POLICY "tracking_events_customer_read" ON public.tracking_events
   FOR SELECT USING (
     order_id IN (
@@ -42,6 +44,8 @@ CREATE POLICY "tracking_events_customer_read" ON public.tracking_events
     )
   );
 
+DROP POLICY IF EXISTS "tracking_events_driver_insert" ON public.tracking_events
+;
 CREATE POLICY "tracking_events_driver_insert" ON public.tracking_events
   FOR INSERT WITH CHECK (
     driver_id IN (
@@ -49,6 +53,8 @@ CREATE POLICY "tracking_events_driver_insert" ON public.tracking_events
     )
   );
 
+DROP POLICY IF EXISTS "tracking_events_admin_all" ON public.tracking_events
+;
 CREATE POLICY "tracking_events_admin_all" ON public.tracking_events
   FOR ALL USING (
     auth.uid() IN (

@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.broadcasts (
 
 ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "broadcasts_admin_all" ON public.broadcasts;
 CREATE POLICY "broadcasts_admin_all" ON public.broadcasts
   FOR ALL USING (
     EXISTS (
@@ -59,12 +60,15 @@ CREATE TABLE IF NOT EXISTS public.push_notifications (
 
 ALTER TABLE public.push_notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "push_owner_select" ON public.push_notifications;
 CREATE POLICY "push_owner_select" ON public.push_notifications
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "push_owner_update" ON public.push_notifications;
 CREATE POLICY "push_owner_update" ON public.push_notifications
   FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "push_service_insert" ON public.push_notifications;
 CREATE POLICY "push_service_insert" ON public.push_notifications
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
@@ -84,6 +88,7 @@ ALTER TABLE public.payment_validations ENABLE ROW LEVEL SECURITY;
 
 -- Only service_role writes; no row-level access for anon/authenticated
 -- (validated server-side via service_role key)
+DROP POLICY IF EXISTS "payment_validations_service_only" ON public.payment_validations;
 CREATE POLICY "payment_validations_service_only" ON public.payment_validations
   FOR ALL USING (FALSE);  -- blocks client access; service_role bypasses RLS
 
@@ -104,6 +109,7 @@ CREATE TABLE IF NOT EXISTS public.email_verifications (
 
 ALTER TABLE public.email_verifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "email_verifications_service_only" ON public.email_verifications;
 CREATE POLICY "email_verifications_service_only" ON public.email_verifications
   FOR ALL USING (FALSE);
 
@@ -124,6 +130,7 @@ CREATE TABLE IF NOT EXISTS public.password_resets (
 
 ALTER TABLE public.password_resets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "password_resets_service_only" ON public.password_resets;
 CREATE POLICY "password_resets_service_only" ON public.password_resets
   FOR ALL USING (FALSE);
 

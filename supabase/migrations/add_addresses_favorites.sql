@@ -21,15 +21,19 @@ CREATE TABLE IF NOT EXISTS public.addresses (
 
 ALTER TABLE public.addresses ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "addresses_owner_select" ON public.addresses;
 CREATE POLICY "addresses_owner_select" ON public.addresses
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "addresses_owner_insert" ON public.addresses;
 CREATE POLICY "addresses_owner_insert" ON public.addresses
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "addresses_owner_update" ON public.addresses;
 CREATE POLICY "addresses_owner_update" ON public.addresses
   FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "addresses_owner_delete" ON public.addresses;
 CREATE POLICY "addresses_owner_delete" ON public.addresses
   FOR DELETE USING (auth.uid() = user_id);
 
@@ -66,12 +70,15 @@ CREATE TABLE IF NOT EXISTS public.favorites (
 
 ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "favorites_owner_select" ON public.favorites;
 CREATE POLICY "favorites_owner_select" ON public.favorites
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "favorites_owner_insert" ON public.favorites;
 CREATE POLICY "favorites_owner_insert" ON public.favorites
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "favorites_owner_delete" ON public.favorites;
 CREATE POLICY "favorites_owner_delete" ON public.favorites
   FOR DELETE USING (auth.uid() = user_id);
 

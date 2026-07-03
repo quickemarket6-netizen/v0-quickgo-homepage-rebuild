@@ -24,11 +24,15 @@ CREATE TABLE IF NOT EXISTS public.vendor_wallets (
 
 ALTER TABLE public.vendor_wallets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "wallet_owner_select" ON public.vendor_wallets
+;
 CREATE POLICY "wallet_owner_select" ON public.vendor_wallets
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "wallet_admin_all" ON public.vendor_wallets
+;
 CREATE POLICY "wallet_admin_all" ON public.vendor_wallets
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -54,11 +58,15 @@ CREATE TABLE IF NOT EXISTS public.vendor_payout_accounts (
 
 ALTER TABLE public.vendor_payout_accounts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "payout_accounts_owner" ON public.vendor_payout_accounts
+;
 CREATE POLICY "payout_accounts_owner" ON public.vendor_payout_accounts
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "payout_accounts_admin" ON public.vendor_payout_accounts
+;
 CREATE POLICY "payout_accounts_admin" ON public.vendor_payout_accounts
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -101,6 +109,8 @@ CREATE TABLE IF NOT EXISTS public.vendor_payouts (
 
 ALTER TABLE public.vendor_payouts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "payouts_owner_select" ON public.vendor_payouts
+;
 CREATE POLICY "payouts_owner_select" ON public.vendor_payouts
   FOR SELECT USING (
     (owner_type = 'vendor' AND EXISTS (
@@ -112,9 +122,13 @@ CREATE POLICY "payouts_owner_select" ON public.vendor_payouts
     ))
   );
 
+DROP POLICY IF EXISTS "payouts_owner_insert" ON public.vendor_payouts
+;
 CREATE POLICY "payouts_owner_insert" ON public.vendor_payouts
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "payouts_admin_all" ON public.vendor_payouts
+;
 CREATE POLICY "payouts_admin_all" ON public.vendor_payouts
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -152,11 +166,15 @@ CREATE TABLE IF NOT EXISTS public.commission_logs (
 
 ALTER TABLE public.commission_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "commission_admin_all" ON public.commission_logs
+;
 CREATE POLICY "commission_admin_all" ON public.commission_logs
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
   );
 
+DROP POLICY IF EXISTS "commission_vendor_select" ON public.commission_logs
+;
 CREATE POLICY "commission_vendor_select" ON public.commission_logs
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
@@ -182,15 +200,23 @@ CREATE TABLE IF NOT EXISTS public.financial_notifications (
 
 ALTER TABLE public.financial_notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "fin_notif_owner_select" ON public.financial_notifications
+;
 CREATE POLICY "fin_notif_owner_select" ON public.financial_notifications
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "fin_notif_owner_update" ON public.financial_notifications
+;
 CREATE POLICY "fin_notif_owner_update" ON public.financial_notifications
   FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "fin_notif_service_insert" ON public.financial_notifications
+;
 CREATE POLICY "fin_notif_service_insert" ON public.financial_notifications
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "fin_notif_admin_all" ON public.financial_notifications
+;
 CREATE POLICY "fin_notif_admin_all" ON public.financial_notifications
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -217,11 +243,15 @@ CREATE TABLE IF NOT EXISTS public.payout_audit_logs (
 
 ALTER TABLE public.payout_audit_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "audit_logs_admin_select" ON public.payout_audit_logs
+;
 CREATE POLICY "audit_logs_admin_select" ON public.payout_audit_logs
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
   );
 
+DROP POLICY IF EXISTS "audit_logs_service_insert" ON public.payout_audit_logs
+;
 CREATE POLICY "audit_logs_service_insert" ON public.payout_audit_logs
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
