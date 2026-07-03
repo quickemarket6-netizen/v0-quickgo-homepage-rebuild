@@ -200,7 +200,7 @@ CREATE POLICY "vendor_wallet_owner_select" ON public.vendor_wallets
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.vendors
-      WHERE id = vendor_id AND owner_id = auth.uid()
+      WHERE id = vendor_id AND user_id = auth.uid()
     )
   );
 
