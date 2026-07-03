@@ -80,11 +80,14 @@ function CategoryFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.92, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 16 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl shadow-2xl w-full max-w-lg"
       >
         <div className="p-6 border-b border-[#1e1e2e] flex items-center justify-between">
@@ -204,7 +207,7 @@ function CategoryFormModal({
           </Button>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -267,7 +270,9 @@ export default function AdminCategoriesPage() {
       <AdminSidebar />
 
       <div className="flex-1 flex flex-col text-white">
-        <header className="bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
             <h1 className="text-xl font-bold text-white">Catégories</h1>
             <p className="text-sm text-[#6b6b8a]">
@@ -286,7 +291,7 @@ export default function AdminCategoriesPage() {
               Nouvelle catégorie
             </Button>
           </div>
-        </header>
+        </motion.header>
 
         <main className="flex-1 p-8 space-y-6">
           {/* Summary cards */}
@@ -296,7 +301,11 @@ export default function AdminCategoriesPage() {
               { label: "Catégories inactives", value: inactiveCount,      icon: EyeOff,       color: "text-[#6b6b8a]", bg: "bg-[#1e1e2e]"    },
               { label: "Total",                value: categories.length,  icon: ArrowUpDown,  color: "text-[#a3e635]",  bg: "bg-[#a3e635]/20" },
             ].map((c, i) => (
-              <div key={i} className="bg-[#16161f] rounded-2xl p-5 border border-[#1e1e2e] flex items-center gap-4">
+              <motion.div key={i}
+                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -3 }}
+                className="bg-[#16161f] rounded-2xl p-5 border border-[#1e1e2e] flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl ${c.bg} flex items-center justify-center shrink-0`}>
                   <c.icon size={20} className={c.color} />
                 </div>
@@ -304,12 +313,14 @@ export default function AdminCategoriesPage() {
                   <p className="text-xs text-[#6b6b8a]">{c.label}</p>
                   <p className="text-2xl font-bold text-white">{c.value}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
 
           {/* List */}
-          <div className="bg-[#16161f] rounded-2xl border border-[#1e1e2e] overflow-hidden">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="bg-[#16161f] rounded-2xl border border-[#1e1e2e] overflow-hidden">
             <div className="px-6 py-4 border-b border-[#1e1e2e] flex items-center gap-2">
               <FolderTree size={18} className="text-[#a3e635]" />
               <h2 className="font-semibold text-white">Toutes les catégories</h2>
@@ -320,21 +331,25 @@ export default function AdminCategoriesPage() {
                 <RefreshCw className="animate-spin text-[#a3e635]" size={28} />
               </div>
             ) : categories.length === 0 ? (
-              <div className="p-12 text-center">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }} className="p-12 text-center">
                 <FolderTree className="mx-auto text-[#1e1e2e] mb-3" size={40} />
                 <p className="text-[#6b6b8a] font-medium">Aucune catégorie</p>
                 <p className="text-sm text-[#6b6b8a]/60 mt-1">Créez votre première catégorie de produits</p>
                 <Button onClick={openCreate} className="mt-4 gap-2 bg-[#a3e635] hover:bg-[#92cc2e] text-black font-semibold">
                   <Plus size={14} /> Créer une catégorie
                 </Button>
-              </div>
+              </motion.div>
             ) : (
               <div className="divide-y divide-[#1e1e2e]">
+                <AnimatePresence mode="popLayout" initial={false}>
                 {[...categories].sort((a, b) => a.sort_order - b.sort_order).map((cat, i) => (
                   <motion.div
                     key={cat.id}
+                    layout
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 24, transition: { duration: 0.2 } }}
                     transition={{ delay: Math.min(i * 0.03, 0.4) }}
                     className={`flex items-center gap-4 px-6 py-4 hover:bg-[#1e1e2e]/40 transition-colors ${!cat.is_active ? "opacity-50" : ""}`}
                   >
@@ -396,9 +411,10 @@ export default function AdminCategoriesPage() {
                     </div>
                   </motion.div>
                 ))}
+                </AnimatePresence>
               </div>
             )}
-          </div>
+          </motion.div>
         </main>
       </div>
 
