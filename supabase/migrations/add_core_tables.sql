@@ -20,9 +20,11 @@ CREATE TABLE IF NOT EXISTS public.categories (
 
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "categories_read_all" ON public.categories;
 CREATE POLICY "categories_read_all" ON public.categories
   FOR SELECT USING (TRUE);
 
+DROP POLICY IF EXISTS "categories_admin_write" ON public.categories;
 CREATE POLICY "categories_admin_write" ON public.categories
   FOR ALL USING (
     EXISTS (
@@ -50,15 +52,19 @@ CREATE TABLE IF NOT EXISTS public.cart_items (
 
 ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "cart_owner_select" ON public.cart_items;
 CREATE POLICY "cart_owner_select" ON public.cart_items
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "cart_owner_insert" ON public.cart_items;
 CREATE POLICY "cart_owner_insert" ON public.cart_items
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "cart_owner_update" ON public.cart_items;
 CREATE POLICY "cart_owner_update" ON public.cart_items
   FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "cart_owner_delete" ON public.cart_items;
 CREATE POLICY "cart_owner_delete" ON public.cart_items
   FOR DELETE USING (auth.uid() = user_id);
 
@@ -83,6 +89,7 @@ CREATE TABLE IF NOT EXISTS public.order_items (
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
 -- Customer can read their own order items via the orders join
+DROP POLICY IF EXISTS "order_items_customer_select" ON public.order_items;
 CREATE POLICY "order_items_customer_select" ON public.order_items
   FOR SELECT USING (
     EXISTS (
@@ -92,16 +99,18 @@ CREATE POLICY "order_items_customer_select" ON public.order_items
   );
 
 -- Vendor can read items of orders belonging to their shop
+DROP POLICY IF EXISTS "order_items_vendor_select" ON public.order_items;
 CREATE POLICY "order_items_vendor_select" ON public.order_items
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.orders o
       JOIN public.vendors v ON v.id = o.vendor_id
-      WHERE o.id = order_id AND v.owner_id = auth.uid()
+      WHERE o.id = order_id AND v.user_id = auth.uid()
     )
   );
 
 -- Only server-side (service_role) inserts items during order creation
+DROP POLICY IF EXISTS "order_items_service_insert" ON public.order_items;
 CREATE POLICY "order_items_service_insert" ON public.order_items
   FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
@@ -186,6 +195,7 @@ CREATE TABLE IF NOT EXISTS public.vendor_wallets (
 
 ALTER TABLE public.vendor_wallets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "vendor_wallet_owner_select" ON public.vendor_wallets;
 CREATE POLICY "vendor_wallet_owner_select" ON public.vendor_wallets
   FOR SELECT USING (
     EXISTS (
@@ -194,6 +204,7 @@ CREATE POLICY "vendor_wallet_owner_select" ON public.vendor_wallets
     )
   );
 
+DROP POLICY IF EXISTS "vendor_wallet_admin_all" ON public.vendor_wallets;
 CREATE POLICY "vendor_wallet_admin_all" ON public.vendor_wallets
   FOR ALL USING (
     EXISTS (

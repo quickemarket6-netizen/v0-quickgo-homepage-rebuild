@@ -35,10 +35,14 @@ CREATE TABLE IF NOT EXISTS public.driver_missions (
 ALTER TABLE public.driver_missions ENABLE ROW LEVEL SECURITY;
 
 -- All drivers can read active missions
+DROP POLICY IF EXISTS "driver_missions_read" ON public.driver_missions
+;
 CREATE POLICY "driver_missions_read" ON public.driver_missions
   FOR SELECT USING (is_active = TRUE AND valid_until > NOW());
 
 -- Only admins write missions
+DROP POLICY IF EXISTS "driver_missions_admin_write" ON public.driver_missions
+;
 CREATE POLICY "driver_missions_admin_write" ON public.driver_missions
   FOR ALL USING (
     EXISTS (
@@ -70,6 +74,8 @@ CREATE TABLE IF NOT EXISTS public.driver_mission_progress (
 ALTER TABLE public.driver_mission_progress ENABLE ROW LEVEL SECURITY;
 
 -- Drivers see their own progress
+DROP POLICY IF EXISTS "mission_progress_owner_select" ON public.driver_mission_progress
+;
 CREATE POLICY "mission_progress_owner_select" ON public.driver_mission_progress
   FOR SELECT USING (
     EXISTS (
@@ -78,6 +84,8 @@ CREATE POLICY "mission_progress_owner_select" ON public.driver_mission_progress
     )
   );
 
+DROP POLICY IF EXISTS "mission_progress_owner_insert" ON public.driver_mission_progress
+;
 CREATE POLICY "mission_progress_owner_insert" ON public.driver_mission_progress
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -87,6 +95,8 @@ CREATE POLICY "mission_progress_owner_insert" ON public.driver_mission_progress
   );
 
 -- Admins see and update everything (for reward payout)
+DROP POLICY IF EXISTS "mission_progress_admin_all" ON public.driver_mission_progress
+;
 CREATE POLICY "mission_progress_admin_all" ON public.driver_mission_progress
   FOR ALL USING (
     EXISTS (
@@ -147,9 +157,13 @@ CREATE TABLE IF NOT EXISTS public.delivery_requests (
 
 ALTER TABLE public.delivery_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "delivery_req_owner_select" ON public.delivery_requests
+;
 CREATE POLICY "delivery_req_owner_select" ON public.delivery_requests
   FOR SELECT USING (auth.uid() = customer_id);
 
+DROP POLICY IF EXISTS "delivery_req_driver_select" ON public.delivery_requests
+;
 CREATE POLICY "delivery_req_driver_select" ON public.delivery_requests
   FOR SELECT USING (
     EXISTS (
@@ -158,6 +172,8 @@ CREATE POLICY "delivery_req_driver_select" ON public.delivery_requests
     )
   );
 
+DROP POLICY IF EXISTS "delivery_req_admin_all" ON public.delivery_requests
+;
 CREATE POLICY "delivery_req_admin_all" ON public.delivery_requests
   FOR ALL USING (
     EXISTS (

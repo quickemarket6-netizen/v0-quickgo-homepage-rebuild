@@ -42,14 +42,20 @@ CREATE TABLE IF NOT EXISTS public.security_logs (
 
 ALTER TABLE public.security_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "security_logs_admin_select" ON public.security_logs
+;
 CREATE POLICY "security_logs_admin_select" ON public.security_logs
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
   );
 
+DROP POLICY IF EXISTS "security_logs_service_insert" ON public.security_logs
+;
 CREATE POLICY "security_logs_service_insert" ON public.security_logs
   FOR INSERT WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "security_logs_admin_update" ON public.security_logs
+;
 CREATE POLICY "security_logs_admin_update" ON public.security_logs
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -83,14 +89,20 @@ CREATE TABLE IF NOT EXISTS public.login_attempts (
 
 ALTER TABLE public.login_attempts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "login_attempts_admin_select" ON public.login_attempts
+;
 CREATE POLICY "login_attempts_admin_select" ON public.login_attempts
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
   );
 
+DROP POLICY IF EXISTS "login_attempts_user_select" ON public.login_attempts
+;
 CREATE POLICY "login_attempts_user_select" ON public.login_attempts
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "login_attempts_service_insert" ON public.login_attempts
+;
 CREATE POLICY "login_attempts_service_insert" ON public.login_attempts
   FOR INSERT WITH CHECK (TRUE);
 
@@ -117,11 +129,15 @@ CREATE TABLE IF NOT EXISTS public.admin_action_logs (
 
 ALTER TABLE public.admin_action_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "admin_action_logs_admin_select" ON public.admin_action_logs
+;
 CREATE POLICY "admin_action_logs_admin_select" ON public.admin_action_logs
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
   );
 
+DROP POLICY IF EXISTS "admin_action_logs_service_insert" ON public.admin_action_logs
+;
 CREATE POLICY "admin_action_logs_service_insert" ON public.admin_action_logs
   FOR INSERT WITH CHECK (TRUE);
 
@@ -146,11 +162,15 @@ CREATE TABLE IF NOT EXISTS public.blocked_ips (
 
 ALTER TABLE public.blocked_ips ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "blocked_ips_admin_all" ON public.blocked_ips
+;
 CREATE POLICY "blocked_ips_admin_all" ON public.blocked_ips
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
   );
 
+DROP POLICY IF EXISTS "blocked_ips_service_insert" ON public.blocked_ips
+;
 CREATE POLICY "blocked_ips_service_insert" ON public.blocked_ips
   FOR INSERT WITH CHECK (TRUE);
 

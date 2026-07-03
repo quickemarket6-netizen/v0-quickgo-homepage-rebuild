@@ -41,19 +41,25 @@ CREATE TABLE IF NOT EXISTS public.support_tickets (
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 
 -- Customers / vendors / drivers see only their own tickets
+DROP POLICY IF EXISTS "tickets_owner_select" ON public.support_tickets
+;
 CREATE POLICY "tickets_owner_select" ON public.support_tickets
   FOR SELECT USING (
     auth.uid() = customer_id
     OR EXISTS (
       SELECT 1 FROM public.vendors v
-      WHERE v.id = vendor_id AND v.owner_id = auth.uid()
+      WHERE v.id = vendor_id AND v.user_id = auth.uid()
     )
   );
 
+DROP POLICY IF EXISTS "tickets_owner_insert" ON public.support_tickets
+;
 CREATE POLICY "tickets_owner_insert" ON public.support_tickets
   FOR INSERT WITH CHECK (auth.uid() = customer_id OR auth.uid() IS NOT NULL);
 
 -- Admins see and update everything
+DROP POLICY IF EXISTS "tickets_admin_all" ON public.support_tickets
+;
 CREATE POLICY "tickets_admin_all" ON public.support_tickets
   FOR ALL USING (
     EXISTS (
@@ -90,6 +96,8 @@ CREATE TABLE IF NOT EXISTS public.ticket_messages (
 ALTER TABLE public.ticket_messages ENABLE ROW LEVEL SECURITY;
 
 -- Ticket owner can read non-internal messages
+DROP POLICY IF EXISTS "tmsg_owner_select" ON public.ticket_messages
+;
 CREATE POLICY "tmsg_owner_select" ON public.ticket_messages
   FOR SELECT USING (
     is_internal = FALSE
@@ -99,13 +107,15 @@ CREATE POLICY "tmsg_owner_select" ON public.ticket_messages
         AND (
           t.customer_id = auth.uid()
           OR EXISTS (
-            SELECT 1 FROM public.vendors v WHERE v.id = t.vendor_id AND v.owner_id = auth.uid()
+            SELECT 1 FROM public.vendors v WHERE v.id = t.vendor_id AND v.user_id = auth.uid()
           )
         )
     )
   );
 
 -- Ticket owner can insert non-internal messages
+DROP POLICY IF EXISTS "tmsg_owner_insert" ON public.ticket_messages
+;
 CREATE POLICY "tmsg_owner_insert" ON public.ticket_messages
   FOR INSERT WITH CHECK (
     is_internal = FALSE
@@ -113,6 +123,8 @@ CREATE POLICY "tmsg_owner_insert" ON public.ticket_messages
   );
 
 -- Admins see all (including internal notes) and can insert
+DROP POLICY IF EXISTS "tmsg_admin_all" ON public.ticket_messages
+;
 CREATE POLICY "tmsg_admin_all" ON public.ticket_messages
   FOR ALL USING (
     EXISTS (
@@ -155,6 +167,8 @@ CREATE TABLE IF NOT EXISTS public.customer_notes (
 
 ALTER TABLE public.customer_notes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "cnotes_admin_all" ON public.customer_notes
+;
 CREATE POLICY "cnotes_admin_all" ON public.customer_notes
   FOR ALL USING (
     EXISTS (

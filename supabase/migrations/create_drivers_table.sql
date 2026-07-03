@@ -29,6 +29,8 @@ CREATE INDEX IF NOT EXISTS idx_drivers_city     ON public.drivers(city);
 -- ── RLS ──────────────────────────────────────────────────────────────────────
 ALTER TABLE public.drivers ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins manage all drivers" ON public.drivers
+;
 CREATE POLICY "Admins manage all drivers" ON public.drivers
   FOR ALL USING (
     auth.uid() IN (
@@ -37,9 +39,13 @@ CREATE POLICY "Admins manage all drivers" ON public.drivers
     )
   );
 
+DROP POLICY IF EXISTS "Drivers see own record" ON public.drivers
+;
 CREATE POLICY "Drivers see own record" ON public.drivers
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Drivers update own status" ON public.drivers
+;
 CREATE POLICY "Drivers update own status" ON public.drivers
   FOR UPDATE USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
