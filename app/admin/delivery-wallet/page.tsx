@@ -103,11 +103,14 @@ function PayDriverModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.92, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 16 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className="bg-[#16161f] border border-[#1e1e2e] rounded-2xl shadow-2xl w-full max-w-md"
       >
         {/* Header */}
@@ -211,7 +214,7 @@ function PayDriverModal({
           </Button>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -253,7 +256,9 @@ export default function AdminDeliveryWalletPage() {
 
       <div className="flex-1 flex flex-col text-white">
         {/* Header */}
-        <header className="bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+        <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-8 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
             <h1 className="text-xl font-bold text-white">Compte livraison — Rémunération chauffeurs</h1>
             <p className="text-sm text-[#6b6b8a]">Gestion du wallet livraison séparé</p>
@@ -273,7 +278,7 @@ export default function AdminDeliveryWalletPage() {
               Actualiser
             </Button>
           </div>
-        </header>
+        </motion.header>
 
         <main className="flex-1 p-8 space-y-6">
           {/* Wallet balance cards */}
@@ -287,9 +292,10 @@ export default function AdminDeliveryWalletPage() {
             ].map((c, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.05, 0.4) }}
+                transition={{ duration: 0.45, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -3 }}
                 className={`bg-[#16161f] rounded-2xl p-5 border ${(c as { highlight?: boolean }).highlight ? "border-blue-500/30" : "border-[#1e1e2e]"} relative overflow-hidden`}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -306,7 +312,9 @@ export default function AdminDeliveryWalletPage() {
 
           {/* Pending payment alert */}
           {(data?.pending_payment ?? 0) > 0 && (
-            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: 0.15 }}
+              className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
               <AlertTriangle className="text-amber-400 shrink-0" size={22} />
               <div>
                 <p className="font-semibold text-amber-300">
@@ -320,11 +328,13 @@ export default function AdminDeliveryWalletPage() {
                 className="ml-auto bg-amber-600 hover:bg-amber-700 text-white shrink-0">
                 Traiter maintenant
               </Button>
-            </div>
+            </motion.div>
           )}
 
           {/* Deliveries table */}
-          <div className="bg-[#16161f] rounded-2xl border border-[#1e1e2e] overflow-hidden">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="bg-[#16161f] rounded-2xl border border-[#1e1e2e] overflow-hidden">
             {/* Toolbar */}
             <div className="px-6 py-4 border-b border-[#1e1e2e] flex items-center gap-3">
               <Truck size={18} className="text-blue-400" />
@@ -365,7 +375,8 @@ export default function AdminDeliveryWalletPage() {
                 <RefreshCw className="animate-spin text-blue-400" size={28} />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="p-12 text-center">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }} className="p-12 text-center">
                 <Truck className="mx-auto text-[#1e1e2e] mb-3" size={40} />
                 <p className="text-[#6b6b8a] font-medium">
                   {filter === "unpaid" ? "Aucune rémunération en attente" : "Aucune livraison trouvée"}
@@ -373,7 +384,7 @@ export default function AdminDeliveryWalletPage() {
                 <p className="text-sm text-[#6b6b8a]/60 mt-1">
                   {filter === "unpaid" ? "Tous les chauffeurs sont à jour ✓" : "Modifiez les filtres"}
                 </p>
-              </div>
+              </motion.div>
             ) : (
               <div className="divide-y divide-[#1e1e2e]">
                 {filtered.map((delivery, i) => (
@@ -451,7 +462,7 @@ export default function AdminDeliveryWalletPage() {
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         </main>
       </div>
 
