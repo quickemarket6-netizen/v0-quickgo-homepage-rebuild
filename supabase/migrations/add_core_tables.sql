@@ -105,7 +105,7 @@ CREATE POLICY "order_items_vendor_select" ON public.order_items
     EXISTS (
       SELECT 1 FROM public.orders o
       JOIN public.vendors v ON v.id = o.vendor_id
-      WHERE o.id = order_id AND v.owner_id = auth.uid()
+      WHERE o.id = order_id AND v.user_id = auth.uid()
     )
   );
 
@@ -200,7 +200,7 @@ CREATE POLICY "vendor_wallet_owner_select" ON public.vendor_wallets
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.vendors
-      WHERE id = vendor_id AND owner_id = auth.uid()
+      WHERE id = vendor_id AND user_id = auth.uid()
     )
   );
 

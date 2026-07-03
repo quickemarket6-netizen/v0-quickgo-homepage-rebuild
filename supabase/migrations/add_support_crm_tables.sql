@@ -48,7 +48,7 @@ CREATE POLICY "tickets_owner_select" ON public.support_tickets
     auth.uid() = customer_id
     OR EXISTS (
       SELECT 1 FROM public.vendors v
-      WHERE v.id = vendor_id AND v.owner_id = auth.uid()
+      WHERE v.id = vendor_id AND v.user_id = auth.uid()
     )
   );
 
@@ -107,7 +107,7 @@ CREATE POLICY "tmsg_owner_select" ON public.ticket_messages
         AND (
           t.customer_id = auth.uid()
           OR EXISTS (
-            SELECT 1 FROM public.vendors v WHERE v.id = t.vendor_id AND v.owner_id = auth.uid()
+            SELECT 1 FROM public.vendors v WHERE v.id = t.vendor_id AND v.user_id = auth.uid()
           )
         )
     )
