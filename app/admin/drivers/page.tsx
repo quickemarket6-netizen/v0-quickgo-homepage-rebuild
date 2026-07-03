@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Truck, Search, Star, Phone, CheckCircle, Clock, Ban,
   Eye, ChevronLeft, ChevronRight, Download, UserPlus, Bike, Car,
@@ -142,7 +142,9 @@ export default function AdminDriversPage() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-6 py-4">
+        <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="sticky top-0 z-40 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-[#1e1e2e] px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">Gestion des Livreurs</h1>
@@ -157,13 +159,16 @@ export default function AdminDriversPage() {
               </Button>
             </div>
           </div>
-        </header>
+        </motion.header>
 
         <div className="p-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {summaryCards.map(({ key, label, icon: Icon, color, bg }) => (
-              <button key={key} onClick={() => { setStatusFilter(key); setPage(1) }}
+            {summaryCards.map(({ key, label, icon: Icon, color, bg }, i) => (
+              <motion.button key={key} onClick={() => { setStatusFilter(key); setPage(1) }}
+                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}
                 className={`p-4 rounded-2xl border transition-all text-left ${
                   statusFilter === key ? "border-quickgo-blue bg-quickgo-blue/10" : "bg-card/50 border-border/30 hover:border-border/60"
                 }`}
@@ -177,12 +182,14 @@ export default function AdminDriversPage() {
                     <p className="text-xs text-muted-foreground">{label}</p>
                   </div>
                 </div>
-              </button>
+              </motion.button>
             ))}
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Rechercher un livreur..." value={search}
@@ -197,11 +204,13 @@ export default function AdminDriversPage() {
                 </Button>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Error banner */}
           {!loading && error && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-semibold">Échec du chargement des livreurs</p>
@@ -211,7 +220,7 @@ export default function AdminDriversPage() {
                 className="rounded-full gap-2 shrink-0">
                 <RefreshCw className="w-3.5 h-3.5" /> Réessayer
               </Button>
-            </div>
+            </motion.div>
           )}
 
           {/* Drivers Grid */}
@@ -222,22 +231,24 @@ export default function AdminDriversPage() {
               ))}
             </div>
           ) : drivers.length === 0 ? (
-            <div className="text-center py-16">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }} className="text-center py-16">
               <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">Aucun livreur trouvé</p>
-            </div>
+            </motion.div>
           ) : (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="grid md:grid-cols-2 xl:grid-cols-3 gap-4"
-            >
-              {drivers.map((driver) => {
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {drivers.map((driver, i) => {
                 const name = (driver.user as { full_name?: string } | null)?.full_name ?? "—"
                 const phone = (driver.user as { phone?: string } | null)?.phone ?? "—"
                 const email = (driver.user as { email?: string } | null)?.email ?? "—"
                 const statusDot = STATUS_CONFIG[driver.status]?.dot ?? "bg-gray-500"
                 const VehicleIcon = driver.vehicle_type === "voiture" ? Car : Bike
                 return (
-                  <div key={driver.id}
+                  <motion.div key={driver.id}
+                    initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: Math.min(i * 0.06, 0.5), ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ y: -4 }}
                     className="p-6 rounded-2xl bg-card/50 border border-border/30 hover:border-quickgo-blue/30 transition-all"
                   >
                     {/* Header */}
@@ -304,15 +315,17 @@ export default function AdminDriversPage() {
                         {STATUS_CONFIG[driver.status]?.label ?? driver.status}
                       </span>
                     </div>
-                  </div>
+                  </motion.div>
                 )
               })}
-            </motion.div>
+            </div>
           )}
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="flex items-center justify-between mt-6">
               <p className="text-sm text-muted-foreground">
                 {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, total)} sur {total.toLocaleString()} livreurs
               </p>
@@ -333,15 +346,19 @@ export default function AdminDriversPage() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       </main>
 
       {/* Add Driver Modal */}
+      <AnimatePresence>
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.92, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 16 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-[#16161f] border border-[#1e1e2e] rounded-3xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold text-white mb-1">Nouveau livreur</h3>
             <p className="text-sm text-muted-foreground mb-4">
@@ -389,8 +406,9 @@ export default function AdminDriversPage() {
               </div>
             </form>
           </motion.div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }
