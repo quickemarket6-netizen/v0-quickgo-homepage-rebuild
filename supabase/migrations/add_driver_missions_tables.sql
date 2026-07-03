@@ -194,7 +194,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.delivery_requests;
 
 -- ── PATCH drivers — missing columns ─────────────────────────
 
-ALTER TABLE public.drivers
+ALTER TABLE IF EXISTS public.drivers
   ADD COLUMN IF NOT EXISTS is_online           BOOLEAN   NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS current_latitude    NUMERIC,
   ADD COLUMN IF NOT EXISTS current_longitude   NUMERIC,

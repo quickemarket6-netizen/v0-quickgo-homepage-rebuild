@@ -3,7 +3,7 @@
 -- ================================================================
 
 -- ── GPS columns on drivers ────────────────────────────────────────────────────
-ALTER TABLE public.drivers
+ALTER TABLE IF EXISTS public.drivers
   ADD COLUMN IF NOT EXISTS current_latitude    NUMERIC(10,7),
   ADD COLUMN IF NOT EXISTS current_longitude   NUMERIC(10,7),
   ADD COLUMN IF NOT EXISTS last_location_update TIMESTAMPTZ;
