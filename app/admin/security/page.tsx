@@ -154,11 +154,15 @@ export default function SecurityDashboardPage() {
       <div className="flex-1 overflow-auto p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+            <motion.div initial={{ scale: 0.8, rotate: -8 }} animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.1 }}
+              className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
               <Shield className="w-6 h-6 text-white" />
-            </div>
+            </motion.div>
             <div>
               <h1 className="text-2xl font-bold">Centre de Securite</h1>
               <p className="text-sm text-muted-foreground">Surveillance et protection en temps reel</p>
@@ -184,75 +188,41 @@ export default function SecurityDashboardPage() {
               Export
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Critiques</p>
-                  <p className="text-2xl font-bold text-red-500">{stats.criticalThreats}</p>
-                </div>
-                <ShieldX className="w-8 h-8 text-red-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Elevees</p>
-                  <p className="text-2xl font-bold text-orange-500">{stats.highThreats}</p>
-                </div>
-                <ShieldAlert className="w-8 h-8 text-orange-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total menaces</p>
-                  <p className="text-2xl font-bold text-blue-500">{stats.totalThreats}</p>
-                </div>
-                <Bug className="w-8 h-8 text-blue-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">IPs bloquees</p>
-                  <p className="text-2xl font-bold text-purple-500">{stats.blockedIPs}</p>
-                </div>
-                <Ban className="w-8 h-8 text-purple-500/50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Securite</p>
-                  <p className="text-2xl font-bold text-green-500">{stats.securityScore}%</p>
-                </div>
-                <ShieldCheck className="w-8 h-8 text-green-500/50" />
-              </div>
-            </CardContent>
-          </Card>
+          {([
+            { label: "Critiques",     value: String(stats.criticalThreats),  card: "bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20",          text: "text-red-500",    Icon: ShieldX },
+            { label: "Elevees",       value: String(stats.highThreats),      card: "bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20", text: "text-orange-500", Icon: ShieldAlert },
+            { label: "Total menaces", value: String(stats.totalThreats),     card: "bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20",       text: "text-blue-500",   Icon: Bug },
+            { label: "IPs bloquees",  value: String(stats.blockedIPs),       card: "bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20", text: "text-purple-500", Icon: Ban },
+            { label: "Securite",      value: `${stats.securityScore}%`,      card: "bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20",    text: "text-green-500",  Icon: ShieldCheck },
+          ] as const).map(({ label, value, card, text, Icon }, i) => (
+            <motion.div key={label} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -3 }}>
+              <Card className={`h-full ${card}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                      <p className={`text-2xl font-bold ${text}`}>{value}</p>
+                    </div>
+                    <Icon className={`w-8 h-8 ${text} opacity-50`} />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Threats List */}
-          <div className="lg:col-span-2 space-y-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="lg:col-span-2 space-y-4">
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -353,12 +323,19 @@ export default function SecurityDashboardPage() {
                 </ScrollArea>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
 
           {/* Sidebar */}
-          <div className="space-y-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="space-y-4">
             {/* Threat Details */}
+            <AnimatePresence>
             {selectedThreat && (
+              <motion.div key={selectedThreat.id}
+                initial={{ opacity: 0, scale: 0.95, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}>
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -430,7 +407,9 @@ export default function SecurityDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
+              </motion.div>
             )}
+            </AnimatePresence>
 
             {/* Blocked IPs */}
             <Card>
@@ -443,9 +422,14 @@ export default function SecurityDashboardPage() {
               <CardContent>
                 <ScrollArea className="h-[200px]">
                   <div className="space-y-2">
+                    <AnimatePresence mode="popLayout" initial={false}>
                     {blockedIPs.map((ip) => (
-                      <div 
+                      <motion.div
                         key={ip}
+                        layout
+                        initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.25 }}
                         className="flex items-center justify-between p-2 rounded-lg bg-red-500/10"
                       >
                         <span className="font-mono text-sm">{ip}</span>
@@ -457,8 +441,9 @@ export default function SecurityDashboardPage() {
                         >
                           <Unlock className="w-4 h-4" />
                         </Button>
-                      </div>
+                      </motion.div>
                     ))}
+                    </AnimatePresence>
                   </div>
                 </ScrollArea>
               </CardContent>
@@ -488,7 +473,7 @@ export default function SecurityDashboardPage() {
                 </Button>
               </CardContent>
             </Card>
-          </div>
+          </motion.div>
         </div>
       </div>
       </div>
