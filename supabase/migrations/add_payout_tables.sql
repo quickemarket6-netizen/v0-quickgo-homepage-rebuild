@@ -28,7 +28,7 @@ DROP POLICY IF EXISTS "wallet_owner_select" ON public.vendor_wallets
 ;
 CREATE POLICY "wallet_owner_select" ON public.vendor_wallets
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 DROP POLICY IF EXISTS "wallet_admin_all" ON public.vendor_wallets
@@ -62,7 +62,7 @@ DROP POLICY IF EXISTS "payout_accounts_owner" ON public.vendor_payout_accounts
 ;
 CREATE POLICY "payout_accounts_owner" ON public.vendor_payout_accounts
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 DROP POLICY IF EXISTS "payout_accounts_admin" ON public.vendor_payout_accounts
@@ -114,7 +114,7 @@ DROP POLICY IF EXISTS "payouts_owner_select" ON public.vendor_payouts
 CREATE POLICY "payouts_owner_select" ON public.vendor_payouts
   FOR SELECT USING (
     (owner_type = 'vendor' AND EXISTS (
-      SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid()
+      SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid()
     ))
     OR
     (owner_type = 'driver' AND EXISTS (
@@ -177,7 +177,7 @@ DROP POLICY IF EXISTS "commission_vendor_select" ON public.commission_logs
 ;
 CREATE POLICY "commission_vendor_select" ON public.commission_logs
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 CREATE INDEX IF NOT EXISTS commission_vendor_idx ON public.commission_logs (vendor_id, created_at DESC);

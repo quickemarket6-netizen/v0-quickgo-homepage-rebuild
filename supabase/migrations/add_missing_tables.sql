@@ -128,7 +128,7 @@ ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "coupons_owner_all" ON public.coupons;
 CREATE POLICY "coupons_owner_all" ON public.coupons
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 DROP POLICY IF EXISTS "coupons_admin_all" ON public.coupons;
@@ -169,7 +169,7 @@ ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "promotions_owner_all" ON public.promotions;
 CREATE POLICY "promotions_owner_all" ON public.promotions
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 DROP POLICY IF EXISTS "promotions_admin_all" ON public.promotions;
@@ -249,7 +249,7 @@ ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "conversations_vendor_all" ON public.conversations;
 CREATE POLICY "conversations_vendor_all" ON public.conversations
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 DROP POLICY IF EXISTS "conversations_customer_select" ON public.conversations;
@@ -292,7 +292,7 @@ CREATE POLICY "messages_conversation_participant" ON public.messages
       WHERE c.id = conversation_id
         AND (
           c.customer_id = auth.uid()
-          OR EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = c.vendor_id AND v.owner_id = auth.uid())
+          OR EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = c.vendor_id AND v.user_id = auth.uid())
         )
     )
   );
@@ -331,7 +331,7 @@ ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "team_members_owner_all" ON public.team_members;
 CREATE POLICY "team_members_owner_all" ON public.team_members
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 DROP POLICY IF EXISTS "team_members_admin_all" ON public.team_members;
@@ -386,7 +386,7 @@ CREATE POLICY "product_reviews_customer_insert" ON public.product_reviews
 DROP POLICY IF EXISTS "product_reviews_vendor_respond" ON public.product_reviews;
 CREATE POLICY "product_reviews_vendor_respond" ON public.product_reviews
   FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
   );
 
 DROP POLICY IF EXISTS "product_reviews_admin_all" ON public.product_reviews;
