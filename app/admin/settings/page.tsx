@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -156,8 +156,9 @@ export default function AdminSettingsPage() {
       <div className="flex-1 overflow-auto p-6 lg:p-8 text-white">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8"
         >
           <div>
@@ -198,15 +199,17 @@ export default function AdminSettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              transition={{ duration: 0.45, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               className="lg:col-span-1"
             >
               <div className="p-4 rounded-2xl bg-[#16161f] border border-[#1e1e2e]">
                 <nav className="space-y-1">
                   {settingsSections.map((s) => (
-                    <button
+                    <motion.button
                       key={s.id}
                       onClick={() => setActiveSection(s.id)}
+                      whileHover={{ x: 3 }}
+                      whileTap={{ scale: 0.98 }}
                       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${
                         activeSection === s.id
                           ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
@@ -215,7 +218,7 @@ export default function AdminSettingsPage() {
                     >
                       <s.icon className="h-5 w-5" />
                       {s.label}
-                    </button>
+                    </motion.button>
                   ))}
                 </nav>
               </div>
@@ -225,9 +228,17 @@ export default function AdminSettingsPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
+              transition={{ duration: 0.45, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
               className="lg:col-span-3 space-y-6"
             >
+              <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSection}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              >
               {/* ── GENERAL ── */}
               {activeSection === "general" && (
                 <div className="p-6 rounded-2xl bg-[#16161f] border border-[#1e1e2e]">
@@ -448,6 +459,8 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
               )}
+              </motion.div>
+              </AnimatePresence>
 
               {/* Warning */}
               <div className="p-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-start gap-3">
