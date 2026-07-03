@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Users, Search, Phone, Calendar, Eye, Download, UserPlus, ChevronLeft, ChevronRight,
   AlertTriangle, RefreshCw } from "lucide-react"
@@ -115,7 +115,9 @@ export default function AdminUsersPage() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
+        <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">Gestion des Clients</h1>
@@ -130,20 +132,24 @@ export default function AdminUsersPage() {
               </Button>
             </div>
           </div>
-        </header>
+        </motion.header>
 
         <div className="p-6">
           {/* Search */}
-          <div className="relative max-w-md mb-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="relative max-w-md mb-6">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Rechercher un client..." value={search}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 bg-card/50 border-border/30" />
-          </div>
+          </motion.div>
 
           {/* Error banner */}
           {!loading && error && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-semibold">Échec du chargement des clients</p>
@@ -153,11 +159,12 @@ export default function AdminUsersPage() {
                 className="rounded-full gap-2 shrink-0">
                 <RefreshCw className="w-3.5 h-3.5" /> Réessayer
               </Button>
-            </div>
+            </motion.div>
           )}
 
           {/* Table */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="bg-card/50 backdrop-blur-xl rounded-3xl border border-border/30 overflow-hidden"
           >
             <div className="overflow-x-auto">
@@ -185,8 +192,11 @@ export default function AdminUsersPage() {
                         Aucun client trouvé
                       </td>
                     </tr>
-                  ) : users.map((user) => (
-                    <tr key={user.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
+                  ) : users.map((user, i) => (
+                    <motion.tr key={user.id}
+                      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.35, delay: Math.min(i * 0.04, 0.4), ease: [0.22, 1, 0.36, 1] }}
+                      className="border-b border-border/20 hover:bg-white/5 transition-colors">
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-white font-bold text-sm shrink-0">
@@ -221,7 +231,7 @@ export default function AdminUsersPage() {
                           <Eye className="h-4 w-4" />
                         </Button>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
@@ -253,9 +263,13 @@ export default function AdminUsersPage() {
       </main>
 
       {/* Add User Modal */}
+      <AnimatePresence>
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.92, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 16 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="bg-card border border-border/50 rounded-3xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold text-white mb-4">Nouveau client</h3>
             <form onSubmit={handleAdd} className="space-y-4">
@@ -293,8 +307,9 @@ export default function AdminUsersPage() {
               </div>
             </form>
           </motion.div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }
