@@ -99,7 +99,9 @@ export default function AdminOrdersPage() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
+        <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">Gestion des Commandes</h1>
@@ -116,25 +118,30 @@ export default function AdminOrdersPage() {
               </Button>
             </div>
           </div>
-        </header>
+        </motion.header>
 
         <div className="p-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3 mb-6">
-            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
-              <button key={key} onClick={() => { setStatusFilter(key); setPage(1) }}
+            {Object.entries(STATUS_CONFIG).map(([key, cfg], i) => (
+              <motion.button key={key} onClick={() => { setStatusFilter(key); setPage(1) }}
+                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                 className={`p-3 rounded-xl border transition-all text-left ${
                   statusFilter === key ? "border-quickgo-blue bg-quickgo-blue/10" : "bg-card/50 border-border/30 hover:border-border/60"
                 }`}
               >
                 <p className="text-xl font-bold text-white">{summary[key] ?? 0}</p>
                 <p className="text-xs text-muted-foreground mt-1">{cfg.label}</p>
-              </button>
+              </motion.button>
             ))}
           </div>
 
           {/* Filters */}
-          <div className="flex gap-4 mb-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="flex gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="N° commande..." value={search}
@@ -149,11 +156,13 @@ export default function AdminOrdersPage() {
                 </Button>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Error banner */}
           {!loading && error && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
               <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-semibold">Échec du chargement des commandes</p>
@@ -163,7 +172,7 @@ export default function AdminOrdersPage() {
                 className="rounded-full gap-2 shrink-0">
                 <RefreshCw className="w-3.5 h-3.5" /> Réessayer
               </Button>
-            </div>
+            </motion.div>
           )}
 
           {/* Orders List */}
@@ -173,15 +182,17 @@ export default function AdminOrdersPage() {
                 <div key={i} className="h-32 rounded-2xl bg-card/30 animate-pulse" />
               ))
             ) : orders.length === 0 ? (
-              <div className="text-center py-16">
+              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }} className="text-center py-16">
                 <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <p className="text-muted-foreground">Aucune commande trouvée</p>
-              </div>
-            ) : orders.map((order) => {
+              </motion.div>
+            ) : orders.map((order, i) => {
               const cfg = STATUS_CONFIG[order.status]
               const StatusIcon = cfg?.icon ?? AlertCircle
               return (
-                <motion.div key={order.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                <motion.div key={order.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.4), ease: [0.22, 1, 0.36, 1] }}
                   className="p-5 rounded-2xl bg-card/50 border border-border/30 hover:border-border/60 transition-colors"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4">
@@ -299,7 +310,9 @@ export default function AdminOrdersPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+              className="flex items-center justify-between mt-6">
               <p className="text-sm text-muted-foreground">
                 {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, total)} sur {total.toLocaleString()} commandes
               </p>
@@ -322,7 +335,7 @@ export default function AdminOrdersPage() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       </main>
