@@ -21,6 +21,23 @@ CREATE TABLE IF NOT EXISTS public.drivers (
   updated_at     TIMESTAMPTZ  DEFAULT NOW()
 );
 
+-- ── Backfill columns in case public.drivers pre-existed with a different
+--    shape (created ad-hoc, outside this migration) ──────────────────────────
+ALTER TABLE public.drivers
+  ADD COLUMN IF NOT EXISTS status           TEXT NOT NULL DEFAULT 'offline'
+                                             CHECK (status IN ('online', 'delivering', 'offline', 'suspended')),
+  ADD COLUMN IF NOT EXISTS vehicle_type     TEXT CHECK (vehicle_type IN ('moto', 'voiture', 'velo', 'tricycle')),
+  ADD COLUMN IF NOT EXISTS vehicle_brand    TEXT,
+  ADD COLUMN IF NOT EXISTS vehicle_model    TEXT,
+  ADD COLUMN IF NOT EXISTS license_plate    TEXT UNIQUE,
+  ADD COLUMN IF NOT EXISTS rating           NUMERIC(3,2) DEFAULT 0 CHECK (rating >= 0 AND rating <= 5),
+  ADD COLUMN IF NOT EXISTS total_deliveries INTEGER DEFAULT 0 CHECK (total_deliveries >= 0),
+  ADD COLUMN IF NOT EXISTS total_earnings   NUMERIC(14,2) DEFAULT 0 CHECK (total_earnings >= 0),
+  ADD COLUMN IF NOT EXISTS city             TEXT,
+  ADD COLUMN IF NOT EXISTS is_verified      BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS created_at       TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ DEFAULT NOW();
+
 -- ── Indexes ──────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_drivers_status   ON public.drivers(status);
 CREATE INDEX IF NOT EXISTS idx_drivers_user_id  ON public.drivers(user_id);
