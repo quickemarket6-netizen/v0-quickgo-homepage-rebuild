@@ -98,7 +98,9 @@ export default function AdminVendorsPage() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-auto">
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
+        <motion.header initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/30 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">Gestion des Vendeurs</h1>
@@ -110,14 +112,16 @@ export default function AdminVendorsPage() {
               </Button>
             </div>
           </div>
-        </header>
+        </motion.header>
 
         <div className="p-6">
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {statsCards.map(({ key, label, icon: Icon, color }, i) => (
               <motion.div key={key}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.05, 0.4) }}
+                initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -3 }}
                 className="bg-card/50 rounded-2xl p-5 border border-border/30"
               >
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-3`}>
@@ -130,7 +134,9 @@ export default function AdminVendorsPage() {
           </div>
 
           {/* Filters */}
-          <div className="flex items-center gap-4 mb-6">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="flex items-center gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Rechercher un vendeur..." value={search}
@@ -145,11 +151,13 @@ export default function AdminVendorsPage() {
                 </Button>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Error banner */}
           {!loading && error && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
+            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-semibold">Échec du chargement des vendeurs</p>
@@ -159,11 +167,12 @@ export default function AdminVendorsPage() {
                 className="rounded-full gap-2 shrink-0">
                 <RefreshCw className="w-3.5 h-3.5" /> Réessayer
               </Button>
-            </div>
+            </motion.div>
           )}
 
           {/* Table */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="bg-card/50 backdrop-blur-xl rounded-3xl border border-border/30 overflow-hidden"
           >
             <div className="overflow-x-auto">
@@ -191,11 +200,14 @@ export default function AdminVendorsPage() {
                         Aucun vendeur trouvé
                       </td>
                     </tr>
-                  ) : vendors.map((vendor) => {
+                  ) : vendors.map((vendor, i) => {
                     const ownerName = (vendor.owner as { full_name?: string } | null)?.full_name ?? "—"
                     const balance = (vendor.wallet as { available_balance?: number } | null)?.available_balance ?? 0
                     return (
-                      <tr key={vendor.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
+                      <motion.tr key={vendor.id}
+                        initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.35, delay: Math.min(i * 0.04, 0.4), ease: [0.22, 1, 0.36, 1] }}
+                        className="border-b border-border/20 hover:bg-white/5 transition-colors">
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl bg-quickgo-blue/20 flex items-center justify-center shrink-0">
@@ -279,7 +291,7 @@ export default function AdminVendorsPage() {
                             </button>
                           </div>
                         </td>
-                      </tr>
+                      </motion.tr>
                     )
                   })}
                 </tbody>
