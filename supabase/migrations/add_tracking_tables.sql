@@ -40,7 +40,7 @@ DROP POLICY IF EXISTS "tracking_events_customer_read" ON public.tracking_events
 CREATE POLICY "tracking_events_customer_read" ON public.tracking_events
   FOR SELECT USING (
     order_id IN (
-      SELECT id FROM public.orders WHERE user_id = auth.uid()
+      SELECT id FROM public.orders WHERE customer_id = auth.uid()
     )
   );
 
