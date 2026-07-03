@@ -15,11 +15,11 @@ export async function GET() {
     .from("drivers")
     .select(`
       *,
-      user:profiles(full_name, avatar_url, phone, email)
+      user:profiles(full_name, avatar_url, phone, email, wallet_balance)
     `)
     .eq("user_id", user.id)
     .single()
-  
+
   if (error) {
     return NextResponse.json({ error: "Profil livreur non trouve" }, { status: 404 })
   }

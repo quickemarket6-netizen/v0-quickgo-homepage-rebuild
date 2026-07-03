@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -19,12 +19,7 @@ import {
   ChevronDown,
   Star,
   CheckCircle,
-  Clock,
   Navigation,
-  Zap,
-  Battery,
-  Fuel,
-  Wrench,
   Phone,
   User,
   Trophy,
@@ -36,54 +31,117 @@ import { Button } from "@/components/ui/button"
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/driver/dashboard", active: true },
-  { icon: MapPin, label: "Missions disponibles", href: "/driver/missions", badge: 6 },
+  { icon: MapPin, label: "Missions disponibles", href: "/driver/missions" },
   { icon: Car, label: "Mes courses", href: "/driver/navigation" },
   { icon: DollarSign, label: "Revenus", href: "/driver/earnings" },
   { icon: Wallet, label: "Portefeuille", href: "/wallet" },
   { icon: TrendingUp, label: "Performance", href: "/driver/ranking" },
-  { icon: MessageSquare, label: "Messages", href: "/driver/messages", badge: 2 },
+  { icon: MessageSquare, label: "Messages", href: "/driver/messages" },
   { icon: Gift, label: "Incitations", href: "/driver/ranking" },
   { icon: HelpCircle, label: "Assistance", href: "/support" },
   { icon: Settings, label: "Paramètres", href: "/driver/settings" },
 ]
 
-const activeZones = [
-  { name: "Bastos", status: "Très actif", color: "text-red-500" },
-  { name: "Mvog-Adda", status: "Actif", color: "text-yellow-500" },
-  { name: "Omnisports", status: "Moyen", color: "text-green-500" },
-  { name: "Ahala", status: "Moyen", color: "text-green-500" },
-]
+interface MissionInfo {
+  title: string
+  target_count: number
+  reward_amount: number
+  mission_type: string
+}
+interface MissionProgress {
+  id: string
+  current_count: number
+  mission: MissionInfo | null
+}
+interface DriverData {
+  id: string
+  rating: number | null
+  total_deliveries: number | null
+  total_earnings: number | null
+  city: string | null
+  status: string | null
+  vehicle_type: string | null
+  vehicle_brand: string | null
+  vehicle_model: string | null
+  license_plate: string | null
+  created_at: string
+  today_earnings: number
+  today_deliveries: number
+  active_missions: MissionProgress[]
+  user: { full_name: string | null; avatar_url: string | null; wallet_balance: number | null } | null
+}
+interface ActiveDelivery {
+  type: "order" | "express"
+  reference: string
+  destination: string
+  customer_name: string
+  customer_phone: string | null
+  earning: number
+  order_type: string
+}
+interface RankingMe {
+  earnings: number
+  trips: number
+  rating: number
+  xp: number
+  xp_max: number
+  level: string
+  streak: number
+}
+interface RankingData {
+  my_rank: number
+  total_drivers: number
+  me: RankingMe | null
+}
 
-const weekDays = [
-  { day: "Lun", completed: true },
-  { day: "Mar", completed: true },
-  { day: "Mer", completed: true },
-  { day: "Jeu", completed: true },
-  { day: "Ven", completed: false },
-  { day: "Sam", completed: false },
-  { day: "Dim", completed: false },
-]
+function fmtCFA(n: number) {
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " CFA"
+}
+function monthsSince(iso: string) {
+  const start = new Date(iso)
+  const now = new Date()
+  const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+  return Math.max(0, months)
+}
 
 export default function DriverDashboardPage() {
   const [isOnline, setIsOnline] = useState(true)
-  const [driverName, setDriverName]           = useState<string | null>(null)
-  const [todayEarnings, setTodayEarnings]     = useState<number | null>(null)
-  const [todayDeliveries, setTodayDeliveries] = useState<number | null>(null)
-  const [driverRating, setDriverRating]       = useState<number | null>(null)
-  const [activeMissions, setActiveMissions]   = useState<number>(0)
+  const [driver, setDriver] = useState<DriverData | null>(null)
+  const [activeDelivery, setActiveDelivery] = useState<ActiveDelivery | null>(null)
+  const [ranking, setRanking] = useState<RankingData | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  useState(() => {
-    fetch("/api/driver")
-      .then(r => r.json())
-      .then(data => {
-        if (data.user?.full_name) setDriverName(data.user.full_name)
-        if (typeof data.today_earnings  === "number") setTodayEarnings(data.today_earnings)
-        if (typeof data.today_deliveries === "number") setTodayDeliveries(data.today_deliveries)
-        if (typeof data.rating           === "number") setDriverRating(data.rating)
-        if (Array.isArray(data.active_missions))        setActiveMissions(data.active_missions.length)
-      })
-      .catch(() => {})
-  })
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const [driverRes, deliveryRes, rankingRes] = await Promise.all([
+          fetch("/api/driver"),
+          fetch("/api/driver/active-delivery"),
+          fetch("/api/driver/ranking"),
+        ])
+        if (!cancelled && driverRes.ok) setDriver(await driverRes.json())
+        if (!cancelled && deliveryRes.ok) setActiveDelivery(await deliveryRes.json())
+        if (!cancelled && rankingRes.ok) setRanking(await rankingRes.json())
+      } catch {
+        /* keep neutral empty states */
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  const firstName = driver?.user?.full_name?.split(" ")[0] ?? "Chauffeur"
+  const rating = driver?.rating ?? 0
+  const walletBalance = driver?.user?.wallet_balance ?? 0
+  const dailyMission = driver?.active_missions?.[0] ?? null
+  const topPercent = ranking && ranking.total_drivers > 0
+    ? Math.max(1, Math.round((ranking.my_rank / ranking.total_drivers) * 100))
+    : null
+  const me = ranking?.me ?? null
+  const xpPct = me ? Math.min(100, Math.round((me.xp / Math.max(me.xp_max, 1)) * 100)) : 0
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -117,11 +175,6 @@ export default function DriverDashboardPage() {
             >
               <item.icon className="w-5 h-5" />
               <span className="text-sm font-medium">{item.label}</span>
-              {item.badge && (
-                <span className="ml-auto bg-quickgo-blue text-white text-xs px-2 py-0.5 rounded-full">
-                  {item.badge}
-                </span>
-              )}
             </Link>
           ))}
         </nav>
@@ -134,22 +187,26 @@ export default function DriverDashboardPage() {
                 <Trophy className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-white font-semibold">Niveau Or</p>
-                <p className="text-xs text-muted-foreground">Niveau 4</p>
+                <p className="text-white font-semibold">Niveau {me?.level ?? "—"}</p>
+                <p className="text-xs text-muted-foreground">{ranking ? `Rang #${ranking.my_rank}` : "…"}</p>
               </div>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2 mb-2">
-              <div className="bg-gradient-to-r from-quickgo-blue to-quickgo-cyan h-2 rounded-full" style={{ width: "68%" }} />
+              <div className="bg-gradient-to-r from-quickgo-blue to-quickgo-cyan h-2 rounded-full" style={{ width: `${xpPct}%` }} />
             </div>
-            <p className="text-xs text-muted-foreground">680 / 1000 XP</p>
-            <p className="text-xs text-quickgo-lime mt-2">Prochaine récompense</p>
-            <p className="text-sm font-semibold text-white flex items-center gap-2">
-              Bonus 25 000 CFA <Gift className="w-4 h-4 text-quickgo-lime" />
-            </p>
+            <p className="text-xs text-muted-foreground">{me ? `${me.xp} / ${me.xp_max} XP` : "—"}</p>
+            {dailyMission?.mission && (
+              <>
+                <p className="text-xs text-quickgo-lime mt-2">Prochaine récompense</p>
+                <p className="text-sm font-semibold text-white flex items-center gap-2">
+                  Bonus {fmtCFA(dailyMission.mission.reward_amount)} <Gift className="w-4 h-4 text-quickgo-lime" />
+                </p>
+              </>
+            )}
           </div>
 
           {/* Help Center */}
-          <div className="mt-4 bg-quickgo-blue/20 rounded-2xl p-4 flex items-center gap-3">
+          <Link href="/support" className="mt-4 bg-quickgo-blue/20 rounded-2xl p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-quickgo-blue/30 flex items-center justify-center">
               <HelpCircle className="w-5 h-5 text-quickgo-blue" />
             </div>
@@ -157,7 +214,7 @@ export default function DriverDashboardPage() {
               <p className="text-white font-medium text-sm">Centre d&apos;aide</p>
               <p className="text-xs text-muted-foreground">Besoin d&apos;assistance ?</p>
             </div>
-          </div>
+          </Link>
         </div>
       </aside>
 
@@ -169,7 +226,7 @@ export default function DriverDashboardPage() {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 bg-card/50 px-4 py-2 rounded-full">
                 <MapPin className="w-4 h-4 text-quickgo-blue" />
-                <span className="text-white text-sm">Yaoundé</span>
+                <span className="text-white text-sm">{driver?.city ?? "—"}</span>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </div>
             </div>
@@ -194,20 +251,23 @@ export default function DriverDashboardPage() {
                 </button>
               </div>
 
-              <button className="relative p-2 hover:bg-white/5 rounded-full">
+              <Link href="/driver/messages" className="relative p-2 hover:bg-white/5 rounded-full">
                 <Bell className="w-5 h-5 text-muted-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-quickgo-blue rounded-full" />
-              </button>
+              </Link>
 
               <div className="flex items-center gap-3 pl-4 border-l border-border/30">
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-quickgo-lime">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0024-U4s2UDpvENxwAdPCezTrWL95wI71B4.jpg"
-                    alt="Driver"
-                    width={40}
-                    height={40}
-                    className="object-cover"
-                  />
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-quickgo-lime bg-white/5 flex items-center justify-center">
+                  {driver?.user?.avatar_url ? (
+                    <Image
+                      src={driver.user.avatar_url}
+                      alt={firstName}
+                      width={40}
+                      height={40}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <User className="w-5 h-5 text-muted-foreground" />
+                  )}
                 </div>
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </div>
@@ -230,14 +290,18 @@ export default function DriverDashboardPage() {
                   {/* Profile */}
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-24 h-24 rounded-2xl overflow-hidden">
-                        <Image
-                          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0024-U4s2UDpvENxwAdPCezTrWL95wI71B4.jpg"
-                          alt="Emmanuel"
-                          width={96}
-                          height={96}
-                          className="object-cover w-full h-full"
-                        />
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white/5 flex items-center justify-center">
+                        {driver?.user?.avatar_url ? (
+                          <Image
+                            src={driver.user.avatar_url}
+                            alt={firstName}
+                            width={96}
+                            height={96}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <User className="w-10 h-10 text-muted-foreground" />
+                        )}
                       </div>
                       <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-quickgo-blue rounded-full flex items-center justify-center">
                         <CheckCircle className="w-5 h-5 text-white" />
@@ -245,75 +309,70 @@ export default function DriverDashboardPage() {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        Bonjour, Emmanuel <span>👋</span>
+                        Bonjour, {firstName} <span>👋</span>
                       </h2>
-                      <p className="text-sm text-muted-foreground">Livreur partenaire depuis 8 mois</p>
+                      <p className="text-sm text-muted-foreground">
+                        {driver ? `Livreur partenaire depuis ${monthsSince(driver.created_at)} mois` : "…"}
+                      </p>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                          <span className="text-white font-semibold">4.9</span>
-                          <span className="text-xs text-muted-foreground">(256 avis)</span>
+                          <span className="text-white font-semibold">{rating.toFixed(1)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({driver?.total_deliveries ?? 0} livraisons)
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="w-4 h-4 text-quickgo-lime" />
-                          <span className="text-white font-semibold">100%</span>
-                          <span className="text-xs text-muted-foreground">Taux d&apos;acceptation</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Trophy className="w-4 h-4 text-yellow-400" />
-                          <span className="text-white font-semibold">Top 15%</span>
-                          <span className="text-xs text-muted-foreground">Dans votre ville</span>
-                        </div>
+                        {topPercent !== null && (
+                          <div className="flex items-center gap-1">
+                            <Trophy className="w-4 h-4 text-yellow-400" />
+                            <span className="text-white font-semibold">Top {topPercent}%</span>
+                            <span className="text-xs text-muted-foreground">Dans votre ville</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Today's Earnings Chart */}
+                  {/* Today's Earnings */}
                   <div className="flex-1 bg-card/30 rounded-2xl p-4 ml-auto">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-muted-foreground">Gains aujourd&apos;hui</span>
-                      <span className="text-quickgo-lime text-xs">+12%</span>
                     </div>
-                    <p className="text-2xl font-bold text-white">18 750 CFA</p>
-                    <p className="text-xs text-muted-foreground">7 courses terminées</p>
-                    {/* Mini Chart */}
-                    <div className="mt-3 flex items-end gap-1 h-12">
-                      {[20, 35, 45, 30, 55, 40, 60, 75, 50, 65, 80, 70].map((h, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 bg-gradient-to-t from-quickgo-blue to-quickgo-cyan rounded-t"
-                          style={{ height: `${h}%` }}
-                        />
-                      ))}
-                    </div>
-                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                      <span>00h</span>
-                      <span>06h</span>
-                      <span>12h</span>
-                      <span>18h</span>
-                      <span>24h</span>
-                    </div>
+                    <p className="text-2xl font-bold text-white">
+                      {loading ? "—" : fmtCFA(driver?.today_earnings ?? 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {driver?.today_deliveries ?? 0} course{(driver?.today_deliveries ?? 0) > 1 ? "s" : ""} terminée{(driver?.today_deliveries ?? 0) > 1 ? "s" : ""}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex gap-3 mt-4">
-                  <Button variant="outline" className="rounded-full">
-                    Voir mon profil
-                  </Button>
-                  <Button className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">
-                    Statut en ligne
-                  </Button>
+                  <Link href="/driver/settings">
+                    <Button variant="outline" className="rounded-full">
+                      Voir mon profil
+                    </Button>
+                  </Link>
+                  <Link href="/driver/earnings">
+                    <Button className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">
+                      Voir mes revenus
+                    </Button>
+                  </Link>
                 </div>
               </motion.div>
 
               {/* Stats Row */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Courses terminées", value: "07", sub: "Aujourd'hui", change: "+2 vs hier", icon: Car },
-                  { label: "Temps en ligne", value: "06h 45m", sub: "Aujourd'hui", change: "+45m", icon: Clock },
-                  { label: "Taux d'acceptation", value: "100%", sub: "Excellent", icon: CheckCircle },
-                  { label: "Note moyenne", value: "4.9", sub: "Excellent", icon: Star, star: true },
-                  { label: "Bonus actif", value: "5 000 CFA", sub: "Encore 3 courses", icon: Gift },
+                  { label: "Courses aujourd'hui", value: String(driver?.today_deliveries ?? 0), sub: "Aujourd'hui", icon: Car },
+                  { label: "Livraisons totales", value: String(driver?.total_deliveries ?? 0), sub: "Depuis le début", icon: CheckCircle },
+                  { label: "Note moyenne", value: rating.toFixed(1), sub: rating >= 4.5 ? "Excellent" : rating >= 3.5 ? "Bien" : "—", icon: Star, star: true },
+                  {
+                    label: "Défi du jour",
+                    value: dailyMission?.mission ? `${dailyMission.current_count}/${dailyMission.mission.target_count}` : "—",
+                    sub: dailyMission?.mission ? `Bonus ${fmtCFA(dailyMission.mission.reward_amount)}` : "Aucun défi actif",
+                    icon: Gift,
+                  },
                 ].map((stat, i) => (
                   <motion.div
                     key={stat.label}
@@ -331,77 +390,35 @@ export default function DriverDashboardPage() {
                       {stat.star && <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />}
                     </p>
                     <p className="text-xs text-muted-foreground">{stat.sub}</p>
-                    {stat.change && (
-                      <p className="text-xs text-quickgo-lime mt-1">{stat.change}</p>
-                    )}
                   </motion.div>
                 ))}
               </div>
 
-              {/* Active Zones Map */}
+              {/* Live map quick access (real-time data lives in Control Center) */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
                 className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Zones actives</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Map Placeholder */}
-                  <div className="relative h-64 bg-gradient-to-br from-quickgo-blue/10 to-quickgo-cyan/10 rounded-2xl overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-20 h-20 mx-auto mb-3 rounded-full bg-quickgo-blue/20 flex items-center justify-center">
-                          <MapPin className="w-10 h-10 text-quickgo-blue" />
-                        </div>
-                        <p className="text-white font-semibold">Yaoundé</p>
-                      </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-quickgo-blue/20 flex items-center justify-center">
+                      <MapPin className="w-7 h-7 text-quickgo-blue" />
                     </div>
-                    {/* Zone indicators */}
-                    {activeZones.map((zone, i) => (
-                      <div
-                        key={zone.name}
-                        className="absolute"
-                        style={{
-                          top: `${20 + i * 20}%`,
-                          left: `${15 + i * 18}%`,
-                        }}
-                      >
-                        <div className={`w-16 h-16 rounded-full border-2 ${zone.color} bg-current/10 flex items-center justify-center animate-pulse`}>
-                          <span className="text-xs text-white font-medium">{zone.name}</span>
-                        </div>
-                      </div>
-                    ))}
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Carte en direct</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Zone actuelle : {driver?.city ?? "—"} · Voir l&apos;activité en temps réel
+                      </p>
+                    </div>
                   </div>
-
-                  {/* Zone Stats */}
-                  <div className="space-y-3">
-                    {activeZones.map((zone) => (
-                      <div key={zone.name} className="flex items-center justify-between p-3 bg-card/30 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${zone.color.replace("text-", "bg-")}`} />
-                          <span className="text-white font-medium">{zone.name}</span>
-                        </div>
-                        <span className={`text-sm ${zone.color}`}>{zone.status}</span>
-                      </div>
-                    ))}
-                    <div className="flex items-center justify-between pt-3 border-t border-border/30">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-gray-500 rounded-full" />
-                        <span className="text-xs text-muted-foreground">Activité faible</span>
-                      </div>
-                      <div className="w-20 h-2 rounded-full bg-gradient-to-r from-gray-500 via-yellow-500 to-red-500" />
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">Activité élevée</span>
-                      </div>
-                    </div>
-                    <Button variant="outline" className="w-full rounded-xl">
-                      Voir plus de zones
+                  <Link href="/driver/control-center">
+                    <Button variant="outline" className="rounded-full">
+                      Ouvrir
+                      <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>
-                  </div>
+                  </Link>
                 </div>
               </motion.div>
 
@@ -451,18 +468,22 @@ export default function DriverDashboardPage() {
                       <p className="text-sm text-muted-foreground">
                         Encaissez, retirez et gérez vos revenus en toute sécurité.
                       </p>
-                      <Button variant="link" className="p-0 h-auto text-quickgo-blue">
-                        Accéder au portefeuille
-                      </Button>
+                      <Link href="/wallet">
+                        <Button variant="link" className="p-0 h-auto text-quickgo-blue">
+                          Accéder au portefeuille
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                   <div className="flex-1 flex items-center justify-end gap-6">
                     <div className="text-center">
                       <p className="text-sm text-muted-foreground">Solde portefeuille</p>
-                      <p className="text-2xl font-bold text-white">125 600 CFA</p>
-                      <Button variant="outline" size="sm" className="mt-2 rounded-full">
-                        Retirer
-                      </Button>
+                      <p className="text-2xl font-bold text-white">{loading ? "—" : fmtCFA(walletBalance)}</p>
+                      <Link href="/wallet">
+                        <Button variant="outline" size="sm" className="mt-2 rounded-full">
+                          Retirer
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -471,40 +492,72 @@ export default function DriverDashboardPage() {
 
             {/* Right Column */}
             <div className="space-y-6">
-              {/* Next Delivery */}
+              {/* Active delivery */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Prochaine livraison</h3>
-                  <span className="text-quickgo-blue text-sm">Dans 15 min</span>
+                  <h3 className="text-lg font-semibold text-white">Livraison en cours</h3>
+                  {activeDelivery && (
+                    <span className="text-xs text-quickgo-lime bg-quickgo-lime/20 px-2 py-1 rounded-full">
+                      {activeDelivery.order_type}
+                    </span>
+                  )}
                 </div>
 
-                {/* Route Preview */}
-                <div className="relative h-32 bg-gradient-to-br from-quickgo-blue/10 to-quickgo-cyan/10 rounded-xl mb-4 overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Navigation className="w-8 h-8 text-quickgo-blue" />
-                  </div>
-                  <div className="absolute top-2 left-2 bg-card/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
-                    Pharmacie du Centre
-                  </div>
-                  <div className="absolute bottom-2 right-2 bg-card/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
-                    Rue 2005, Bastos
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">Client</p>
-                      <p className="text-white font-medium">Marie Claire</p>
-                      <p className="text-xs text-muted-foreground">Elig-Essono, Yaoundé</p>
+                {activeDelivery ? (
+                  <>
+                    <div className="relative h-32 bg-gradient-to-br from-quickgo-blue/10 to-quickgo-cyan/10 rounded-xl mb-4 overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Navigation className="w-8 h-8 text-quickgo-blue" />
+                      </div>
+                      <div className="absolute bottom-2 right-2 bg-card/80 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
+                        {activeDelivery.destination}
+                      </div>
                     </div>
+
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center gap-3">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Client</p>
+                          <p className="text-white font-medium">{activeDelivery.customer_name}</p>
+                        </div>
+                      </div>
+                      {activeDelivery.customer_phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm text-white">{activeDelivery.customer_phone}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-card/30 rounded-xl p-3 mb-4 text-center">
+                      <p className="text-xs text-muted-foreground">Gain estimé</p>
+                      <p className="text-white font-semibold">{fmtCFA(activeDelivery.earning)}</p>
+                    </div>
+
+                    <Link href="/driver/navigation">
+                      <Button className="w-full bg-quickgo-blue hover:bg-quickgo-blue/90 rounded-xl">
+                        Voir les détails
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center">
+                      <Navigation className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">Aucune livraison en cours</p>
+                    <Link href="/driver/missions">
+                      <Button variant="outline" size="sm" className="rounded-full">
+                        Voir les missions disponibles
+                      </Button>
+                    </Link>
                   </div>
-                </div>
+                )}
               </motion.div>
 
               {/* Challenges & Incentives */}
@@ -520,23 +573,33 @@ export default function DriverDashboardPage() {
                 </div>
 
                 {/* Daily Objective */}
-                <div className="bg-card/30 rounded-xl p-4 mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-quickgo-blue" />
-                      <span className="text-white font-medium">Objectif du jour</span>
+                {dailyMission?.mission ? (
+                  <div className="bg-card/30 rounded-xl p-4 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-quickgo-blue" />
+                        <span className="text-white font-medium">{dailyMission.mission.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-quickgo-lime" />
+                        <span className="text-quickgo-lime text-sm">Bonus {fmtCFA(dailyMission.mission.reward_amount)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Gift className="w-4 h-4 text-quickgo-lime" />
-                      <span className="text-quickgo-lime text-sm">Bonus 15 000 CFA</span>
+                    <div className="w-full bg-white/10 rounded-full h-2 mb-1">
+                      <div
+                        className="bg-quickgo-lime h-2 rounded-full"
+                        style={{ width: `${Math.min(100, Math.round((dailyMission.current_count / Math.max(dailyMission.mission.target_count, 1)) * 100))}%` }}
+                      />
                     </div>
+                    <p className="text-xs text-muted-foreground text-right">
+                      {dailyMission.current_count} / {dailyMission.mission.target_count}
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground mb-2">Terminez 10 courses</p>
-                  <div className="w-full bg-white/10 rounded-full h-2 mb-1">
-                    <div className="bg-quickgo-lime h-2 rounded-full" style={{ width: "70%" }} />
+                ) : (
+                  <div className="bg-card/30 rounded-xl p-4 mb-4 text-center">
+                    <p className="text-sm text-muted-foreground">Aucun défi actif pour le moment</p>
                   </div>
-                  <p className="text-xs text-muted-foreground text-right">7 / 10</p>
-                </div>
+                )}
 
                 {/* Streak */}
                 <div className="bg-card/30 rounded-xl p-4">
@@ -544,27 +607,14 @@ export default function DriverDashboardPage() {
                     <Flame className="w-4 h-4 text-orange-500" />
                     <span className="text-white font-medium">Série en cours</span>
                   </div>
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2">
                     <Flame className="w-6 h-6 text-orange-500" />
-                    <span className="text-2xl font-bold text-white">4 jours</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">continuez comme ça !</p>
-                  <div className="flex justify-between">
-                    {weekDays.map((day) => (
-                      <div key={day.day} className="flex flex-col items-center gap-1">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          day.completed ? "bg-quickgo-lime" : "bg-white/10"
-                        }`}>
-                          {day.completed && <CheckCircle className="w-4 h-4 text-background" />}
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">{day.day}</span>
-                      </div>
-                    ))}
+                    <span className="text-2xl font-bold text-white">{me?.streak ?? 0} jour{(me?.streak ?? 0) > 1 ? "s" : ""}</span>
                   </div>
                 </div>
               </motion.div>
 
-              {/* Vehicle Status */}
+              {/* Vehicle */}
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -572,111 +622,30 @@ export default function DriverDashboardPage() {
                 className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">État du véhicule</h3>
+                  <h3 className="text-lg font-semibold text-white">Mon véhicule</h3>
                   <Link href="/driver/settings" className="text-quickgo-blue text-sm">Voir détails</Link>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Battery className="w-4 h-4 text-quickgo-lime" />
-                        <span className="text-sm text-muted-foreground">Batterie</span>
-                      </div>
-                      <span className="text-white font-medium">85%</span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-2">
-                      <div className="bg-quickgo-lime h-2 rounded-full" style={{ width: "85%" }} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Fuel className="w-4 h-4 text-yellow-500" />
-                        <span className="text-sm text-muted-foreground">Essence</span>
-                      </div>
-                      <span className="text-white font-medium">70%</span>
-                    </div>
-                    <div className="w-full bg-white/10 rounded-full h-2">
-                      <div className="bg-yellow-500 h-2 rounded-full" style={{ width: "70%" }} />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Wrench className="w-4 h-4 text-quickgo-blue" />
-                        <span className="text-sm text-muted-foreground">Entretien</span>
-                      </div>
-                      <span className="text-quickgo-lime font-medium">Bon état</span>
-                    </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Type</span>
+                    <span className="text-white font-medium capitalize">{driver?.vehicle_type ?? "—"}</span>
                   </div>
-
-                  <div className="flex items-center justify-center">
-                    <div className="relative w-full h-32">
-                      <Image
-                        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0022-3YpqZaS4R3zM06zR8StGq3zcBoxjDO.jpg"
-                        alt="Honda PCX 125"
-                        fill
-                        className="object-contain"
-                      />
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Marque / Modèle</span>
+                    <span className="text-white font-medium">
+                      {[driver?.vehicle_brand, driver?.vehicle_model].filter(Boolean).join(" ") || "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Plaque</span>
+                    <span className="text-white font-medium">{driver?.license_plate ?? "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Statut</span>
+                    <span className="text-quickgo-lime font-medium capitalize">{driver?.status ?? "—"}</span>
                   </div>
                 </div>
-              </motion.div>
-
-              {/* Active Mission */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Mission active</h3>
-                  <span className="text-xs text-quickgo-lime bg-quickgo-lime/20 px-2 py-1 rounded-full">En cours</span>
-                </div>
-
-                <div className="flex items-center gap-3 mb-4 p-3 bg-card/30 rounded-xl">
-                  <div className="w-10 h-10 rounded-full bg-quickgo-blue/20 flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-quickgo-blue" />
-                  </div>
-                  <div>
-                    <p className="text-white font-medium">Restaurant Le Gourmet</p>
-                    <p className="text-xs text-muted-foreground">Rue des Saveurs, Bastos</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Client:</span>
-                    <span className="text-white">Jean Paul N.</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Elig-Essono, Yaoundé</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 mb-4 text-center">
-                  <div className="bg-card/30 rounded-xl p-2">
-                    <p className="text-xs text-muted-foreground">Distance</p>
-                    <p className="text-white font-semibold">2.8 km</p>
-                  </div>
-                  <div className="bg-card/30 rounded-xl p-2">
-                    <p className="text-xs text-muted-foreground">Gain estimé</p>
-                    <p className="text-white font-semibold">2 300 CFA</p>
-                  </div>
-                  <div className="bg-card/30 rounded-xl p-2">
-                    <p className="text-xs text-muted-foreground">Arrivée estimée</p>
-                    <p className="text-white font-semibold">12:45</p>
-                  </div>
-                </div>
-
-                <Button className="w-full bg-quickgo-blue hover:bg-quickgo-blue/90 rounded-xl">
-                  Démarrer la livraison
-                </Button>
-                <Link href="/driver/navigation" className="block text-center text-quickgo-blue text-sm mt-2">
-                  Voir les détails
-                </Link>
               </motion.div>
             </div>
           </div>
