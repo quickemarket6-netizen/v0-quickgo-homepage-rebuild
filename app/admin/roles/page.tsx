@@ -165,11 +165,16 @@ export default function AdminRolesPage() {
       <AdminSidebar />
 
       <main className="flex-1 overflow-auto px-8 py-8 text-white">
-        <h1 className="text-3xl font-bold mb-2 text-white">Gestion des rôles</h1>
-        <p className="text-[#6b6b8a] mb-8">Attribuez des rôles et des permissions aux utilisateurs.</p>
+        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}>
+          <h1 className="text-3xl font-bold mb-2 text-white">Gestion des rôles</h1>
+          <p className="text-[#6b6b8a] mb-8">Attribuez des rôles et des permissions aux utilisateurs.</p>
+        </motion.div>
 
         {/* Filters */}
-        <div className="flex gap-3 mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          className="flex gap-3 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6b6b8a]" />
             <Input
@@ -187,7 +192,7 @@ export default function AdminRolesPage() {
             <option value="all">Tous les rôles</option>
             {allRoles.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-        </div>
+        </motion.div>
 
         {/* User list */}
         {loading ? (
@@ -195,19 +200,26 @@ export default function AdminRolesPage() {
             <Loader2 className="animate-spin h-8 w-8 text-[#6b6b8a]" />
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3 text-[#6b6b8a]">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center justify-center py-20 gap-3 text-[#6b6b8a]">
             <AlertCircle className="h-8 w-8" />
             <p className="text-sm">Aucun utilisateur trouvé.</p>
-          </div>
+          </motion.div>
         ) : (
           <div className="grid gap-3">
-            {filteredUsers.map(user => {
+            {filteredUsers.map((user, i) => {
               const RoleIcon = roleIcons[user.role] || User
               const isSelected = selectedUser?.id === user.id
               return (
                 <motion.div
                   key={user.id}
                   layout
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: Math.min(i * 0.04, 0.4), ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => setSelectedUser(isSelected ? null : { ...user })}
                   className={`p-4 border rounded-xl cursor-pointer transition-colors ${
                     isSelected
