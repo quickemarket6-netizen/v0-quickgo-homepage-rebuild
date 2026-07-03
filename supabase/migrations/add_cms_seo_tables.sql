@@ -31,9 +31,11 @@ CREATE TABLE IF NOT EXISTS public.cms_pages (
 
 ALTER TABLE public.cms_pages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "cms_pages_public_read" ON public.cms_pages;
 CREATE POLICY "cms_pages_public_read" ON public.cms_pages
   FOR SELECT USING (status = 'published');
 
+DROP POLICY IF EXISTS "cms_pages_admin_all" ON public.cms_pages;
 CREATE POLICY "cms_pages_admin_all" ON public.cms_pages
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -79,6 +81,7 @@ CREATE TABLE IF NOT EXISTS public.content_blocks (
 
 ALTER TABLE public.content_blocks ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "blocks_public_read" ON public.content_blocks;
 CREATE POLICY "blocks_public_read" ON public.content_blocks
   FOR SELECT USING (
     enabled = TRUE AND EXISTS (
@@ -86,6 +89,7 @@ CREATE POLICY "blocks_public_read" ON public.content_blocks
     )
   );
 
+DROP POLICY IF EXISTS "blocks_admin_all" ON public.content_blocks;
 CREATE POLICY "blocks_admin_all" ON public.content_blocks
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -139,9 +143,11 @@ CREATE TABLE IF NOT EXISTS public.blog_posts (
 
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "blog_posts_public_read" ON public.blog_posts;
 CREATE POLICY "blog_posts_public_read" ON public.blog_posts
   FOR SELECT USING (status = 'published');
 
+DROP POLICY IF EXISTS "blog_posts_admin_all" ON public.blog_posts;
 CREATE POLICY "blog_posts_admin_all" ON public.blog_posts
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -226,9 +232,11 @@ CREATE TABLE IF NOT EXISTS public.faq_items (
 
 ALTER TABLE public.faq_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "faq_public_read" ON public.faq_items;
 CREATE POLICY "faq_public_read" ON public.faq_items
   FOR SELECT USING (is_active = TRUE);
 
+DROP POLICY IF EXISTS "faq_admin_all" ON public.faq_items;
 CREATE POLICY "faq_admin_all" ON public.faq_items
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -278,6 +286,7 @@ CREATE TABLE IF NOT EXISTS public.seo_keywords (
 
 ALTER TABLE public.seo_keywords ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "seo_keywords_admin_all" ON public.seo_keywords;
 CREATE POLICY "seo_keywords_admin_all" ON public.seo_keywords
   FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
@@ -318,9 +327,11 @@ CREATE TABLE IF NOT EXISTS public.page_views (
 
 ALTER TABLE public.page_views ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "page_views_insert" ON public.page_views;
 CREATE POLICY "page_views_insert" ON public.page_views
   FOR INSERT WITH CHECK (TRUE);
 
+DROP POLICY IF EXISTS "page_views_admin_select" ON public.page_views;
 CREATE POLICY "page_views_admin_select" ON public.page_views
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin','super_admin'))
