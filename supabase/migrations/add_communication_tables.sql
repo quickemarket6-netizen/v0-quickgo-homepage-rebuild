@@ -8,7 +8,7 @@
 -- Original schema has (channel, type, recipient, subject, content, status, provider_id)
 -- API inserts (type, channel, subject, content, recipient, results_json, status)
 
-ALTER TABLE public.communication_logs
+ALTER TABLE IF EXISTS public.communication_logs
   ADD COLUMN IF NOT EXISTS results_json JSONB DEFAULT '{}';
 
 -- ── BROADCASTS ───────────────────────────────────────────────
