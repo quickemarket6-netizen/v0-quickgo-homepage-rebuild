@@ -386,6 +386,27 @@ export default function AdminFinancesPage() {
   const summary = data?.summary
   const sparkData = (data?.daily_trend ?? []).map((d) => d.commission)
 
+  // Real period-over-period trend: compare the sum over the recent half of the
+  // period against the earlier half. Returns null when there isn't enough data.
+  function computeTrend(series: number[]): { label: string; up: boolean } | null {
+    if (series.length < 2) return null
+    const mid = Math.floor(series.length / 2)
+    const earlier = series.slice(0, mid).reduce((s, v) => s + v, 0)
+    const recent = series.slice(mid).reduce((s, v) => s + v, 0)
+    if (earlier === 0) return null
+    const pct = ((recent - earlier) / earlier) * 100
+    return { label: `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`, up: pct >= 0 }
+  }
+
+  const trend = data?.daily_trend ?? []
+  const revenueTrend = computeTrend(trend.map((d) => d.revenue))
+  const commissionTrend = computeTrend(trend.map((d) => d.commission))
+  const vendorTrend = computeTrend(trend.map((d) => d.vendor))
+  // Effective commission rate derived from real totals
+  const commissionRate = summary && summary.total_revenue > 0
+    ? Math.round((summary.total_commissions / summary.total_revenue) * 100)
+    : null
+
   const statCards = summary
     ? [
         {
@@ -394,17 +415,17 @@ export default function AdminFinancesPage() {
           sub: `${period}j`,
           icon: DollarSign,
           gradient: "from-green-500 to-emerald-600",
-          trend: "+18.4%",
-          up: true,
+          trend: revenueTrend?.label,
+          up: revenueTrend?.up ?? true,
         },
         {
           label: "Commissions QuickGo",
           value: formatCFA(summary.total_commissions),
-          sub: "7% moyen",
+          sub: commissionRate != null ? `${commissionRate}% moyen` : "Commission",
           icon: TrendingUp,
           gradient: "from-blue-600 to-cyan-500",
-          trend: "+12.1%",
-          up: true,
+          trend: commissionTrend?.label,
+          up: commissionTrend?.up ?? true,
         },
         {
           label: "Reversé aux vendeurs",
@@ -412,8 +433,8 @@ export default function AdminFinancesPage() {
           sub: "Net après frais",
           icon: ArrowUpRight,
           gradient: "from-purple-500 to-violet-600",
-          trend: "+9.7%",
-          up: true,
+          trend: vendorTrend?.label,
+          up: vendorTrend?.up ?? true,
         },
         {
           label: "Retraits en attente",
