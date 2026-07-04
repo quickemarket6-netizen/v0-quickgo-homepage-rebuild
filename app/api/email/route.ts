@@ -12,7 +12,7 @@ import {
 } from '@/lib/email/templates'
 import { createClient } from '@/lib/supabase/server'
 import { randomInt } from 'crypto'
-import { checkRateLimit } from '@/lib/payments/security'
+import { checkRateLimit, verifyAdmin } from '@/lib/payments/security'
 
 // Cryptographically secure code — Math.random() is not suitable for security codes
 function generateCode(length: number = 6): string {
@@ -264,6 +264,15 @@ export async function POST(request: NextRequest) {
 
 // GET - Get email preview (for testing)
 export async function GET(request: NextRequest) {
+  // La prévisualisation des templates est un outil interne : admin uniquement.
+  const admin = await verifyAdmin()
+  if (!admin.valid) {
+    return NextResponse.json(
+      { error: admin.error ?? 'Accès refusé' },
+      { status: admin.error === 'Non authentifié' ? 401 : 403 },
+    )
+  }
+
   const searchParams = request.nextUrl.searchParams
   const type = searchParams.get('type')
   const preview = searchParams.get('preview') === 'true'

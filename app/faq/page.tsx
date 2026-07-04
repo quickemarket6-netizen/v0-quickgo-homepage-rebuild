@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { createClient } from "@/lib/supabase/server"
+import { safeJsonLd } from "@/lib/seo/safe-json-ld"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import FAQContent from "./_components/FAQContent"
@@ -105,7 +106,7 @@ export default async function FAQPage() {
     <main className="min-h-screen bg-background">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
       />
       <Navbar />
       <FAQContent categories={categories} />

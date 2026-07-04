@@ -18,9 +18,19 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
       {
+        // Les règles spécifiques à Googlebot remplacent celles du wildcard :
+        // elles doivent reprendre la même liste d'exclusions.
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/api/', '/private/'],
+        disallow: [
+          '/api/',
+          '/admin/',
+          '/dashboard/',
+          '/driver/dashboard/',
+          '/vendor/dashboard/',
+          '/_next/',
+          '/private/',
+        ],
       },
       {
         userAgent: 'Googlebot-Image',

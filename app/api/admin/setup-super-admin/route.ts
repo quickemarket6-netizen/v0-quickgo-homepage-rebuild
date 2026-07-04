@@ -11,15 +11,23 @@ import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin } from "@/lib/payments/security"
 
-const SUPER_EMAIL    = process.env.SUPER_ADMIN_EMAIL    ?? "fomoujunior2@gmail.com"
-const SUPER_PASSWORD = process.env.SUPER_ADMIN_PASSWORD ?? "QuickGo@2024!"
-const SUPER_NAME     = process.env.SUPER_ADMIN_NAME     ?? "Emmanuel Admin"
+// Aucun fallback : les identifiants doivent venir des variables d'environnement.
+const SUPER_EMAIL    = process.env.SUPER_ADMIN_EMAIL
+const SUPER_PASSWORD = process.env.SUPER_ADMIN_PASSWORD
+const SUPER_NAME     = process.env.SUPER_ADMIN_NAME ?? "Super Admin"
 
 export async function POST(_req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const admin = await verifyAdmin()
   if (!admin.valid) {
     return NextResponse.json({ error: admin.error }, { status: 401 })
+  }
+
+  if (!SUPER_EMAIL || !SUPER_PASSWORD) {
+    return NextResponse.json(
+      { error: "SUPER_ADMIN_EMAIL et SUPER_ADMIN_PASSWORD doivent être définis dans les variables d'environnement." },
+      { status: 500 },
+    )
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL

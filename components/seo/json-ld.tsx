@@ -1,4 +1,5 @@
 import { SITE_URL } from "@/lib/site-config"
+import { safeJsonLd } from "@/lib/seo/safe-json-ld"
 
 const BASE = SITE_URL
 
@@ -133,7 +134,7 @@ export default function JsonLd() {
         <script
           key={i}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }}
         />
       ))}
     </>

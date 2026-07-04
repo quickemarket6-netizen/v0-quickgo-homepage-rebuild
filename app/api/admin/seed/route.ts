@@ -29,6 +29,16 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY manquant dans les variables Vercel" }, { status: 500 })
   }
 
+  // Mot de passe des comptes de test : jamais en dur dans le code ni dans
+  // la réponse — il vient des variables d'environnement.
+  const seedPassword = process.env.SEED_PASSWORD
+  if (!seedPassword) {
+    return NextResponse.json(
+      { error: "SEED_PASSWORD doit être défini dans les variables d'environnement." },
+      { status: 500 },
+    )
+  }
+
   const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
   const log: string[] = []
   const errors: string[] = []
@@ -47,7 +57,7 @@ export async function GET(_req: NextRequest) {
 
   try {
     // ── 1. Utilisateurs ────────────────────────────────────────────────────
-    const PASSWORD = "QuickGo2024!"
+    const PASSWORD = seedPassword
     const adminId   = await createUser("admin@quickgo.cm",  PASSWORD, { full_name: "Admin QuickGo",  role: "admin" })
     const client1Id = await createUser("marie@quickgo.cm",  PASSWORD, { full_name: "Marie Mballa",   role: "customer" })
     const client2Id = await createUser("paul@quickgo.cm",   PASSWORD, { full_name: "Paul Nkeng",     role: "customer" })
@@ -207,13 +217,14 @@ export async function GET(_req: NextRequest) {
     success: true,
     message: "✅ Seed terminé !",
     comptes: [
-      { role: "client",  email: "marie@quickgo.cm",  mdp: "QuickGo2024!" },
-      { role: "client",  email: "paul@quickgo.cm",   mdp: "QuickGo2024!" },
-      { role: "vendeur", email: "samuel@quickgo.cm", mdp: "QuickGo2024!" },
-      { role: "vendeur", email: "fatima@quickgo.cm", mdp: "QuickGo2024!" },
-      { role: "livreur", email: "jean@quickgo.cm",   mdp: "QuickGo2024!" },
-      { role: "admin",   email: "admin@quickgo.cm",  mdp: "QuickGo2024!" },
+      { role: "client",  email: "marie@quickgo.cm" },
+      { role: "client",  email: "paul@quickgo.cm" },
+      { role: "vendeur", email: "samuel@quickgo.cm" },
+      { role: "vendeur", email: "fatima@quickgo.cm" },
+      { role: "livreur", email: "jean@quickgo.cm" },
+      { role: "admin",   email: "admin@quickgo.cm" },
     ],
+    note: "Mot de passe : valeur de la variable d'environnement SEED_PASSWORD.",
     log,
     errors,
   })

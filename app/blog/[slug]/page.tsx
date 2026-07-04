@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
+import { safeJsonLd } from "@/lib/seo/safe-json-ld"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Calendar, Clock, User, ArrowLeft, Eye } from "lucide-react"
@@ -126,7 +127,7 @@ export default async function BlogPostPage({
     <main className="min-h-screen bg-background">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
       <Navbar />
 
