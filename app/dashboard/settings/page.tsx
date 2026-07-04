@@ -41,6 +41,10 @@ export default function DashboardSettingsPage() {
       setUser(data.user)
       setFullName(data.user.user_metadata?.full_name || "")
       setPhone(data.user.user_metadata?.phone || "")
+      const savedNotifs = data.user.user_metadata?.notifications
+      if (savedNotifs && typeof savedNotifs === "object") {
+        setNotifications((prev) => ({ ...prev, ...savedNotifs }))
+      }
     })
   }, [router])
 
@@ -55,6 +59,20 @@ export default function DashboardSettingsPage() {
       toast.error("Erreur", { description: error.message })
     } else {
       toast.success("Profil mis à jour")
+    }
+  }
+
+  const handleSaveNotifications = async () => {
+    setIsLoading(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({
+      data: { notifications },
+    })
+    setIsLoading(false)
+    if (error) {
+      toast.error("Erreur", { description: error.message })
+    } else {
+      toast.success("Préférences sauvegardées")
     }
   }
 
@@ -162,8 +180,8 @@ export default function DashboardSettingsPage() {
                       </div>
                     ))}
                   </div>
-                  <Button onClick={() => toast.success("Préférences sauvegardées")} className="rounded-xl h-12 bg-quickgo-blue hover:bg-quickgo-blue/90">
-                    <Save className="w-4 h-4 mr-2" />
+                  <Button onClick={handleSaveNotifications} disabled={isLoading} className="rounded-xl h-12 bg-quickgo-blue hover:bg-quickgo-blue/90">
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     Sauvegarder
                   </Button>
                 </div>
@@ -173,9 +191,8 @@ export default function DashboardSettingsPage() {
                 <div className="space-y-6">
                   <h2 className="text-lg font-bold text-white">Sécurité du compte</h2>
                   {[
-                    { label: "Changer le mot de passe", desc: "Dernière modification il y a 30 jours", href: "/auth/forgot-password" },
-                    { label: "Authentification 2 facteurs", desc: "Activée via SMS", href: "#" },
-                    { label: "Appareils connectés", desc: "2 appareils actifs", href: "#" },
+                    { label: "Changer le mot de passe", desc: "Recevez un lien de réinitialisation par email", href: "/auth/forgot-password" },
+                    { label: "Sécurité du portefeuille", desc: "Code PIN et appareils autorisés", href: "/wallet/security" },
                   ].map((item) => (
                     <Link key={item.label} href={item.href}
                       className="flex items-center justify-between p-4 rounded-2xl bg-background/30 border border-border/20 hover:border-quickgo-blue/50 transition-all">
