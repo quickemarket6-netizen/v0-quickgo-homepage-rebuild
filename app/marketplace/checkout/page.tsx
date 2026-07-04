@@ -42,6 +42,7 @@ export default function CheckoutPage() {
   const [deliveryOption, setDeliveryOption] = useState("express")
   const [promoCode, setPromoCode]         = useState("")
   const [promoApplied, setPromoApplied]   = useState(false)
+  const [promoDiscount, setPromoDiscount] = useState(0)
   const [notes, setNotes]                 = useState("")
   const [submitting, setSubmitting]       = useState(false)
   const [orderId, setOrderId]             = useState<string | null>(null)
@@ -50,8 +51,9 @@ export default function CheckoutPage() {
 
   const subtotal     = getTotalPrice()
   const deliveryFee  = DELIVERY_OPTIONS.find((d) => d.id === deliveryOption)?.price ?? 1500
-  const discount     = promoApplied ? Math.round(subtotal * 0.1) : 0
-  const total        = subtotal + deliveryFee - discount
+  const discount     = promoApplied ? promoDiscount : 0
+  const serviceFee   = Math.round(subtotal * 0.02) // aligné sur le calcul serveur (2%)
+  const total        = subtotal + deliveryFee + serviceFee - discount
 
   // Group items by vendor for multi-vendor awareness
   const vendorGroups = items.reduce<Record<string, typeof items>>((acc, item) => {
@@ -60,6 +62,34 @@ export default function CheckoutPage() {
     return acc
   }, {})
   const primaryVendorId = Object.keys(vendorGroups)[0] ?? null
+
+  // Lance le paiement CinetPay (Orange Money / MTN MoMo) pour une commande
+  // déjà créée, puis redirige vers la page de paiement de l'opérateur.
+  const startMobilePayment = async (createdOrderId: string): Promise<boolean> => {
+    const res = await fetch("/api/payments/initiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        order_id: createdOrderId,
+        customer_phone: phone || undefined,
+      }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.payment_url) {
+      setError(data.error ?? "Impossible d'initier le paiement. Réessayez.")
+      return false
+    }
+    window.location.href = data.payment_url
+    return true
+  }
+
+  const retryPayment = async () => {
+    if (!orderId) return
+    setError(null)
+    setSubmitting(true)
+    try { await startMobilePayment(orderId) }
+    finally { setSubmitting(false) }
+  }
 
   const submitOrder = async () => {
     if (!address.trim()) { setError("Veuillez saisir une adresse de livraison."); return }
@@ -81,6 +111,7 @@ export default function CheckoutPage() {
           vendor_id: primaryVendorId !== "unknown" ? primaryVendorId : undefined,
           items: orderItems,
           delivery_address: address,
+          delivery_option: deliveryOption,
           payment_method: paymentMethod,
           notes,
           promo_code: promoApplied ? promoCode : undefined,
@@ -99,6 +130,14 @@ export default function CheckoutPage() {
       setOrderId(data.id)
       setOrderNumber(data.order_number)
       clearCart()
+
+      if (paymentMethod === "orange_money" || paymentMethod === "mtn_momo") {
+        // Redirection vers CinetPay — la confirmation n'arrive qu'après
+        // le retour de paiement (page Mes commandes).
+        await startMobilePayment(data.id)
+        return
+      }
+      // QuickGo Pay (déjà débité côté serveur) et cash : confirmation directe
       setStep(3)
     } catch {
       setError("Erreur réseau. Réessayez.")
@@ -112,10 +151,16 @@ export default function CheckoutPage() {
     const r = await fetch("/api/promo/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: promoCode }),
+      body: JSON.stringify({ code: promoCode, subtotal }),
     })
-    if (r.ok) { setPromoApplied(true) }
-    else { setError("Code promo invalide ou expiré.") }
+    const body = await r.json().catch(() => ({}))
+    if (r.ok && body.valid) {
+      setPromoDiscount(body.discount ?? 0)
+      setPromoApplied(true)
+      setError(null)
+    } else {
+      setError(body.error ?? "Code promo invalide ou expiré.")
+    }
   }
 
   const STEPS = [
@@ -266,18 +311,25 @@ export default function CheckoutPage() {
                           {promoApplied ? <Check className="w-4 h-4 text-green-500" /> : "Appliquer"}
                         </Button>
                       </div>
-                      {promoApplied && <p className="text-sm text-green-500 mt-2 flex items-center gap-1"><Check className="w-4 h-4" />Code appliqué (-10%)</p>}
+                      {promoApplied && <p className="text-sm text-green-500 mt-2 flex items-center gap-1"><Check className="w-4 h-4" />Code appliqué (−{formatPrice(promoDiscount)})</p>}
                     </div>
 
                     {error && <p className="text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-xl">{error}</p>}
-                    <div className="flex gap-3">
-                      <Button variant="outline" className="h-14 rounded-xl px-6" onClick={() => setStep(1)}>
-                        <ChevronLeft className="w-5 h-5" />
+                    {error && orderId ? (
+                      // La commande existe mais le paiement mobile n'a pas pu démarrer
+                      <Button className="w-full h-14 rounded-xl text-base gap-2" onClick={retryPayment} disabled={submitting}>
+                        {submitting ? "Initialisation…" : <><Shield className="w-5 h-5" /> Réessayer le paiement</>}
                       </Button>
-                      <Button className="flex-1 h-14 rounded-xl text-base gap-2" onClick={submitOrder} disabled={submitting}>
-                        {submitting ? "Commande en cours…" : <><Shield className="w-5 h-5" /> Confirmer la commande</>}
-                      </Button>
-                    </div>
+                    ) : (
+                      <div className="flex gap-3">
+                        <Button variant="outline" className="h-14 rounded-xl px-6" onClick={() => setStep(1)}>
+                          <ChevronLeft className="w-5 h-5" />
+                        </Button>
+                        <Button className="flex-1 h-14 rounded-xl text-base gap-2" onClick={submitOrder} disabled={submitting}>
+                          {submitting ? "Commande en cours…" : <><Shield className="w-5 h-5" /> Confirmer la commande</>}
+                        </Button>
+                      </div>
+                    )}
                   </motion.div>
                 )}
 
@@ -336,6 +388,9 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Livraison</span><span>{formatPrice(deliveryFee)}</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Frais de service (2%)</span><span>{formatPrice(serviceFee)}</span>
                     </div>
                     {discount > 0 && (
                       <div className="flex justify-between text-green-500">

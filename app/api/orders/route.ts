@@ -1,5 +1,15 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { creditVendorPending } from "@/lib/payments/wallet-engine"
+
+const PAYMENT_METHODS = new Set(["orange_money", "mtn_momo", "quickgo_pay", "cash"])
+
+// Tarifs des options de livraison — source de vérité serveur, jamais le client.
+const DELIVERY_OPTION_FEES: Record<string, number> = {
+  express: 2500,
+  standard: 1500,
+  scheduled: 1000,
+}
 
 // GET user orders
 export async function GET() {
@@ -51,12 +61,16 @@ export async function POST(request: Request) {
     delivery_latitude,
     delivery_longitude,
     payment_method = "cash",
+    delivery_option,
     notes,
     promo_code
   } = body
 
   if (!vendor_id || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "vendor_id et items requis" }, { status: 400 })
+  }
+  if (!PAYMENT_METHODS.has(payment_method)) {
+    return NextResponse.json({ error: "Mode de paiement invalide" }, { status: 400 })
   }
 
   // Validate and price items from DB — never trust client-supplied prices
@@ -99,14 +113,17 @@ export async function POST(request: Request) {
     })
   }
 
-  // Get vendor delivery fee
+  // Frais de livraison : l'option choisie (Express/Standard/Programmé) prime,
+  // sinon on retombe sur le tarif du vendeur. Prix toujours calculé serveur.
   const { data: vendor } = await supabase
     .from("vendors")
     .select("delivery_fee")
     .eq("id", vendor_id)
     .single()
 
-  const delivery_fee = vendor?.delivery_fee || 500
+  const delivery_fee = DELIVERY_OPTION_FEES[delivery_option as string]
+    ?? vendor?.delivery_fee
+    ?? 500
   let discount = 0
 
   // Apply promo code if provided — atomic increment prevents race conditions
@@ -159,6 +176,7 @@ export async function POST(request: Request) {
       discount,
       total,
       payment_method,
+      payment_status: "pending",
       delivery_address,
       delivery_latitude,
       delivery_longitude,
@@ -185,7 +203,63 @@ export async function POST(request: Request) {
     await supabase.from("orders").delete().eq("id", order.id)
     return NextResponse.json({ error: "Erreur lors de l'ajout des articles" }, { status: 500 })
   }
-  
+
+  // Paiement par portefeuille QuickGo Pay : débit atomique immédiat.
+  // Orange Money / MTN MoMo passent par /api/payments/initiate (CinetPay) ;
+  // le cash reste "pending" jusqu'à la remise en main propre.
+  if (payment_method === "quickgo_pay") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("wallet_balance")
+      .eq("id", user.id)
+      .single()
+
+    const balance = profile?.wallet_balance ?? 0
+    if (balance < total) {
+      await supabase.from("orders").delete().eq("id", order.id)
+      return NextResponse.json(
+        { error: `Solde QuickGo Pay insuffisant (${balance} FCFA pour un total de ${total} FCFA).` },
+        { status: 400 },
+      )
+    }
+
+    // Débit avec verrou optimiste — échoue si le solde a changé entre-temps
+    const { data: debited } = await supabase
+      .from("profiles")
+      .update({ wallet_balance: balance - total })
+      .eq("id", user.id)
+      .eq("wallet_balance", balance)
+      .select("id")
+
+    if (!debited || debited.length === 0) {
+      await supabase.from("orders").delete().eq("id", order.id)
+      return NextResponse.json({ error: "Solde modifié pendant la commande, réessayez." }, { status: 409 })
+    }
+
+    await supabase.from("wallet_transactions").insert({
+      user_id: user.id,
+      type: "debit",
+      amount: total,
+      balance_after: balance - total,
+      description: `Paiement commande ${order_number}`,
+    })
+
+    await supabase
+      .from("orders")
+      .update({ payment_status: "paid", status: "confirmed" })
+      .eq("id", order.id)
+    order.payment_status = "paid"
+    order.status = "confirmed"
+
+    // Créditer le wallet vendeur (fonds en attente), comme le webhook CinetPay
+    await creditVendorPending({
+      orderId: order.id,
+      vendorId: vendor_id,
+      grossAmount: total,
+      deliveryFee: delivery_fee,
+    })
+  }
+
   // Clear cart
   await supabase
     .from("cart_items")
