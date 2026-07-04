@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -10,31 +9,16 @@ import {
   Phone,
   MessageSquare,
   MapPin,
-  Clock,
-  Zap,
   Volume2,
   VolumeX,
   Maximize2,
   Minimize2,
   ChevronUp,
-  AlertTriangle,
-  Cloud,
-  CloudRain,
-  Sun,
-  Wind,
   User,
   Package,
-  CheckCircle,
   Radio,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-const routeSteps = [
-  { id: 1, instruction: "Tournez à gauche sur Rue des Saveurs", distance: "150m", completed: true },
-  { id: 2, instruction: "Continuez tout droit pendant 800m", distance: "800m", completed: true },
-  { id: 3, instruction: "Tournez à droite sur Avenue Kennedy", distance: "200m", completed: false, current: true },
-  { id: 4, instruction: "Votre destination sera sur la droite", distance: "50m", completed: false },
-]
 
 type ActiveDelivery = {
   type: string
@@ -45,6 +29,8 @@ type ActiveDelivery = {
   earning: number
   tip: number
   order_type: string
+  distance_km: number | null
+  eta_min: number | null
 }
 
 export default function DriverNavigationPage() {
@@ -184,12 +170,6 @@ export default function DriverNavigationPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Weather */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5">
-                <Sun className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm text-white">28°C</span>
-              </div>
-
               {/* Time */}
               <div className="px-3 py-1.5 rounded-full bg-white/5">
                 <span className="text-sm text-white font-mono">
@@ -231,38 +211,15 @@ export default function DriverNavigationPage() {
         <div className="glass-dark px-8 py-6 rounded-3xl">
           <p className="text-muted-foreground text-sm mb-1">Arrivée estimée</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-6xl font-bold text-white">12</span>
+            <span className="text-6xl font-bold text-white">{delivery?.eta_min ?? "—"}</span>
             <span className="text-4xl font-bold text-quickgo-lime">min</span>
           </div>
           <div className="flex items-center justify-center gap-4 mt-3 text-sm">
             <div className="flex items-center gap-1">
               <MapPin className="w-4 h-4 text-quickgo-blue" />
-              <span className="text-muted-foreground">2.8 km</span>
-            </div>
-            <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-            <div className="flex items-center gap-1">
-              <Zap className="w-4 h-4 text-quickgo-lime" />
-              <span className="text-muted-foreground">Trafic fluide</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Traffic Alert */}
-      <motion.div
-        initial={{ opacity: 0, x: 100 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.5 }}
-        className="absolute top-32 right-4 z-40"
-      >
-        <div className="glass-dark px-4 py-3 rounded-2xl border border-yellow-500/30">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-yellow-500" />
-            </div>
-            <div>
-              <p className="text-yellow-500 text-sm font-medium">Ralentissement</p>
-              <p className="text-xs text-muted-foreground">Carrefour Nlongkak +3 min</p>
+              <span className="text-muted-foreground">
+                {delivery?.distance_km != null ? `${delivery.distance_km} km` : "— km"}
+              </span>
             </div>
           </div>
         </div>
@@ -310,19 +267,21 @@ export default function DriverNavigationPage() {
             </button>
 
             <div className="glass-dark rounded-t-3xl border-t border-white/10">
-              {/* Current Instruction */}
+              {/* Destination */}
               <div className="p-4 border-b border-white/10">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-quickgo-blue/20 flex items-center justify-center">
                     <Navigation className="w-7 h-7 text-quickgo-blue" />
                   </div>
-                  <div className="flex-1">
-                    <p className="text-white font-semibold text-lg">Tournez à droite</p>
-                    <p className="text-muted-foreground">sur Avenue Kennedy</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-lg">Destination</p>
+                    <p className="text-muted-foreground truncate">{delivery?.destination ?? "Chargement..."}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">200</p>
-                    <p className="text-sm text-muted-foreground">mètres</p>
+                    <p className="text-2xl font-bold text-white">
+                      {delivery?.distance_km != null ? delivery.distance_km : "—"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">km restants</p>
                   </div>
                 </div>
 
@@ -333,41 +292,6 @@ export default function DriverNavigationPage() {
                     initial={{ width: "0%" }}
                     animate={{ width: `${progress}%` }}
                   />
-                </div>
-              </div>
-
-              {/* Route Steps */}
-              <div className="p-4 max-h-48 overflow-auto">
-                <div className="space-y-3">
-                  {routeSteps.map((step, index) => (
-                    <motion.div
-                      key={step.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`flex items-center gap-3 p-3 rounded-xl ${
-                        step.current ? "bg-quickgo-blue/20 border border-quickgo-blue/30" : "bg-white/5"
-                      }`}
-                    >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        step.completed ? "bg-quickgo-lime" : step.current ? "bg-quickgo-blue" : "bg-white/10"
-                      }`}>
-                        {step.completed ? (
-                          <CheckCircle className="w-4 h-4 text-background" />
-                        ) : (
-                          <span className={`text-sm font-bold ${step.current ? "text-white" : "text-muted-foreground"}`}>
-                            {step.id}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className={`text-sm ${step.current ? "text-white font-medium" : "text-muted-foreground"}`}>
-                          {step.instruction}
-                        </p>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{step.distance}</span>
-                    </motion.div>
-                  ))}
                 </div>
               </div>
 
