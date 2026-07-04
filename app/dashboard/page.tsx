@@ -472,13 +472,14 @@ export default function ClientDashboardPage() {
                   <div className="grid md:grid-cols-3 gap-4">
                     {[0,1,2].map((i) => <div key={i} className="h-36 rounded-2xl bg-[#16161f] animate-pulse" />)}
                   </div>
+                ) : promos.length === 0 ? (
+                  <div className="text-center py-8 rounded-2xl bg-[#16161f] border border-[#1e1e2e]">
+                    <Gift className="w-7 h-7 text-white/10 mx-auto mb-2" />
+                    <p className="text-white/30 text-sm">Aucune offre disponible pour le moment</p>
+                  </div>
                 ) : (
                   <div className="grid md:grid-cols-3 gap-4">
-                    {(promos.length > 0 ? promos : [
-                      { id:"1", code:"EXPRESS50", title:"Livraison Express", description:"Sur votre première commande", discount_type:"percent", discount_value:50, valid_until: new Date(Date.now()+2*3600_000+34*60_000+10_000).toISOString() },
-                      { id:"2", code:"COURSES30", title:"Courses du Jour",   description:"Jusqu'à -30% de réduction",   discount_type:"percent", discount_value:30, valid_until: new Date(Date.now()+5*3600_000+12*60_000+45_000).toISOString() },
-                      { id:"3", code:"RESTO20",   title:"Restaurants",       description:"Sur les plats sélectionnés",   discount_type:"percent", discount_value:20, valid_until: new Date(Date.now()+3*3600_000+22*60_000+30_000).toISOString() },
-                    ] as PromoRow[]).map((p, i) => (
+                    {promos.map((p, i) => (
                       <PromoCard key={p.id} promo={p} colorIdx={i} />
                     ))}
                   </div>
