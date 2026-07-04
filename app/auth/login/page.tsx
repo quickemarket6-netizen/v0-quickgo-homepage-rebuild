@@ -94,9 +94,15 @@ export default function LoginPage() {
       super_admin: "/admin",
     }
     const role = profile?.role as string | undefined
-    const redirectTo = searchParams.get("redirectTo")
-    const dest = (redirectTo && !redirectTo.startsWith("/auth")) ? redirectTo
-      : (DASHBOARD[role ?? ""] ?? "/dashboard")
+    // Le proxy redirige avec ?next= ; on accepte aussi l'ancien ?redirectTo=.
+    // Seuls les chemins relatifs internes sont autorisés (anti open-redirect).
+    const redirectTo = searchParams.get("next") ?? searchParams.get("redirectTo")
+    const isSafePath = redirectTo != null
+      && redirectTo.startsWith("/")
+      && !redirectTo.startsWith("//")
+      && !redirectTo.startsWith("/\\")
+      && !redirectTo.startsWith("/auth")
+    const dest = isSafePath ? redirectTo : (DASHBOARD[role ?? ""] ?? "/dashboard")
 
     router.push(dest)
     router.refresh()
