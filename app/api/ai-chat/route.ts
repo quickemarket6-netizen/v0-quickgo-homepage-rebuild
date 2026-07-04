@@ -1,12 +1,16 @@
 import { streamText, convertToModelMessages, UIMessage } from 'ai'
 import { QUICKGO_SYSTEM_PROMPT } from '@/lib/ai/multi-assistant'
 import { isFuguModel, fuguModel } from '@/lib/ai/fugu'
+import { guardAIRequest } from '@/lib/ai/guard'
 
 export const maxDuration = 60
 
 export async function POST(req: Request) {
   try {
     const { messages, model = 'openai/gpt-4o' }: { messages: UIMessage[], model?: string } = await req.json()
+
+    const guard = await guardAIRequest(model)
+    if (!guard.ok) return guard.response
 
     // Sakana Fugu uses a dedicated OpenAI-compatible endpoint; every other
     // model id (openai/*, anthropic/*, google/*) is resolved by the AI Gateway.

@@ -1,7 +1,7 @@
 import { convertToModelMessages, streamText, UIMessage, tool } from 'ai'
 import { z } from 'zod'
 import { isFuguModel, fuguModel } from '@/lib/ai/fugu'
-import { createClient } from '@/lib/supabase/server'
+import { guardAIRequest } from '@/lib/ai/guard'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const maxDuration = 30
@@ -157,11 +157,13 @@ function buildTools(supabase: SupabaseClient, userId: string | null) {
 export async function POST(req: Request) {
   const { messages, model = 'openai/gpt-4o-mini' }: { messages: UIMessage[], model?: string } = await req.json()
 
+  const guard = await guardAIRequest(model)
+  if (!guard.ok) return guard.response
+
   const resolvedModel = isFuguModel(model) ? fuguModel(model) : model
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const tools = buildTools(supabase, user?.id ?? null)
+  const { supabase, user } = guard
+  const tools = buildTools(supabase, user.id)
 
   const result = streamText({
     model: resolvedModel,

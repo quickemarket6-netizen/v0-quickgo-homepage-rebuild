@@ -18,6 +18,9 @@ const AUTH_REQUIRED_PREFIXES = [
   "/wallet",
   "/delivery",
   "/notifications",
+  "/ai",
+  "/ai-assistant",
+  "/assistant",
 ]
 
 // ── Redirects ─────────────────────────────────────────────────────────────────
