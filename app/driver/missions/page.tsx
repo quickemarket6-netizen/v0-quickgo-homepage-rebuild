@@ -161,12 +161,12 @@ export default function DriverMissionsPage() {
       const res = await fetch("/api/driver/available")
       if (res.ok) {
         const data = await res.json()
-        setMissions(Array.isArray(data) && data.length > 0 ? data : _STATIC_MISSIONS)
+        setMissions(Array.isArray(data) ? data : [])
       } else {
-        setMissions(_STATIC_MISSIONS)
+        setMissions([])
       }
     } catch {
-      setMissions(_STATIC_MISSIONS)
+      setMissions([])
     } finally {
       setLoading(false)
     }
