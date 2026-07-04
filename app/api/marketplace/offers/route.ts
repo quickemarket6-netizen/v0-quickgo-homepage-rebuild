@@ -14,5 +14,13 @@ export async function GET() {
     .limit(12)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data ?? [])
+
+  // Les visiteurs voient les offres mais pas les codes : ça évite qu'un
+  // scraper anonyme moissonne tous les codes actifs. Le code s'affiche
+  // une fois connecté (l'application du code au checkout exige de toute
+  // façon une session).
+  const { data: { user } } = await supabase.auth.getUser()
+  const offers = (data ?? []).map((o) => (user ? o : { ...o, code: null }))
+
+  return NextResponse.json(offers)
 }

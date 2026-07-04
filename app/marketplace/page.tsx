@@ -34,6 +34,10 @@ interface ProductRow {
   category: { name: string } | null
 }
 interface CategoryRow { id: string; name: string; slug: string; icon: string | null; color: string | null }
+interface OfferRow {
+  id: string; title: string | null; description: string | null
+  discount_type: string; discount_value: number; valid_until: string | null
+}
 interface HomeData {
   profile: Profile | null; recentOrders: OrderRow[]; products: ProductRow[]
   categories: CategoryRow[]; unreadCount: number; cartCount: number
@@ -95,6 +99,18 @@ function getLevel(pts: number) {
 function formatCFA(n: number) {
   return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " FCFA"
 }
+
+const OFFER_PALETTES = [
+  { from: "#ea580c", to: "#dc2626" },
+  { from: "#16a34a", to: "#059669" },
+  { from: "#3b82f6", to: "#06b6d4" },
+]
+
+function offerDiscountLabel(o: OfferRow) {
+  if (o.discount_type === "delivery") return "Livraison 0 F"
+  if (o.discount_type === "percentage" || o.discount_type === "percent") return `-${o.discount_value}%`
+  return `-${new Intl.NumberFormat("fr-FR").format(o.discount_value)} F`
+}
 function formatETA(iso: string | null) {
   if (!iso) return "—"
   const diff = Math.round((new Date(iso).getTime() - Date.now()) / 60000)
@@ -107,6 +123,7 @@ function formatETA(iso: string | null) {
 
 export default function MarketplacePage() {
   const [data, setData] = useState<HomeData | null>(null)
+  const [offers, setOffers] = useState<OfferRow[]>([])
   const [loading, setLoading] = useState(true)
   const [heroIdx, setHeroIdx] = useState(0)
   const [orderTab, setOrderTab] = useState<"active" | "done" | "cancelled">("active")
@@ -118,6 +135,10 @@ export default function MarketplacePage() {
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d) setData(d) })
       .finally(() => setLoading(false))
+    fetch("/api/marketplace/offers")
+      .then((r) => r.ok ? r.json() : [])
+      .then((d) => { if (Array.isArray(d)) setOffers(d) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -379,22 +400,31 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-          {/* Special Offers */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-semibold text-sm">Offres spéciales</h3>
-              <Link href="/marketplace/offers" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Tout voir</Link>
+          {/* Special Offers — vraies promos de la base, vraies échéances */}
+          {offers.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-white font-semibold text-sm">Offres spéciales</h3>
+                <Link href="/marketplace/offers" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Tout voir</Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {offers.slice(0, 3).map((offer, i) => {
+                  const palette = OFFER_PALETTES[i % OFFER_PALETTES.length]
+                  return (
+                    <OfferCard
+                      key={offer.id}
+                      title={(offer.title ?? "Offre spéciale").toUpperCase()}
+                      sub={offerDiscountLabel(offer)}
+                      desc={offer.description ?? ""}
+                      from={palette.from}
+                      to={palette.to}
+                      expires={offer.valid_until ? new Date(offer.valid_until) : null}
+                    />
+                  )
+                })}
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { title: "LIVRAISON EXPRESS", sub: "-50%", desc: "Sur votre première commande", from: "#ea580c", to: "#dc2626", expires: new Date(Date.now() + 2.5 * 3600000) },
-                { title: "COURSES DU JOUR",   sub: "Jusqu'à -30%", desc: "De réduction", from: "#16a34a", to: "#059669", expires: new Date(Date.now() + 5.2 * 3600000) },
-                { title: "RESTAURANTS",       sub: "-20%", desc: "Sur les plats sélectionnés", from: "#3b82f6", to: "#06b6d4", expires: new Date(Date.now() + 3.4 * 3600000) },
-              ].map((offer, i) => (
-                <OfferCard key={i} {...offer} />
-              ))}
-            </div>
-          </div>
+          )}
         </div>
       </main>
 
@@ -566,17 +596,21 @@ export default function MarketplacePage() {
 // ─── Offer Card with countdown ────────────────────────────────────────────────
 
 function OfferCard({ title, sub, desc, from, to, expires }: {
-  title: string; sub: string; desc: string; from: string; to: string; expires: Date
+  title: string; sub: string; desc: string; from: string; to: string; expires: Date | null
 }) {
   const [timeLeft, setTimeLeft] = useState("")
 
   useEffect(() => {
+    if (!expires) return
     function update() {
-      const diff = Math.max(0, expires.getTime() - Date.now())
-      const h = Math.floor(diff / 3600000)
+      const diff = Math.max(0, expires!.getTime() - Date.now())
+      const d = Math.floor(diff / 86400000)
+      const h = Math.floor((diff % 86400000) / 3600000)
       const m = Math.floor((diff % 3600000) / 60000)
       const s = Math.floor((diff % 60000) / 1000)
-      setTimeLeft(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`)
+      setTimeLeft(d > 0
+        ? `${d}j ${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m`
+        : `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`)
     }
     update()
     const t = setInterval(update, 1000)
@@ -595,8 +629,14 @@ function OfferCard({ title, sub, desc, from, to, expires }: {
         <p className="text-white/80 text-xs mt-0.5">{desc}</p>
         <div className="flex items-center gap-2 mt-3">
           <div className="bg-black/30 rounded-lg px-2 py-1">
-            <p className="text-[9px] text-white/60">Expire dans</p>
-            <p className="text-white font-mono text-xs font-bold">{timeLeft}</p>
+            {expires ? (
+              <>
+                <p className="text-[9px] text-white/60">Expire dans</p>
+                <p className="text-white font-mono text-xs font-bold">{timeLeft}</p>
+              </>
+            ) : (
+              <p className="text-white text-xs font-bold">Offre permanente</p>
+            )}
           </div>
         </div>
       </div>

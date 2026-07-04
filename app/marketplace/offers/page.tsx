@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft, Tag, Copy, CheckCircle, Truck, Percent, Gift, Zap, RefreshCw } from "lucide-react"
+import { ArrowLeft, Tag, Copy, CheckCircle, Truck, Percent, Gift, Zap, RefreshCw, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface PromoCode {
-  id: string; code: string; title: string | null; description: string | null
+  id: string; code: string | null; title: string | null; description: string | null
   discount_type: "percentage" | "fixed" | "delivery"
   discount_value: number; valid_until: string | null
   min_order_amount: number | null; max_uses: number | null; current_uses: number | null
@@ -144,19 +144,29 @@ export default function MarketplaceOffersPage() {
                         Commande min. {new Intl.NumberFormat("fr-FR").format(offer.min_order_amount)} F
                       </p>
                     )}
-                    <button
-                      onClick={() => handleCopy(offer.code)}
-                      className={`mt-4 w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${
-                        isCopied ? "bg-white/30 border-white/50" : "bg-black/30 border-white/20 hover:bg-black/40"
-                      }`}
-                    >
-                      <span className="font-mono font-bold text-white text-sm">{offer.code}</span>
-                      {isCopied ? (
-                        <CheckCircle className="w-4 h-4 text-white" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-white/70" />
-                      )}
-                    </button>
+                    {offer.code ? (
+                      <button
+                        onClick={() => handleCopy(offer.code!)}
+                        className={`mt-4 w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${
+                          isCopied ? "bg-white/30 border-white/50" : "bg-black/30 border-white/20 hover:bg-black/40"
+                        }`}
+                      >
+                        <span className="font-mono font-bold text-white text-sm">{offer.code}</span>
+                        {isCopied ? (
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-white/70" />
+                        )}
+                      </button>
+                    ) : (
+                      <Link
+                        href="/auth/login?next=/marketplace/offers"
+                        className="mt-4 w-full flex items-center justify-between px-3 py-2 rounded-xl border bg-black/30 border-white/20 hover:bg-black/40 transition-all"
+                      >
+                        <span className="font-semibold text-white text-sm">Connectez-vous pour voir le code</span>
+                        <Lock className="w-4 h-4 text-white/70" />
+                      </Link>
+                    )}
                   </div>
                 </motion.div>
               )

@@ -57,7 +57,7 @@ export function FeaturedHero() {
 
       // Promos first — the most eye-catching
       ;(Array.isArray(offers) ? offers : []).slice(0, 3).forEach((o: {
-        id: string; code: string; title?: string; description?: string
+        id: string; code: string | null; title?: string; description?: string
         discount_type: string; discount_value: number
       }, i: number) => {
         const disc = o.discount_type === "percent" ? `-${o.discount_value}%` : `-${formatCFA(o.discount_value)}`
@@ -65,7 +65,7 @@ export function FeaturedHero() {
           kind: "promo",
           id: o.id,
           title: o.title || `Offre ${disc}`,
-          subtitle: o.description || `Code ${o.code} · profitez-en maintenant`,
+          subtitle: o.description || (o.code ? `Code ${o.code} · profitez-en maintenant` : "Profitez-en maintenant"),
           image: null,
           href: "/marketplace/offers",
           badge: "Offre spéciale",
