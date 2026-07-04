@@ -151,12 +151,26 @@ export default function NotificationsPage() {
     })
   }
 
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
+  const deleteNotification = async (id: string) => {
+    const prev = notifications
+    setNotifications(cur => cur.filter(n => n.id !== id))
+    const res = await fetch("/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => null)
+    if (!res || !res.ok) setNotifications(prev) // rollback on failure
   }
 
-  const clearAll = () => {
+  const clearAll = async () => {
+    const prev = notifications
     setNotifications([])
+    const res = await fetch("/api/notifications", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "all" }),
+    }).catch(() => null)
+    if (!res || !res.ok) setNotifications(prev) // rollback on failure
   }
 
   return (
