@@ -109,7 +109,7 @@ export default function ProductsPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-[#1e1e2e] px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <Link href="/dashboard" className="p-2 hover:bg-white/5 rounded-full transition-colors">
+          <Link href="/marketplace" className="p-2 hover:bg-white/5 rounded-full transition-colors">
             <ArrowLeft className="w-5 h-5 text-white/40" />
           </Link>
           <div className="relative flex-1">
