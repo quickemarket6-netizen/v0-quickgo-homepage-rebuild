@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
@@ -17,12 +17,7 @@ import {
   AlertCircle,
 } from "lucide-react"
 
-const contacts = [
-  { name: "Marie Atangana", phone: "+237677112233", initial: "M" },
-  { name: "Jean Paul N.", phone: "+237655443322", initial: "J" },
-  { name: "Claire Mbarga", phone: "+237699887766", initial: "C" },
-  { name: "Samuel Fotso", phone: "+237611223344", initial: "S" },
-]
+interface Contact { name: string; phone: string; initial: string }
 
 const formatPrice = (p: number) => new Intl.NumberFormat("fr-FR").format(p) + " FCFA"
 
@@ -34,6 +29,14 @@ export default function TransferPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recipientName, setRecipientName] = useState("")
+  const [contacts, setContacts] = useState<Contact[]>([])
+
+  useEffect(() => {
+    fetch("/api/wallet/transfer")
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d.contacts)) setContacts(d.contacts) })
+      .catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,7 +138,7 @@ export default function TransferPage() {
                   </div>
                 </div>
 
-                {step === "form" && (
+                {step === "form" && contacts.length > 0 && (
                   <div>
                     <p className="text-sm font-medium text-white mb-3">Contacts récents</p>
                     <div className="space-y-2">

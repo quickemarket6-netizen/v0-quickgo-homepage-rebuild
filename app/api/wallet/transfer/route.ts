@@ -5,6 +5,40 @@ import { checkRateLimit } from "@/lib/payments/security"
 // 10 transfers per hour per user
 const TRANSFER_RATE_LIMIT = { maxRequests: 10, windowMs: 60 * 60 * 1000 }
 
+// Recent transfer recipients for the current user, derived from their
+// past transfer_out transactions (most recent first, de-duplicated).
+export async function GET() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
+
+  const { data: rows } = await supabase
+    .from("wallet_transactions")
+    .select("metadata, created_at")
+    .eq("user_id", user.id)
+    .eq("type", "transfer_out")
+    .order("created_at", { ascending: false })
+    .limit(40)
+
+  const seen = new Set<string>()
+  const contacts: { name: string; phone: string; initial: string }[] = []
+  for (const row of rows ?? []) {
+    const meta = (row.metadata ?? {}) as Record<string, unknown>
+    const contact = typeof meta.recipient_contact === "string" ? meta.recipient_contact : null
+    const name = typeof meta.recipient_name === "string" ? meta.recipient_name : null
+    if (!contact || seen.has(contact)) continue
+    seen.add(contact)
+    contacts.push({
+      name: name ?? contact,
+      phone: contact,
+      initial: (name ?? contact).trim().charAt(0).toUpperCase() || "?",
+    })
+    if (contacts.length >= 5) break
+  }
+
+  return NextResponse.json({ contacts })
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -125,6 +159,11 @@ export async function POST(req: NextRequest) {
       amount: amt,
       balance_after: newSenderBalance,
       description: `Transfert vers ${recipientProfile.full_name ?? recipient}${desc ? ` — ${desc}` : ""}`,
+      metadata: {
+        recipient_id: recipientProfile.id,
+        recipient_name: recipientProfile.full_name ?? recipient,
+        recipient_contact: clean,
+      },
       created_at: ts,
     },
     {
