@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { 
-  communicationManager, 
-  smsTemplates, 
+import { verifyAdmin } from '@/lib/payments/security'
+import {
+  communicationManager,
+  smsTemplates,
   whatsappTemplates,
   type CommunicationChannel,
-  type MessageType 
+  type MessageType
 } from '@/lib/communication/service'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    // Outillage de diffusion (SMS/WhatsApp/push vers toute la base) :
+    // strictement réservé aux administrateurs.
+    const admin = await verifyAdmin()
+    if (!admin.valid) {
+      return NextResponse.json(
+        { error: admin.error ?? 'Accès refusé' },
+        { status: admin.error === 'Non authentifié' ? 401 : 403 },
+      )
     }
+    const userId = admin.adminId!
+    const supabase = await createClient()
 
     const body = await request.json()
     const { 
@@ -74,7 +80,7 @@ export async function POST(request: NextRequest) {
 
         // Log communication
         await supabase.from('communication_logs').insert({
-          user_id: user.id,
+          user_id: userId,
           type: messageType,
           channel: (channels as string[]).join(','),
           subject: title,
@@ -160,7 +166,7 @@ export async function POST(request: NextRequest) {
           segment: recipients?.segment || 'all',
           scheduled_at: scheduledAt,
           status: scheduledAt ? 'scheduled' : 'draft',
-          created_by: user.id
+          created_by: userId
         }).select().single()
 
         return NextResponse.json({
@@ -190,15 +196,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET: Fetch communication history and stats
+// GET: Fetch communication history and stats (admin uniquement)
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Non autorise' }, { status: 401 })
+    const admin = await verifyAdmin()
+    if (!admin.valid) {
+      return NextResponse.json(
+        { error: admin.error ?? 'Accès refusé' },
+        { status: admin.error === 'Non authentifié' ? 401 : 403 },
+      )
     }
+    const supabase = await createClient()
 
     const searchParams = request.nextUrl.searchParams
     const action = searchParams.get('action') || 'history'
