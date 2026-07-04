@@ -68,7 +68,7 @@ export default function DriverSettingsPage() {
 
       const [{ data: prof }, { data: driver }] = await Promise.all([
         supabase.from("profiles").select("full_name, phone, email").eq("id", user.id).single(),
-        supabase.from("drivers").select("vehicle_type, vehicle_brand, vehicle_model, license_plate").eq("user_id", user.id).single(),
+        supabase.from("drivers").select("vehicle_type, vehicle_brand, vehicle_model, license_plate, notification_prefs").eq("user_id", user.id).single(),
       ])
 
       if (prof) {
@@ -85,6 +85,15 @@ export default function DriverSettingsPage() {
           vehicleModel: driver.vehicle_model ?? "",
           licensePlate: driver.license_plate ?? "",
         })
+        const prefs = driver.notification_prefs as Partial<typeof notifs> | null
+        if (prefs) {
+          setNotifs(n => ({
+            newMissions: prefs.newMissions ?? n.newMissions,
+            earnings:    prefs.earnings    ?? n.earnings,
+            appUpdates:  prefs.appUpdates  ?? n.appUpdates,
+            promotions:  prefs.promotions  ?? n.promotions,
+          }))
+        }
       }
       setLoading(false)
     })
@@ -117,6 +126,14 @@ export default function DriverSettingsPage() {
           })
           .eq("user_id", user.id)
         if (dErr) throw dErr
+      }
+
+      if (tab === "notifs") {
+        const { error: nErr } = await supabase
+          .from("drivers")
+          .update({ notification_prefs: notifs })
+          .eq("user_id", user.id)
+        if (nErr) throw nErr
       }
 
       setSaved(true)
