@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -68,18 +68,19 @@ export default function DriverRankingPage() {
   const [view, setView] = useState<"city" | "national">("city")
   const [apiLeaderboard, setApiLeaderboard] = useState<typeof leaderboard | null>(null)
   const [apiMe, setApiMe]                   = useState<typeof currentDriver | null>(null)
-  const [apiMyRank, setApiMyRank]           = useState<number | null>(null)
+  const [loading, setLoading]               = useState(true)
 
-  useState(() => {
+  useEffect(() => {
+    setLoading(true)
     fetch(`/api/driver/ranking?scope=${view}&limit=20`)
       .then(r => r.json())
       .then(d => {
         if (d.leaderboard?.length) {
           setApiLeaderboard(d.leaderboard.map((r: {
-            rank: number; name: string; earnings: number; trips: number; rating: number; city: string
+            rank: number; name: string; earnings: number; trips: number; rating: number; city: string; streak?: number
           }) => ({
             rank: r.rank, name: r.name, avatar: null,
-            earnings: r.earnings, trips: r.trips, rating: r.rating, streak: 0, city: r.city,
+            earnings: r.earnings, trips: r.trips, rating: r.rating, streak: r.streak ?? 0, city: r.city,
           })))
         }
         if (d.me) {
@@ -89,11 +90,11 @@ export default function DriverRankingPage() {
             streak: d.me.streak, level: d.me.level, xp: d.me.xp, xpMax: d.me.xp_max,
             nextReward: "25 000 CFA",
           })
-          setApiMyRank(d.my_rank)
         }
       })
       .catch(() => {})
-  })
+      .finally(() => setLoading(false))
+  }, [view])
 
   const displayLeaderboard = apiLeaderboard ?? leaderboard
   const displayMe          = apiMe          ?? currentDriver
@@ -239,7 +240,7 @@ export default function DriverRankingPage() {
 
             {/* Top 3 Podium */}
             <div className="flex items-end justify-center gap-4 mb-8">
-              {[leaderboard[1], leaderboard[0], leaderboard[2]].map((driver, index) => {
+              {displayLeaderboard.length >= 3 && [displayLeaderboard[1], displayLeaderboard[0], displayLeaderboard[2]].map((driver, index) => {
                 const positions = [2, 1, 3]
                 const position = positions[index]
                 const heights = ["h-24", "h-32", "h-20"]
