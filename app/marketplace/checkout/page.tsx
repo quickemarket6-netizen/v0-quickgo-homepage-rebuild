@@ -49,19 +49,16 @@ export default function CheckoutPage() {
   const [orderNumber, setOrderNumber]     = useState<string | null>(null)
   const [error, setError]                 = useState<string | null>(null)
 
-  const subtotal     = getTotalPrice()
-  const deliveryFee  = DELIVERY_OPTIONS.find((d) => d.id === deliveryOption)?.price ?? 1500
-  const discount     = promoApplied ? promoDiscount : 0
-  const serviceFee   = Math.round(subtotal * 0.02) // aligné sur le calcul serveur (2%)
-  const total        = subtotal + deliveryFee + serviceFee - discount
+  // Nombre de boutiques dans le panier : chaque vendeur expédie séparément,
+  // le serveur crée une sous-commande (et des frais de livraison) par boutique.
+  const vendorCount = new Set(items.map((i) => i.vendorId ?? "unknown")).size || 1
 
-  // Group items by vendor for multi-vendor awareness
-  const vendorGroups = items.reduce<Record<string, typeof items>>((acc, item) => {
-    const vid = item.vendorId ?? "unknown"
-    acc[vid] = [...(acc[vid] ?? []), item]
-    return acc
-  }, {})
-  const primaryVendorId = Object.keys(vendorGroups)[0] ?? null
+  const subtotal        = getTotalPrice()
+  const deliveryFeeUnit = DELIVERY_OPTIONS.find((d) => d.id === deliveryOption)?.price ?? 1500
+  const deliveryFee     = deliveryFeeUnit * vendorCount
+  const discount        = promoApplied ? promoDiscount : 0
+  const serviceFee      = Math.round(subtotal * 0.02) // aligné sur le calcul serveur (2%)
+  const total           = subtotal + deliveryFee + serviceFee - discount
 
   // Lance le paiement CinetPay (Orange Money / MTN MoMo) pour une commande
   // déjà créée, puis redirige vers la page de paiement de l'opérateur.
@@ -108,7 +105,8 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          vendor_id: primaryVendorId !== "unknown" ? primaryVendorId : undefined,
+          // Le serveur détermine le vendeur de chaque article et crée une
+          // sous-commande par boutique (panier multi-vendeurs).
           items: orderItems,
           delivery_address: address,
           delivery_option: deliveryOption,
@@ -128,7 +126,11 @@ export default function CheckoutPage() {
       }
       const data = await res.json()
       setOrderId(data.id)
-      setOrderNumber(data.order_number)
+      setOrderNumber(
+        Array.isArray(data.orders) && data.orders.length > 1
+          ? data.orders.map((o: { order_number: string }) => o.order_number).join(", ")
+          : data.order_number,
+      )
       clearCart()
 
       if (paymentMethod === "orange_money" || paymentMethod === "mtn_momo") {
@@ -387,8 +389,15 @@ export default function CheckoutPage() {
                       <span>Sous-total</span><span>{formatPrice(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Livraison</span><span>{formatPrice(deliveryFee)}</span>
+                      <span>Livraison{vendorCount > 1 ? ` (${vendorCount} boutiques)` : ""}</span>
+                      <span>{formatPrice(deliveryFee)}</span>
                     </div>
+                    {vendorCount > 1 && (
+                      <p className="text-xs text-muted-foreground/70">
+                        Votre panier contient {vendorCount} boutiques : une commande et une
+                        livraison distinctes par boutique.
+                      </p>
+                    )}
                     <div className="flex justify-between text-muted-foreground">
                       <span>Frais de service (2%)</span><span>{formatPrice(serviceFee)}</span>
                     </div>

@@ -48,8 +48,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Commande déjà payée" }, { status: 400 })
   }
 
-  // Always use the server-authoritative total — never trust client-supplied amount
-  const amount = order.total
+  // Always use the server-authoritative total — never trust client-supplied amount.
+  // Panier multi-vendeurs : la commande ancre porte un checkout_group_id et le
+  // paiement couvre le total impayé du groupe. Requête séparée et tolérante :
+  // si la colonne n'existe pas encore (migration non appliquée), on retombe
+  // sur le total de la commande seule.
+  let amount = order.total
+  const { data: groupInfo } = await supabase
+    .from("orders")
+    .select("checkout_group_id")
+    .eq("id", order_id)
+    .single()
+
+  if (groupInfo?.checkout_group_id) {
+    const { data: groupOrders } = await supabase
+      .from("orders")
+      .select("total, payment_status")
+      .eq("checkout_group_id", groupInfo.checkout_group_id)
+      .eq("customer_id", user.id)
+    const unpaid = (groupOrders ?? []).filter((o) => o.payment_status !== "paid")
+    if (unpaid.length > 0) {
+      amount = unpaid.reduce((s, o) => s + (o.total ?? 0), 0)
+    }
+  }
+
   if (!amount || amount <= 0) {
     return NextResponse.json({ error: "Montant de commande invalide" }, { status: 400 })
   }

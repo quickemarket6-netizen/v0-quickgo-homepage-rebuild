@@ -104,35 +104,57 @@ export async function POST(req: NextRequest) {
     .update({ status: "completed", updated_at: new Date().toISOString() })
     .eq("id", txn.id)
 
-  // Update order payment status + status to confirmed
+  // Update order payment status + status to confirmed.
+  // Panier multi-vendeurs : le paiement couvre tout le groupe de checkout —
+  // chaque sous-commande passe à "paid" et chaque vendeur est crédité.
   if (txn.order_id) {
-    await supabase
-      .from("orders")
-      .update({ payment_status: "paid", status: "confirmed" })
-      .eq("id", txn.order_id)
+    type PayableOrder = {
+      id: string
+      vendor_id: string | null
+      total: number
+      delivery_fee: number | null
+      vendors: { commission_rate: number | null } | null
+    }
+    let ordersToSettle: PayableOrder[] = []
 
-    // Get order details to credit vendor wallet
-    const { data: order } = await supabase
+    // Lookup groupe tolérant : colonne absente (migration non appliquée) → mono-commande
+    const { data: groupInfo } = await supabase
       .from("orders")
-      .select("vendor_id, total, delivery_fee, vendors(commission_rate)")
+      .select("checkout_group_id")
       .eq("id", txn.order_id)
-      .single() as {
-        data: {
-          vendor_id: string
-          total: number
-          delivery_fee: number
-          vendors: { commission_rate: number | null } | null
-        } | null
+      .single()
+
+    if (groupInfo?.checkout_group_id) {
+      const { data: groupOrders } = await supabase
+        .from("orders")
+        .select("id, vendor_id, total, delivery_fee, payment_status, vendors(commission_rate)")
+        .eq("checkout_group_id", groupInfo.checkout_group_id)
+      ordersToSettle = ((groupOrders ?? []) as unknown as (PayableOrder & { payment_status: string })[])
+        .filter((o) => o.payment_status !== "paid")
+    } else {
+      const { data: order } = await supabase
+        .from("orders")
+        .select("id, vendor_id, total, delivery_fee, vendors(commission_rate)")
+        .eq("id", txn.order_id)
+        .single()
+      if (order) ordersToSettle = [order as unknown as PayableOrder]
+    }
+
+    for (const order of ordersToSettle) {
+      await supabase
+        .from("orders")
+        .update({ payment_status: "paid", status: "confirmed" })
+        .eq("id", order.id)
+
+      if (order.vendor_id) {
+        await creditVendorPending({
+          orderId: order.id,
+          vendorId: order.vendor_id,
+          grossAmount: order.total,
+          deliveryFee: order.delivery_fee ?? 0,
+          customCommissionRate: order.vendors?.commission_rate ?? undefined,
+        })
       }
-
-    if (order?.vendor_id) {
-      await creditVendorPending({
-        orderId: txn.order_id,
-        vendorId: order.vendor_id,
-        grossAmount: order.total,
-        deliveryFee: order.delivery_fee ?? 0,
-        customCommissionRate: order.vendors?.commission_rate ?? undefined,
-      })
     }
   }
 
