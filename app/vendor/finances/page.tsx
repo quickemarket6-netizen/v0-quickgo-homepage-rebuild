@@ -340,6 +340,9 @@ export default function VendorFinancesPage() {
   const analytic30 = walletData?.analytics?.last_30_days ?? []
   const revenue30 = analytic30.reduce((s, d) => s + d.vendor_net_amount, 0)
   const commission30 = analytic30.reduce((s, d) => s + d.quickgo_commission, 0)
+  const gross30 = revenue30 + commission30
+  // Effective commission rate derived from real data (gross vs. QuickGo cut)
+  const commissionRate = gross30 > 0 ? Math.round((commission30 / gross30) * 100) : null
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -499,7 +502,7 @@ export default function VendorFinancesPage() {
               <div className="space-y-3">
                 {[
                   { label: "Vos revenus nets", amount: revenue30, color: "bg-green-500" },
-                  { label: "Commission QuickGo (7%)", amount: commission30, color: "bg-quickgo-blue" },
+                  { label: `Commission QuickGo${commissionRate != null ? ` (${commissionRate}%)` : ""}`, amount: commission30, color: "bg-quickgo-blue" },
                 ].map((item, i) => {
                   const total = revenue30 + commission30
                   const pct = total > 0 ? (item.amount / total) * 100 : 0
