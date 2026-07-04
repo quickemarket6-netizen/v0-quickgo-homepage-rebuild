@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -77,13 +77,16 @@ export default function DriverEarningsPage() {
     rating: number
     all_time: { total_earnings: number; total_deliveries: number }
   } | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  useState(() => {
+  useEffect(() => {
+    setLoading(true)
     fetch(`/api/driver/earnings?period=${period}`)
       .then(r => r.json())
       .then(d => setApiData(d))
       .catch(() => {})
-  })
+      .finally(() => setLoading(false))
+  }, [period])
 
   const live = apiData?.total
   const displayEarnings = {
@@ -95,7 +98,7 @@ export default function DriverEarningsPage() {
     monthChange: earningsData.monthChange,
   }
 
-  const maxEarning = Math.max(...weeklyChart.map(d => d.earnings))
+  const maxEarning = Math.max(...weeklyChart.map(d => d.earnings), 1)
 
   return (
     <div className="min-h-screen bg-background">
