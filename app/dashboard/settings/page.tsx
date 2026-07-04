@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, User, Bell, Shield, Smartphone, Globe, LogOut,
@@ -27,6 +28,9 @@ export default function DashboardSettingsPage() {
   const [user, setUser] = useState<any>(null)
   const [fullName, setFullName] = useState("")
   const [phone, setPhone] = useState("")
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [notifications, setNotifications] = useState({
     orders: true,
     promotions: true,
@@ -36,7 +40,7 @@ export default function DashboardSettingsPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
+    supabase.auth.getUser().then(async ({ data }: { data: { user: import("@supabase/supabase-js").User | null } }) => {
       if (!data.user) { router.push("/auth/login"); return }
       setUser(data.user)
       setFullName(data.user.user_metadata?.full_name || "")
@@ -45,8 +49,31 @@ export default function DashboardSettingsPage() {
       if (savedNotifs && typeof savedNotifs === "object") {
         setNotifications((prev) => ({ ...prev, ...savedNotifs }))
       }
+      const { data: prof } = await supabase
+        .from("profiles").select("avatar_url").eq("id", data.user.id).single()
+      if (prof?.avatar_url) setAvatarUrl(prof.avatar_url)
     })
   }, [router])
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingAvatar(true)
+    try {
+      const body = new FormData()
+      body.append("file", file)
+      const res = await fetch("/api/profile/avatar", { method: "POST", body })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Échec de l'envoi")
+      setAvatarUrl(data.url)
+      toast.success("Photo de profil mise à jour")
+    } catch (err) {
+      toast.error("Erreur", { description: err instanceof Error ? err.message : "Échec de l'envoi" })
+    } finally {
+      setUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
 
   const handleSaveProfile = async () => {
     setIsLoading(true)
@@ -123,11 +150,28 @@ export default function DashboardSettingsPage() {
 
                   <div className="flex items-center gap-4">
                     <div className="relative">
-                      <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-white text-2xl font-bold">
-                        {fullName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "?"}
+                      <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-white text-2xl font-bold">
+                        {avatarUrl ? (
+                          <Image src={avatarUrl} alt="Avatar" width={80} height={80} className="w-full h-full object-cover" />
+                        ) : (
+                          fullName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "?"
+                        )}
                       </div>
-                      <button className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-quickgo-blue text-white">
-                        <Camera className="w-3 h-3" />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                        className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-quickgo-blue text-white disabled:opacity-60"
+                        aria-label="Changer la photo de profil"
+                      >
+                        {uploadingAvatar ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
                       </button>
                     </div>
                     <div>
