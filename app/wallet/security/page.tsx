@@ -18,6 +18,12 @@ const securityFeatures = [
   { icon: Eye, title: "Masquage du solde", desc: "Cachez votre solde sur l'écran d'accueil", enabled: false },
 ]
 
+interface ActivityLog {
+  action: string
+  time: string
+  ok: boolean
+}
+
 export default function WalletSecurityPage() {
   const [features, setFeatures] = useState(securityFeatures)
   const [showPinModal, setShowPinModal] = useState(false)
@@ -29,12 +35,23 @@ export default function WalletSecurityPage() {
   const [pinSubmitting, setPinSubmitting] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [deviceInfo, setDeviceInfo] = useState("")
+  const [activityLog, setActivityLog] = useState<ActivityLog[] | null>(null)
 
   useEffect(() => {
-    fetch("/api/wallet/security/pin")
-      .then((r) => r.json())
-      .then((data) => setHasPin(Boolean(data.has_pin)))
-      .catch(() => {})
+    Promise.all([
+      fetch("/api/wallet/security/pin")
+        .then((r) => r.json())
+        .then((data) => setHasPin(Boolean(data.has_pin)))
+        .catch(() => {}),
+      fetch("/api/wallet/security/activity?limit=5")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.activity?.length) {
+            setActivityLog(data.activity)
+          }
+        })
+        .catch(() => {})
+    ])
     setDeviceInfo(typeof navigator !== "undefined" ? navigator.userAgent : "")
   }, [])
 
@@ -155,11 +172,11 @@ export default function WalletSecurityPage() {
                 <CheckCircle className="w-5 h-5 text-green-400" />
                 Activité récente
               </h3>
-              {[
+              {(activityLog ?? [
                 { action: "Connexion depuis Yaoundé", time: "Il y a 2 min", ok: true },
                 { action: "Paiement Orange Money 50 000 CFA", time: "Il y a 1h", ok: true },
                 { action: "Tentative de connexion inconnue", time: "Il y a 3 jours", ok: false },
-              ].map((a, i) => (
+              ]).map((a, i) => (
                 <div key={i} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
                   <div className={`w-2 h-2 rounded-full ${a.ok ? "bg-green-400" : "bg-red-400"}`} />
                   <div className="flex-1">
