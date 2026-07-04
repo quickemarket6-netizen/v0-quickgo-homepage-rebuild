@@ -58,8 +58,8 @@ export async function GET() {
       customer:profiles!customer_id(full_name, phone),
       vendor:vendors(name, address, phone)
     `)
-    .eq("driver_id", driver.id)
-    .in("status", ["ready", "delivering"])
+    .eq("driver_id", user.id)
+    .in("status", ["picked_up", "delivering"])
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle()

@@ -47,7 +47,7 @@ export async function GET(request: Request) {
   const { data: orders } = await supabase
     .from("orders")
     .select("id, total, delivery_fee, status, actual_delivery_time, created_at")
-    .eq("driver_id", driver.id)
+    .eq("driver_id", user.id)   // orders.driver_id → auth.users(id)
     .eq("status", "delivered")
     .gte("actual_delivery_time", startDate.toISOString())
   

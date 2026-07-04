@@ -122,9 +122,12 @@ export async function POST(req: NextRequest) {
   if (order.status !== "ready") return NextResponse.json({ error: "Commande déjà prise en charge" }, { status: 409 })
   if (order.driver_id) return NextResponse.json({ error: "Commande déjà assignée à un livreur" }, { status: 409 })
 
+  // orders.driver_id référence auth.users(id) → on stocke user.id (= profiles.id).
+  // Statut "delivering" : commande assignée et en cours d'acheminement — c'est
+  // le vocabulaire utilisé par active-delivery et le suivi client.
   const { data: updated, error } = await supabase
     .from("orders")
-    .update({ driver_id: user.id, status: "picked_up" })
+    .update({ driver_id: user.id, status: "delivering" })
     .eq("id", order_id)
     .eq("status", "ready")   // extra guard
     .is("driver_id", null)

@@ -95,9 +95,13 @@ export default function DriverTrackingPage() {
     if (!activeOrder) return
     setStatusMsg("Mise à jour…")
     const supabase = createClient()
+    // Horodater la livraison à la clôture : sans ça les gains du livreur
+    // (filtrés sur actual_delivery_time) ne seraient jamais comptabilisés.
+    const patch: { status: string; actual_delivery_time?: string } = { status: newStatus }
+    if (newStatus === "delivered") patch.actual_delivery_time = new Date().toISOString()
     const { error } = await supabase
       .from("orders")
-      .update({ status: newStatus })
+      .update(patch)
       .eq("id", activeOrder.id)
 
     if (error) {
@@ -282,12 +286,12 @@ export default function DriverTrackingPage() {
                 {activeOrder.status === "picked_up" && (
                   <Button
                     className="col-span-2"
-                    onClick={() => updateStatus("in_transit")}
+                    onClick={() => updateStatus("delivering")}
                   >
                     🛵 En route pour livraison
                   </Button>
                 )}
-                {activeOrder.status === "in_transit" && (
+                {activeOrder.status === "delivering" && (
                   <Button
                     className="col-span-2 bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
                     variant="outline"
