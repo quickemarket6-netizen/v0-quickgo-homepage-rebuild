@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { creditVendorPending, releasePendingFunds } from "@/lib/payments/wallet-engine"
+import { sendPushToUser } from "@/lib/push/send"
 
 // POST /api/driver/deliver — confirmation de livraison côté serveur.
 // Centralise toute la logique financière du "dernier kilomètre" :
@@ -98,13 +99,19 @@ export async function POST(request: Request) {
     console.error(`[deliver] release funds échoué pour ${orderId}:`, release.error)
   }
 
-  // Notification client
+  // Notification client (in-app + push web)
   await supabase.from("notifications").insert({
     user_id: order.customer_id,
     title: "Commande livrée",
     message: `Votre commande ${order.order_number} a été livrée. Bon appétit / bonne réception !`,
     type: "order",
     data: { order_id: orderId },
+  })
+  await sendPushToUser(order.customer_id, {
+    title: "Commande livrée ✅",
+    body: `Votre commande ${order.order_number} vient d'être livrée.`,
+    url: "/marketplace/orders",
+    tag: `order-${orderId}`,
   })
 
   return NextResponse.json({

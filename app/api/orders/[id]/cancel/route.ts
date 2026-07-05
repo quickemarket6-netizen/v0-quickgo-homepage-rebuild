@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { sendPushToUser } from "@/lib/push/send"
 
 // Statuts encore annulables par le client : avant que le vendeur ne commence
 // la préparation. Au-delà (preparing/ready/delivering), passer par le support.
@@ -180,6 +181,12 @@ export async function POST(
       message: `La commande ${order.order_number} a été annulée par le client.`,
       type: "order",
       data: { order_id: id },
+    })
+    await sendPushToUser(vendor.owner_id, {
+      title: "Commande annulée",
+      body: `La commande ${order.order_number} a été annulée par le client.`,
+      url: "/vendor/orders",
+      tag: `order-${id}`,
     })
   }
 

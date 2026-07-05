@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 import { creditVendorPending } from "@/lib/payments/wallet-engine"
+import { sendPushToUser } from "@/lib/push/send"
 import { randomUUID } from "crypto"
 
 const PAYMENT_METHODS = new Set(["orange_money", "mtn_momo", "quickgo_pay", "cash"])
@@ -383,6 +384,14 @@ export async function POST(request: Request) {
       type: "order",
       data: { order_ids: createdOrders.map((o) => o.id), order_numbers: orderNumbers },
     })
+
+  await sendPushToUser(user.id, {
+    title: "Commande reçue 🛒",
+    body: createdOrders.length > 1
+      ? `Vos commandes ${orderNumbers} ont été reçues (${createdOrders.length} boutiques).`
+      : `Votre commande ${orderNumbers} a été reçue et est en cours de traitement.`,
+    url: "/marketplace/orders",
+  })
 
   // Réponse : ancre (première commande) à la racine pour compatibilité,
   // plus le détail du groupe.

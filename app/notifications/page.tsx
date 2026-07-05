@@ -21,6 +21,7 @@ import {
   AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { PushToggle } from "@/components/notifications/PushToggle"
 import { Navbar } from "@/components/navbar/navbar"
 import { Footer } from "@/components/footer/footer"
 
@@ -209,6 +210,9 @@ export default function NotificationsPage() {
               </Button>
             </div>
           </motion.div>
+
+          {/* Activation des notifications push web */}
+          <PushToggle />
 
           {/* Filters */}
           <motion.div

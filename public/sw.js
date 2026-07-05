@@ -1,15 +1,47 @@
-// QuickGo Service Worker — minimal offline shell
-const CACHE = "quickgo-v1"
+// QuickGo Service Worker — offline shell + notifications push
+const CACHE = "quickgo-v2"
 const OFFLINE_URL = "/"
 
 const PRECACHE = [
   "/",
-  "/offline",
-  "/manifest.json",
+  "/site.webmanifest",
   "/favicon.ico",
   "/icon-192.png",
   "/icon-512.png",
 ]
+
+// ── Notifications push (Web Push / VAPID) ─────────────────────────────────────
+self.addEventListener("push", (event) => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch { /* payload non-JSON */ }
+
+  const title = data.title || "QuickGo"
+  const options = {
+    body: data.body || "",
+    icon: data.icon || "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: data.tag || undefined,
+    data: { url: data.url || "/notifications" },
+    vibrate: [100, 50, 100],
+  }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  const url = event.notification.data?.url || "/notifications"
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      for (const win of wins) {
+        if (new URL(win.url).origin === self.location.origin && "focus" in win) {
+          win.navigate(url)
+          return win.focus()
+        }
+      }
+      return clients.openWindow(url)
+    })
+  )
+})
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

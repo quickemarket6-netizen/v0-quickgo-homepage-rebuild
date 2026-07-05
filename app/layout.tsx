@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MotionProvider } from "@/components/motion-provider"
+import { RegisterSW } from "@/components/pwa/RegisterSW"
 import { SITE_URL } from "@/lib/site-config"
 import "./globals.css"
 
@@ -94,6 +95,7 @@ export default function RootLayout({
           <MotionProvider>
             {children}
             <Toaster position="top-right" richColors closeButton />
+            <RegisterSW />
             {process.env.NODE_ENV === "production" && <Analytics />}
           </MotionProvider>
         </ThemeProvider>
