@@ -49,6 +49,43 @@ export default function MarketplaceOrdersPage() {
   const [tab, setTab] = useState<"active" | "done" | "cancelled">("active")
   const [expanded, setExpanded] = useState<string | null>(null)
 
+  // Dépôt d'avis (commandes livrées)
+  const [reviewingId, setReviewingId] = useState<string | null>(null)
+  const [reviewRating, setReviewRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState("")
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
+
+  const submitReview = async (orderId: string) => {
+    setReviewSubmitting(true)
+    setReviewError(null)
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: orderId, rating: reviewRating, comment: reviewComment || undefined }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        // 409 = déjà noté : on masque le formulaire comme un succès
+        if (res.status === 409) {
+          setReviewedIds((prev) => new Set(prev).add(orderId))
+          setReviewingId(null)
+          return
+        }
+        setReviewError(data.error ?? "Impossible d'envoyer l'avis.")
+        return
+      }
+      setReviewedIds((prev) => new Set(prev).add(orderId))
+      setReviewingId(null)
+      setReviewComment("")
+      setReviewRating(5)
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     try {
@@ -222,8 +259,55 @@ export default function MarketplaceOrdersPage() {
                     </div>
                   )}
 
+                  {/* Avis client — commandes livrées uniquement */}
+                  {order.status === "delivered" && !reviewedIds.has(order.id) && (
+                    reviewingId === order.id ? (
+                      <div className="p-3 bg-white/5 rounded-xl space-y-3">
+                        <p className="text-sm font-medium text-white">Notez votre commande</p>
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button key={n} type="button" onClick={() => setReviewRating(n)}
+                              aria-label={`${n} étoile${n > 1 ? "s" : ""}`}>
+                              <Star className={`w-6 h-6 transition-colors ${n <= reviewRating ? "text-yellow-400 fill-current" : "text-muted-foreground/30"}`} />
+                            </button>
+                          ))}
+                        </div>
+                        <textarea
+                          value={reviewComment}
+                          onChange={(e) => setReviewComment(e.target.value)}
+                          placeholder="Partagez votre expérience (optionnel)…"
+                          rows={2}
+                          maxLength={1000}
+                          className="w-full px-3 py-2 rounded-xl bg-background border border-border/50 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-quickgo-blue/50 resize-none"
+                        />
+                        {reviewError && <p className="text-xs text-red-400">{reviewError}</p>}
+                        <div className="flex gap-2">
+                          <Button size="sm" className="flex-1 rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90"
+                            onClick={() => submitReview(order.id)} disabled={reviewSubmitting}>
+                            {reviewSubmitting ? "Envoi…" : "Envoyer l'avis"}
+                          </Button>
+                          <Button size="sm" variant="outline" className="rounded-full"
+                            onClick={() => { setReviewingId(null); setReviewError(null) }}>
+                            Annuler
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null
+                  )}
+                  {order.status === "delivered" && reviewedIds.has(order.id) && (
+                    <p className="text-xs text-green-400 flex items-center gap-1.5 px-1">
+                      <CheckCircle className="w-3.5 h-3.5" /> Merci pour votre avis !
+                    </p>
+                  )}
+
                   {/* Actions */}
                   <div className="flex gap-2">
+                    {order.status === "delivered" && !reviewedIds.has(order.id) && reviewingId !== order.id && (
+                      <Button size="sm" variant="outline" className="flex-1 rounded-full gap-1"
+                        onClick={() => { setReviewingId(order.id); setReviewError(null) }}>
+                        <Star className="w-3.5 h-3.5" /> Noter
+                      </Button>
+                    )}
                     {order.status === "delivered" && (
                       <Button size="sm" variant="outline" className="flex-1 rounded-full gap-1">
                         <RotateCcw className="w-3.5 h-3.5" /> Commander à nouveau

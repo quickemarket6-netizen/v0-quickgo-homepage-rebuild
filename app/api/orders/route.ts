@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   }
   const { data: products, error: prodErr } = await supabase
     .from("products")
-    .select("id, name, price, is_available, vendor_id")
+    .select("id, name, price, is_available, vendor_id, stock_quantity")
     .in("id", productIds)
   if (prodErr || !products) {
     return NextResponse.json({ error: "Erreur de récupération des produits" }, { status: 500 })
@@ -107,6 +107,13 @@ export async function POST(request: Request) {
     const qty = Number(item.quantity)
     if (!Number.isInteger(qty) || qty < 1 || qty > 999) {
       return NextResponse.json({ error: `Quantité invalide pour ${product.name}` }, { status: 400 })
+    }
+    // Contrôle de stock (les produits à stock non suivi ont stock_quantity null)
+    if (product.stock_quantity != null && product.stock_quantity < qty) {
+      return NextResponse.json(
+        { error: `Stock insuffisant pour ${product.name} (${product.stock_quantity} restant${product.stock_quantity > 1 ? "s" : ""}).` },
+        { status: 400 },
+      )
     }
 
     const lineTotal = product.price * qty
@@ -165,6 +172,61 @@ export async function POST(request: Request) {
     }
   }
 
+  // ── Décrémentation du stock (A5) ───────────────────────────────────────────
+  // Verrou optimiste par produit avec 3 tentatives : le stock est réservé
+  // AVANT la création des commandes, et restauré si quoi que ce soit échoue
+  // ensuite. Les produits à stock non suivi (null) sont ignorés.
+  const qtyByProduct = new Map<string, number>()
+  for (const group of groups.values()) {
+    for (const li of group.lineItems) {
+      qtyByProduct.set(li.product_id, (qtyByProduct.get(li.product_id) ?? 0) + li.quantity)
+    }
+  }
+
+  const stockAdjusted: { id: string; qty: number }[] = []
+  const restoreStock = async () => {
+    for (const adj of stockAdjusted) {
+      const { data: fresh } = await supabase
+        .from("products").select("stock_quantity").eq("id", adj.id).single()
+      if (fresh?.stock_quantity != null) {
+        await supabase
+          .from("products")
+          .update({ stock_quantity: fresh.stock_quantity + adj.qty, is_available: true })
+          .eq("id", adj.id)
+      }
+    }
+  }
+
+  for (const [pid, qty] of qtyByProduct) {
+    if (priceMap.get(pid)?.stock_quantity == null) continue
+    let ok = false
+    for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+      const { data: fresh } = await supabase
+        .from("products").select("stock_quantity, name").eq("id", pid).single()
+      const cur = fresh?.stock_quantity
+      if (cur == null) { ok = true; break }
+      if (cur < qty) {
+        await restoreStock()
+        return NextResponse.json(
+          { error: `Stock insuffisant pour ${fresh?.name ?? "un produit"} (${cur} restant${cur > 1 ? "s" : ""}).` },
+          { status: 400 },
+        )
+      }
+      const { data: upd } = await supabase
+        .from("products")
+        .update({ stock_quantity: cur - qty, is_available: cur - qty > 0 })
+        .eq("id", pid)
+        .eq("stock_quantity", cur)   // verrou optimiste
+        .select("id")
+      ok = !!upd && upd.length > 0
+    }
+    if (!ok) {
+      await restoreStock()
+      return NextResponse.json({ error: "Conflit de stock, veuillez réessayer." }, { status: 409 })
+    }
+    stockAdjusted.push({ id: pid, qty })
+  }
+
   // Identifiant de groupe uniquement pour les paniers multi-vendeurs, inséré
   // conditionnellement : le flux mono-vendeur ne dépend pas de la migration
   // add_checkout_group.sql.
@@ -179,6 +241,7 @@ export async function POST(request: Request) {
     if (createdOrders.length > 0) {
       await supabase.from("orders").delete().in("id", createdOrders.map((o) => o.id))
     }
+    await restoreStock()
   }
 
   for (const [groupVendorId, group] of groups) {
@@ -207,6 +270,7 @@ export async function POST(request: Request) {
         service_fee,
         discount,
         total,
+        total_amount: total,   // colonne héritée lue par le suivi et le dashboard
         payment_method,
         payment_status: "pending",
         delivery_address,

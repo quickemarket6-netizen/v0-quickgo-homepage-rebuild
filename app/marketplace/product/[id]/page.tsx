@@ -30,6 +30,11 @@ interface Product {
 
 const formatPrice = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA"
 
+interface Review {
+  id: string; rating: number; comment: string | null
+  created_at: string; customer_name: string; customer_avatar: string | null
+}
+
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
@@ -42,6 +47,8 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favLoading, setFavLoading] = useState(false)
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [reviewStats, setReviewStats] = useState<{ count: number; average: number } | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -51,7 +58,21 @@ export default function ProductPage() {
         if (r.status === 404) { setNotFound(true); return null }
         return r.ok ? r.json() : null
       })
-      .then((data) => { if (data) setProduct(data) })
+      .then((data) => {
+        if (data) {
+          setProduct(data)
+          // Avis publics de la boutique (les avis sont rattachés au vendeur)
+          const vid = data.vendor?.id
+          if (vid) {
+            fetch(`/api/reviews?vendor_id=${vid}`)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((d) => {
+                if (d) { setReviews(d.reviews ?? []); setReviewStats(d.stats ?? null) }
+              })
+              .catch(() => {})
+          }
+        }
+      })
       .finally(() => setLoading(false))
 
     // check if already in favorites
@@ -332,6 +353,38 @@ export default function ProductPage() {
                   <Share2 className="w-4 h-4" /> Partager
                 </Button>
               </div>
+
+              {/* Avis clients de la boutique */}
+              {reviewStats && reviewStats.count > 0 && (
+                <div className="pt-4 border-t border-border/30 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-bold text-foreground">Avis clients</h2>
+                    <span className="flex items-center gap-1.5 text-sm">
+                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                      <span className="font-semibold text-foreground">{reviewStats.average.toFixed(1)}</span>
+                      <span className="text-muted-foreground">({reviewStats.count} avis)</span>
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {reviews.slice(0, 5).map((r) => (
+                      <div key={r.id} className="p-3 rounded-xl bg-card/50 border border-border/30">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-foreground">{r.customer_name}</span>
+                          <span className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((n) => (
+                              <Star key={n} className={`w-3 h-3 ${n <= r.rating ? "text-yellow-400 fill-current" : "text-muted-foreground/30"}`} />
+                            ))}
+                          </span>
+                        </div>
+                        {r.comment && <p className="text-xs text-muted-foreground">{r.comment}</p>}
+                        <p className="text-[10px] text-muted-foreground/60 mt-1">
+                          {new Date(r.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         </div>
