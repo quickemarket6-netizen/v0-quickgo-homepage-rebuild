@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { useCart } from "@/lib/store/cart"
 import {
   Package, Clock, CheckCircle, XCircle, Truck, ChevronRight,
   Phone, Star, RotateCcw, ArrowLeft, RefreshCw, MapPin,
@@ -44,7 +47,10 @@ function deliveryAddr(addr: Order["delivery_address"]) {
 }
 
 export default function MarketplaceOrdersPage() {
+  const router = useRouter()
+  const cart = useCart()
   const [orders, setOrders] = useState<Order[]>([])
+  const [reorderingId, setReorderingId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<"active" | "done" | "cancelled">("active")
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -102,6 +108,46 @@ export default function MarketplaceOrdersPage() {
   }, [])
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
+
+  // Réachat 1 clic : recharge le panier (serveur + store local) aux prix
+  // et disponibilités actuels, puis ouvre le panier.
+  const reorder = async (orderId: string) => {
+    setReorderingId(orderId)
+    try {
+      const res = await fetch(`/api/orders/${orderId}/reorder`, { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data.error ?? "Réachat impossible.")
+        return
+      }
+      // Synchronise le store local avec ce que le serveur a ajouté
+      for (const item of data.added as Array<{
+        product_id: string; name: string; price: number; quantity: number
+        image_url: string | null; vendor_id: string | null; vendor_name: string | null
+      }>) {
+        const current = cart.items.find((i) => i.id === item.product_id)?.quantity ?? 0
+        cart.addItem({
+          id: item.product_id,
+          name: item.name,
+          price: item.price,
+          image: item.image_url ?? undefined,
+          vendorId: item.vendor_id ?? undefined,
+          vendorName: item.vendor_name ?? undefined,
+        })
+        cart.updateQuantity(item.product_id, current + item.quantity)
+      }
+      const skipped: string[] = data.skipped ?? []
+      toast.success(
+        `${data.added.length} article${data.added.length > 1 ? "s" : ""} ajouté${data.added.length > 1 ? "s" : ""} au panier`,
+        skipped.length > 0
+          ? { description: `Indisponible${skipped.length > 1 ? "s" : ""} : ${skipped.join(", ")}` }
+          : undefined,
+      )
+      router.push("/marketplace/cart")
+    } finally {
+      setReorderingId(null)
+    }
+  }
 
   const cancelOrder = async (orderId: string) => {
     setCancelSubmitting(true)
@@ -359,9 +405,11 @@ export default function MarketplaceOrdersPage() {
                         <Star className="w-3.5 h-3.5" /> Noter
                       </Button>
                     )}
-                    {order.status === "delivered" && (
-                      <Button size="sm" variant="outline" className="flex-1 rounded-full gap-1">
-                        <RotateCcw className="w-3.5 h-3.5" /> Commander à nouveau
+                    {["delivered", "cancelled"].includes(order.status) && (
+                      <Button size="sm" variant="outline" className="flex-1 rounded-full gap-1"
+                        onClick={() => reorder(order.id)} disabled={reorderingId === order.id}>
+                        <RotateCcw className={`w-3.5 h-3.5 ${reorderingId === order.id ? "animate-spin" : ""}`} />
+                        {reorderingId === order.id ? "Ajout au panier…" : "Commander à nouveau"}
                       </Button>
                     )}
                     {!["delivered", "cancelled"].includes(order.status) && (
