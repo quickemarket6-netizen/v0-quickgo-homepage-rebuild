@@ -10,6 +10,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/store/cart"
+import { safeJsonLd } from "@/lib/seo/safe-json-ld"
 import {
   Star, Heart, ShoppingCart, Plus, Minus, ChevronLeft,
   Truck, Shield, RotateCcw, Check, Store, Clock,
@@ -173,8 +174,35 @@ export default function ProductPage() {
     ? Math.round((1 - product.price / product.original_price) * 100) : null
   const inStock = product.is_available && (product.stock_quantity == null || product.stock_quantity > 0)
 
+  // Structured data schema.org/Product — rich results Google (prix, dispo, note)
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    ...(product.description ? { description: product.description } : {}),
+    ...(images.length > 0 ? { image: images } : {}),
+    ...(product.vendor ? { brand: { "@type": "Brand", name: product.vendor.name } } : {}),
+    offers: {
+      "@type": "Offer",
+      price: product.price,
+      priceCurrency: "XAF",
+      availability: inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      ...(product.vendor ? { seller: { "@type": "Organization", name: product.vendor.name } } : {}),
+    },
+    ...(reviewStats && reviewStats.count > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: Number(reviewStats.average.toFixed(1)),
+            reviewCount: reviewStats.count,
+          },
+        }
+      : {}),
+  }
+
   return (
     <main className="min-h-screen bg-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(productJsonLd) }} />
       <Navbar />
       <div className="pt-20 lg:pt-24 pb-32 lg:pb-20">
         {/* Breadcrumb */}

@@ -26,7 +26,7 @@ export async function GET() {
     .from("orders")
     .select(`
       *,
-      vendor:vendors(id, name, slug, logo_url, phone),
+      vendor:vendors(id, name, slug, logo_url, phone, latitude, longitude),
       driver:drivers(
         id,
         user:profiles(full_name, avatar_url, phone),

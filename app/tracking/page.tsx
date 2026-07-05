@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -32,20 +33,24 @@ type Order = {
   created_at: string
   estimated_delivery_time: string | null
   delivery_address: string | null
-  vendor: { id: string; name: string; phone: string | null } | null
+  delivery_latitude: number | null
+  delivery_longitude: number | null
+  vendor: { id: string; name: string; phone: string | null; latitude: number | null; longitude: number | null } | null
   driver: { id: string; rating: number; user: { full_name: string | null; phone: string | null } | null } | null
   items: { id: string; product_name: string; quantity: number; unit_price: number }[]
 }
 
+// Statuts alignés sur l'enum SQL : pending, confirmed, preparing, ready,
+// picked_up, delivering, delivered, cancelled ("in_transit" n'existe pas).
 const STATUS_STEPS = [
   { keys: ["pending", "confirmed"],    label: "Commande reçue",           emoji: "📋" },
   { keys: ["preparing", "ready"],      label: "En préparation",            emoji: "👨‍🍳" },
   { keys: ["picked_up"],               label: "Récupérée par le livreur",  emoji: "🛵" },
-  { keys: ["in_transit"],              label: "En route vers vous",        emoji: "🚀" },
+  { keys: ["delivering"],              label: "En route vers vous",        emoji: "🚀" },
   { keys: ["delivered"],               label: "Livrée",                    emoji: "✅" },
 ]
 
-const ACTIVE_STATUSES = ["pending", "confirmed", "preparing", "ready", "picked_up", "in_transit"]
+const ACTIVE_STATUSES = ["pending", "confirmed", "preparing", "ready", "picked_up", "delivering"]
 
 const STATUS_LABELS: Record<string, string> = {
   pending:    "En attente",
@@ -53,7 +58,7 @@ const STATUS_LABELS: Record<string, string> = {
   preparing:  "En préparation",
   ready:      "Prête",
   picked_up:  "Récupérée",
-  in_transit: "En route",
+  delivering: "En route",
   delivered:  "Livrée",
   cancelled:  "Annulée",
 }
@@ -83,6 +88,9 @@ function initials(name: string | null | undefined) {
 const YAOUNDE: [number, number] = [3.848, 11.5021]
 
 export default function TrackingPage() {
+  const searchParams = useSearchParams()
+  const requestedOrderId = searchParams.get("order")
+
   const [orders, setOrders]         = useState<Order[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading]       = useState(true)
@@ -102,11 +110,15 @@ export default function TrackingPage() {
       const data: Order[] = await res.json()
       const active = data.filter(o => ACTIVE_STATUSES.includes(o.status))
       setOrders(active)
-      if (!selectedId && active.length > 0) setSelectedId(active[0].id)
+      if (!selectedId && active.length > 0) {
+        // ?order= (depuis « Suivre en direct » sur Mes commandes) prime sur la première
+        const requested = requestedOrderId && active.find(o => o.id === requestedOrderId)
+        setSelectedId(requested ? requested.id : active[0].id)
+      }
     }
     setLoading(false)
     setRefreshing(false)
-  }, [selectedId])
+  }, [selectedId, requestedOrderId])
 
   useEffect(() => { loadOrders() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -287,6 +299,16 @@ export default function TrackingPage() {
                         center={tracking.driverPosition ?? YAOUNDE}
                         zoom={tracking.driverPosition ? 15 : 13}
                         driverPosition={tracking.driverPosition}
+                        pickupLocation={
+                          displayOrder.vendor?.latitude != null && displayOrder.vendor?.longitude != null
+                            ? [Number(displayOrder.vendor.latitude), Number(displayOrder.vendor.longitude)]
+                            : undefined
+                        }
+                        deliveryLocation={
+                          displayOrder.delivery_latitude != null && displayOrder.delivery_longitude != null
+                            ? [Number(displayOrder.delivery_latitude), Number(displayOrder.delivery_longitude)]
+                            : undefined
+                        }
                         className="h-full w-full"
                       />
 

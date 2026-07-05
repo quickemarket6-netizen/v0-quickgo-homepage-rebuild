@@ -11,8 +11,7 @@ import {
   ShoppingBag, Phone as PhoneIcon, Moon, Crown, Truck,
   History, TicketPercent, ArrowRight, X,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { GlobalSearch } from "@/components/marketplace/GlobalSearch"
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -127,7 +126,6 @@ export default function MarketplacePage() {
   const [loading, setLoading] = useState(true)
   const [heroIdx, setHeroIdx] = useState(0)
   const [orderTab, setOrderTab] = useState<"active" | "done" | "cancelled">("active")
-  const [search, setSearch] = useState("")
   const heroTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -260,14 +258,7 @@ export default function MarketplacePage() {
               {profile?.city ?? "Yaoundé"}
               <ChevronLeft className="w-3 h-3 rotate-[-90deg]" />
             </button>
-            <div className="relative flex-1">
-              <Input placeholder="Rechercher un produit, un vendeur..." value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-[#16161f] border-[#1e1e2e] rounded-full pl-4 pr-12 h-9 text-sm placeholder:text-white/20" />
-              <button className="absolute right-1 top-1 h-7 w-7 rounded-full bg-[#3b82f6] flex items-center justify-center transition-colors hover:bg-[#3b82f6]/80">
-                <ArrowRight className="w-3.5 h-3.5 text-white" />
-              </button>
-            </div>
+            <GlobalSearch className="flex-1" />
             <div className="flex items-center gap-1 shrink-0">
               <Link href="/notifications" className="relative p-2 hover:bg-white/5 rounded-full transition-colors">
                 <Bell className="w-5 h-5 text-white/40" />

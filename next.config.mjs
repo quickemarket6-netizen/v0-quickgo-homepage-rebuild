@@ -62,7 +62,8 @@ const nextConfig = {
           // 'unsafe-inline' required: JSON-LD dangerouslySetInnerHTML + Framer Motion inline styles
           "script-src 'self' 'unsafe-inline' https://vercel.live",
           "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' data: blob: https://*.vercel-storage.com https://*.supabase.co https://images.unsplash.com",
+          // basemaps.cartocdn.com + openstreetmap : tuiles de la carte de suivi live ; cdnjs : icônes Leaflet
+          "img-src 'self' data: blob: https://*.vercel-storage.com https://*.supabase.co https://images.unsplash.com https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org https://cdnjs.cloudflare.com",
           "font-src 'self'",
           "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://vitals.vercel-insights.com https://vercel.live",
           "media-src 'self' https://*.vercel-storage.com",

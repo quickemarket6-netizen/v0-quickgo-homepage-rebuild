@@ -3,9 +3,10 @@
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Zap, Shield, Clock, Star, Users, CheckCircle2, Package, Volume2, VolumeX } from "lucide-react"
+import { ArrowRight, Zap, Shield, Clock, Star, Users, CheckCircle2, Package, Volume2, VolumeX, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 const stats = [
   { value: "10 000+", label: "Clients satisfaits", icon: Users },
@@ -24,6 +25,8 @@ const backgroundVideos = [
 ]
 
 export function HeroSection() {
+  const router = useRouter()
+  const [heroQuery, setHeroQuery] = useState("")
   const [isMuted, setIsMuted] = useState(true)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [videoEnabled, setVideoEnabled] = useState(false)
@@ -201,12 +204,46 @@ export function HeroSection() {
               et bien plus encore dans une seule super app.
             </motion.p>
 
+            {/* Search Bar — recherche globale */}
+            <motion.form
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              onSubmit={(e) => {
+                e.preventDefault()
+                const query = heroQuery.trim()
+                router.push(query ? `/marketplace/products?q=${encodeURIComponent(query)}` : "/marketplace/products")
+              }}
+              className="mt-8 relative max-w-xl mx-auto lg:mx-0"
+            >
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 pointer-events-none" />
+              <input
+                value={heroQuery}
+                onChange={(e) => setHeroQuery(e.target.value)}
+                placeholder="Rechercher un produit, un restaurant, une pharmacie…"
+                aria-label="Rechercher sur QuickGo"
+                className="w-full h-14 pl-13 pr-36 rounded-full bg-white/10 backdrop-blur-xl border border-white/15
+                  text-white text-sm sm:text-base placeholder:text-white/35
+                  focus:outline-none focus:border-quickgo-lime/60 focus:bg-white/15 transition-all"
+                style={{ paddingLeft: "3.25rem" }}
+              />
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1.5 h-11 px-5 sm:px-7 rounded-full bg-quickgo-lime text-background
+                  font-semibold text-sm flex items-center gap-2 hover:bg-quickgo-lime/90 transition-all
+                  shadow-[0_0_20px_rgba(191,255,0,0.25)]"
+              >
+                Rechercher
+                <ArrowRight className="w-4 h-4 hidden sm:block" />
+              </button>
+            </motion.form>
+
             {/* CTA Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="mt-8 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              className="mt-6 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
             >
               <Link href="/marketplace">
                 <Button

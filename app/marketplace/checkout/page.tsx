@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -31,12 +31,20 @@ const DELIVERY_OPTIONS = [
   { id: "scheduled",label: "Programmé",  time: "Choisir un créneau", price: 1000, icon: Clock },
 ]
 
+interface SavedAddress {
+  id: string; label: string; street: string | null; district: string | null
+  city: string; lat: number | null; lng: number | null; is_default: boolean
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, getTotalPrice, clearCart } = useCart()
 
   const [step, setStep]                   = useState(1)
   const [address, setAddress]             = useState("")
+  const [landmark, setLandmark]           = useState("")
+  const [coords, setCoords]               = useState<{ lat: number; lng: number } | null>(null)
+  const [locating, setLocating]           = useState(false)
   const [phone, setPhone]                 = useState("")
   const [paymentMethod, setPaymentMethod] = useState("orange_money")
   const [deliveryOption, setDeliveryOption] = useState("express")
@@ -48,6 +56,32 @@ export default function CheckoutPage() {
   const [orderId, setOrderId]             = useState<string | null>(null)
   const [orderNumber, setOrderNumber]     = useState<string | null>(null)
   const [error, setError]                 = useState<string | null>(null)
+
+  // Carnet d'adresses : pré-remplit avec l'adresse par défaut, propose les
+  // autres en un clic, et permet d'enregistrer la nouvelle adresse saisie.
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [saveAddress, setSaveAddress] = useState(false)
+
+  useEffect(() => {
+    fetch("/api/addresses")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: SavedAddress[]) => {
+        if (!Array.isArray(list)) return
+        setSavedAddresses(list)
+        const def = list.find((a) => a.is_default) ?? list[0]
+        if (def) applySavedAddress(def)
+      })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const applySavedAddress = (a: SavedAddress) => {
+    setSelectedAddressId(a.id)
+    setAddress([a.street, a.city].filter(Boolean).join(", "))
+    setLandmark(a.district ?? "")
+    setCoords(a.lat != null && a.lng != null ? { lat: Number(a.lat), lng: Number(a.lng) } : null)
+  }
 
   // Nombre de boutiques dans le panier : chaque vendeur expédie séparément,
   // le serveur crée une sous-commande (et des frais de livraison) par boutique.
@@ -88,12 +122,46 @@ export default function CheckoutPage() {
     finally { setSubmitting(false) }
   }
 
+  // Capture GPS — au Cameroun l'adresse texte ne suffit pas (pas de numéros
+  // de rue) : position + point de repère guident le livreur.
+  const useMyLocation = () => {
+    if (!navigator.geolocation) { setError("La géolocalisation n'est pas disponible sur cet appareil."); return }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocating(false)
+        setError(null)
+      },
+      () => {
+        setLocating(false)
+        setError("Impossible d'obtenir votre position. Vérifiez les autorisations de localisation.")
+      },
+      { enableHighAccuracy: true, timeout: 10_000 },
+    )
+  }
+
   const submitOrder = async () => {
     if (!address.trim()) { setError("Veuillez saisir une adresse de livraison."); return }
     if (items.length === 0) { setError("Votre panier est vide."); return }
     setError(null)
     setSubmitting(true)
     try {
+      // Enregistrement de l'adresse dans le carnet (best-effort, non bloquant)
+      if (saveAddress && !selectedAddressId) {
+        fetch("/api/addresses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            street: address,
+            district: landmark.trim() || undefined,
+            lat: coords?.lat,
+            lng: coords?.lng,
+            is_default: savedAddresses.length === 0,
+          }),
+        }).catch(() => {})
+      }
+
       const orderItems = items.map((item) => ({
         product_id: item.id,
         product_name: item.name,
@@ -108,7 +176,9 @@ export default function CheckoutPage() {
           // Le serveur détermine le vendeur de chaque article et crée une
           // sous-commande par boutique (panier multi-vendeurs).
           items: orderItems,
-          delivery_address: address,
+          delivery_address: landmark.trim() ? `${address} — Repère : ${landmark.trim()}` : address,
+          delivery_latitude: coords?.lat,
+          delivery_longitude: coords?.lng,
           delivery_option: deliveryOption,
           payment_method: paymentMethod,
           notes,
@@ -233,11 +303,66 @@ export default function CheckoutPage() {
                         <MapPin className="w-5 h-5 text-primary" /> Adresse de livraison
                       </h2>
                       <div className="space-y-4">
+                        {savedAddresses.length > 0 && (
+                          <div>
+                            <Label>Mes adresses enregistrées</Label>
+                            <div className="flex gap-2 flex-wrap mt-1.5">
+                              {savedAddresses.map((a) => (
+                                <button key={a.id} type="button" onClick={() => applySavedAddress(a)}
+                                  className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors text-left ${
+                                    selectedAddressId === a.id
+                                      ? "border-primary bg-primary/10 text-primary"
+                                      : "border-border text-muted-foreground hover:border-primary/40"
+                                  }`}
+                                >
+                                  <span className="font-semibold">{a.label}</span>
+                                  {a.street && <span className="block text-[11px] opacity-70 max-w-[180px] truncate">{a.street}</span>}
+                                </button>
+                              ))}
+                              <button type="button"
+                                onClick={() => { setSelectedAddressId(null); setAddress(""); setLandmark(""); setCoords(null) }}
+                                className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
+                                  selectedAddressId === null
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-border text-muted-foreground hover:border-primary/40"
+                                }`}
+                              >
+                                + Nouvelle adresse
+                              </button>
+                            </div>
+                          </div>
+                        )}
                         <div>
                           <Label htmlFor="address">Adresse complète *</Label>
-                          <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)}
-                            placeholder="Ex: 123 Rue Bastos, Yaoundé, Cameroun" className="mt-1.5 h-11 rounded-xl" />
+                          <Input id="address" value={address}
+                            onChange={(e) => { setAddress(e.target.value); setSelectedAddressId(null) }}
+                            placeholder="Ex: Quartier Bastos, Yaoundé" className="mt-1.5 h-11 rounded-xl" />
                         </div>
+                        <div>
+                          <Label htmlFor="landmark">Point de repère</Label>
+                          <Input id="landmark" value={landmark} onChange={(e) => setLandmark(e.target.value)}
+                            placeholder="Ex: Face station Total, immeuble bleu 2e étage" className="mt-1.5 h-11 rounded-xl" />
+                          <p className="text-xs text-muted-foreground mt-1">Aide le livreur à vous trouver plus vite.</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Button type="button" variant="outline" className="rounded-xl gap-2 h-11"
+                            onClick={useMyLocation} disabled={locating}>
+                            <MapPin className={`w-4 h-4 ${locating ? "animate-pulse" : ""}`} />
+                            {locating ? "Localisation…" : coords ? "Position mise à jour" : "Utiliser ma position GPS"}
+                          </Button>
+                          {coords && (
+                            <span className="inline-flex items-center gap-1.5 text-xs text-green-500 font-medium">
+                              <Check className="w-3.5 h-3.5" /> Position capturée
+                            </span>
+                          )}
+                        </div>
+                        {!selectedAddressId && (
+                          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+                            <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)}
+                              className="w-4 h-4 rounded accent-[var(--primary)]" />
+                            Enregistrer cette adresse pour mes prochaines commandes
+                          </label>
+                        )}
                         <div>
                           <Label htmlFor="phone">Numéro de téléphone</Label>
                           <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)}

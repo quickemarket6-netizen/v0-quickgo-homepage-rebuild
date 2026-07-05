@@ -50,12 +50,13 @@ export default function ProductsPage() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const LIMIT = 20
 
-  const fetchProducts = useCallback(async (q: string, cat: string, pg: number) => {
+  const fetchProducts = useCallback(async (q: string, cat: string, pg: number, srt: string) => {
     setLoading(true)
     try {
       const params = new URLSearchParams({ limit: String(LIMIT), offset: String(pg * LIMIT) })
       if (q) params.set("search", q)
       if (cat) params.set("category", cat)
+      if (srt && srt !== "newest") params.set("sort", srt)
       const r = await fetch(`/api/products?${params}`)
       if (r.ok) {
         const json = await r.json()
@@ -76,13 +77,13 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setPage(0)
-    fetchProducts(search, catFilter, 0)
-  }, [catFilter, fetchProducts]) // eslint-disable-line react-hooks/exhaustive-deps
+    fetchProducts(search, catFilter, 0, sort)
+  }, [catFilter, sort, fetchProducts]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = (val: string) => {
     setSearch(val)
     if (searchTimer.current) clearTimeout(searchTimer.current)
-    searchTimer.current = setTimeout(() => { setPage(0); fetchProducts(val, catFilter, 0) }, 350)
+    searchTimer.current = setTimeout(() => { setPage(0); fetchProducts(val, catFilter, 0, sort) }, 350)
   }
 
   const toggleFavorite = async (productId: string, e: React.MouseEvent) => {
@@ -202,7 +203,7 @@ export default function ProductsPage() {
             <p className="text-white/40">Aucun produit trouvé</p>
             {(search || catFilter) && (
               <Button size="sm" variant="outline" className="mt-4 rounded-xl border-[#1e1e2e] text-white/40"
-                onClick={() => { setSearch(""); setCatFilter(""); setPage(0); fetchProducts("", "", 0) }}>
+                onClick={() => { setSearch(""); setCatFilter(""); setPage(0); fetchProducts("", "", 0, sort) }}>
                 Réinitialiser les filtres
               </Button>
             )}
@@ -307,7 +308,7 @@ export default function ProductsPage() {
                 <Button
                   variant="outline"
                   className={`rounded-full px-8 border-[#1e1e2e] text-white/60 hover:text-white hover:border-[#3b82f6]/50 transition-all ${loading ? "animate-pulse" : ""}`}
-                  onClick={() => { const np = page + 1; setPage(np); fetchProducts(search, catFilter, np) }}
+                  onClick={() => { const np = page + 1; setPage(np); fetchProducts(search, catFilter, np, sort) }}
                   disabled={loading}>
                   {loading ? "Chargement…" : "Charger plus de produits"}
                 </Button>

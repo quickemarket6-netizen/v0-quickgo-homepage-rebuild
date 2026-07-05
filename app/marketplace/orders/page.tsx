@@ -86,6 +86,11 @@ export default function MarketplaceOrdersPage() {
     }
   }
 
+  // Annulation de commande (statuts pending/confirmed uniquement)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [cancelSubmitting, setCancelSubmitting] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     try {
@@ -97,6 +102,23 @@ export default function MarketplaceOrdersPage() {
   }, [])
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
+
+  const cancelOrder = async (orderId: string) => {
+    setCancelSubmitting(true)
+    setCancelError(null)
+    try {
+      const res = await fetch(`/api/orders/${orderId}/cancel`, { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setCancelError(data.error ?? "Impossible d'annuler la commande.")
+        return
+      }
+      setCancellingId(null)
+      await fetchOrders()
+    } finally {
+      setCancelSubmitting(false)
+    }
+  }
 
   const active = orders.filter((o) => !["delivered", "cancelled"].includes(o.status))
   const done = orders.filter((o) => o.status === "delivered")
@@ -300,6 +322,35 @@ export default function MarketplaceOrdersPage() {
                     </p>
                   )}
 
+                  {/* Annulation — possible tant que la préparation n'a pas commencé */}
+                  {["pending", "confirmed"].includes(order.status) && (
+                    cancellingId === order.id ? (
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl space-y-2">
+                        <p className="text-sm text-white font-medium">Annuler cette commande ?</p>
+                        <p className="text-xs text-muted-foreground">
+                          Le stock sera restauré et tout montant déjà payé sera remboursé sur votre portefeuille QuickGo Pay.
+                        </p>
+                        {cancelError && <p className="text-xs text-red-400">{cancelError}</p>}
+                        <div className="flex gap-2">
+                          <Button size="sm" className="flex-1 rounded-full bg-red-500 hover:bg-red-500/90 text-white"
+                            onClick={() => cancelOrder(order.id)} disabled={cancelSubmitting}>
+                            {cancelSubmitting ? "Annulation…" : "Confirmer l'annulation"}
+                          </Button>
+                          <Button size="sm" variant="outline" className="rounded-full"
+                            onClick={() => { setCancellingId(null); setCancelError(null) }} disabled={cancelSubmitting}>
+                            Retour
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline"
+                        className="w-full rounded-full gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                        onClick={() => { setCancellingId(order.id); setCancelError(null) }}>
+                        <XCircle className="w-3.5 h-3.5" /> Annuler la commande
+                      </Button>
+                    )
+                  )}
+
                   {/* Actions */}
                   <div className="flex gap-2">
                     {order.status === "delivered" && !reviewedIds.has(order.id) && reviewingId !== order.id && (
@@ -314,7 +365,7 @@ export default function MarketplaceOrdersPage() {
                       </Button>
                     )}
                     {!["delivered", "cancelled"].includes(order.status) && (
-                      <Link href="/tracking" className="flex-1">
+                      <Link href={`/tracking?order=${order.id}`} className="flex-1">
                         <Button size="sm" className="w-full rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-1">
                           <MapPin className="w-3.5 h-3.5" /> Suivre en direct
                         </Button>
