@@ -36,6 +36,13 @@ interface SavedAddress {
   city: string; lat: number | null; lng: number | null; is_default: boolean
 }
 
+// En cas d'article en rupture pendant la préparation (courses, pharmacie…)
+const SUBSTITUTION_OPTIONS = [
+  { id: "substitute", label: "Remplacer par un article similaire", desc: "La boutique choisit un équivalent à prix égal ou inférieur" },
+  { id: "refund",     label: "Retirer et me rembourser",           desc: "L'article est retiré, la différence remboursée" },
+  { id: "contact",    label: "Me contacter d'abord",               desc: "La boutique vous appelle avant toute modification" },
+]
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, getTotalPrice, clearCart } = useCart()
@@ -48,6 +55,7 @@ export default function CheckoutPage() {
   const [phone, setPhone]                 = useState("")
   const [paymentMethod, setPaymentMethod] = useState("orange_money")
   const [deliveryOption, setDeliveryOption] = useState("express")
+  const [substitutionPref, setSubstitutionPref] = useState("refund")
   const [promoCode, setPromoCode]         = useState("")
   const [promoApplied, setPromoApplied]   = useState(false)
   const [promoDiscount, setPromoDiscount] = useState(0)
@@ -180,6 +188,7 @@ export default function CheckoutPage() {
           delivery_latitude: coords?.lat,
           delivery_longitude: coords?.lng,
           delivery_option: deliveryOption,
+          substitution_preference: substitutionPref,
           payment_method: paymentMethod,
           notes,
           promo_code: promoApplied ? promoCode : undefined,
@@ -394,6 +403,32 @@ export default function CheckoutPage() {
                             </div>
                             <span className="font-bold text-foreground">{formatPrice(price)}</span>
                             {deliveryOption === id && <Check className="w-5 h-5 text-primary shrink-0" />}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-6 rounded-2xl bg-card border border-border/50">
+                      <h2 className="text-lg font-bold text-foreground mb-1 flex items-center gap-2">
+                        <Package className="w-5 h-5 text-primary" /> En cas d&apos;article en rupture
+                      </h2>
+                      <p className="text-xs text-muted-foreground mb-4">Pour les courses et la pharmacie, un article peut manquer au moment de la préparation.</p>
+                      <div className="space-y-2">
+                        {SUBSTITUTION_OPTIONS.map((o) => (
+                          <label key={o.id} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                            substitutionPref === o.id ? "border-primary bg-primary/5" : "border-border hover:border-border/80"
+                          }`}>
+                            <input type="radio" name="substitution" value={o.id}
+                              checked={substitutionPref === o.id} onChange={() => setSubstitutionPref(o.id)} className="sr-only" />
+                            <div className={`w-4 h-4 mt-0.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                              substitutionPref === o.id ? "border-primary" : "border-border"
+                            }`}>
+                              {substitutionPref === o.id && <div className="w-2 h-2 rounded-full bg-primary" />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{o.label}</p>
+                              <p className="text-xs text-muted-foreground">{o.desc}</p>
+                            </div>
                           </label>
                         ))}
                       </div>

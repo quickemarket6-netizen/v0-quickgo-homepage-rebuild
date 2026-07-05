@@ -64,9 +64,14 @@ export async function POST(request: Request) {
     delivery_longitude,
     payment_method = "cash",
     delivery_option,
+    substitution_preference,
     notes,
     promo_code
   } = body
+
+  const substitutionPref = ["substitute", "refund", "contact"].includes(substitution_preference)
+    ? substitution_preference
+    : null
 
   // vendor_id n'est plus requis : le vendeur de chaque article est déterminé
   // côté serveur depuis products.vendor_id, et le panier peut couvrir
@@ -237,6 +242,9 @@ export async function POST(request: Request) {
   const allOrderItems: Array<LineItem & { order_id: string }> = []
   let distributedDiscount = 0
   let groupIndex = 0
+  // Passe à false si la colonne substitution_preference n'existe pas encore
+  // (migration add_substitutions.sql non appliquée) — la commande prime.
+  let includeSubstitutionPref = substitutionPref != null
 
   const rollback = async () => {
     if (createdOrders.length > 0) {
@@ -259,30 +267,45 @@ export async function POST(request: Request) {
     const total = group.subtotal + delivery_fee + service_fee - discount
     const order_number = `QG-${Date.now().toString(36).toUpperCase()}${groups.size > 1 ? `-${groupIndex}` : ""}`
 
-    const { data: order, error: orderError } = await supabase
+    const baseOrder = {
+      order_number,
+      customer_id: user.id,
+      vendor_id: groupVendorId,
+      status: "pending",
+      subtotal: group.subtotal,
+      delivery_fee,
+      service_fee,
+      discount,
+      total,
+      total_amount: total,   // colonne héritée lue par le suivi et le dashboard
+      payment_method,
+      payment_status: "pending",
+      delivery_address,
+      delivery_latitude,
+      delivery_longitude,
+      notes,
+      estimated_delivery_time: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
+      ...(checkoutGroupId ? { checkout_group_id: checkoutGroupId } : {}),
+    }
+
+    let { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
-        order_number,
-        customer_id: user.id,
-        vendor_id: groupVendorId,
-        status: "pending",
-        subtotal: group.subtotal,
-        delivery_fee,
-        service_fee,
-        discount,
-        total,
-        total_amount: total,   // colonne héritée lue par le suivi et le dashboard
-        payment_method,
-        payment_status: "pending",
-        delivery_address,
-        delivery_latitude,
-        delivery_longitude,
-        notes,
-        estimated_delivery_time: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
-        ...(checkoutGroupId ? { checkout_group_id: checkoutGroupId } : {}),
+        ...baseOrder,
+        ...(includeSubstitutionPref ? { substitution_preference: substitutionPref } : {}),
       })
       .select()
       .single()
+
+    // Base sans la colonne substitution_preference → on retente sans elle
+    if (orderError && includeSubstitutionPref && orderError.message?.includes("substitution_preference")) {
+      includeSubstitutionPref = false
+      ;({ data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert(baseOrder)
+        .select()
+        .single())
+    }
 
     if (orderError || !order) {
       console.error("[orders] insert failed:", orderError?.message)

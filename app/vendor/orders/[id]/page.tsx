@@ -22,6 +22,14 @@ interface OrderItem {
   product: { id: string; name: string; images: string[] } | null
 }
 
+interface ReplacementProduct {
+  id: string
+  name: string
+  price: number
+  is_available: boolean
+  stock_quantity: number | null
+}
+
 interface Order {
   id: string
   order_number: string
@@ -33,6 +41,7 @@ interface Order {
   discount: number
   total: number
   notes: string | null
+  substitution_preference?: string | null
   delivery_address: { address?: string; city?: string; phone?: string } | null
   created_at: string
   updated_at: string
@@ -101,6 +110,12 @@ export default function VendorOrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
 
+  // Substitution d'un article en rupture
+  const [substitutingItemId, setSubstitutingItemId] = useState<string | null>(null)
+  const [replacements, setReplacements] = useState<ReplacementProduct[]>([])
+  const [replacementId, setReplacementId] = useState("")
+  const [subBusy, setSubBusy] = useState(false)
+
   const fetchOrder = useCallback(async () => {
     try {
       const res = await fetch(`/api/vendor/orders/${orderId}`)
@@ -161,8 +176,56 @@ export default function VendorOrderDetailPage() {
     }
   }
 
+  // Ouvre le panneau de substitution : charge le catalogue de la boutique
+  // (uniquement les produits disponibles à prix ≤ ligne d'origine)
+  async function openSubstitution(item: OrderItem) {
+    setSubstitutingItemId(item.id)
+    setReplacementId("")
+    try {
+      const res = await fetch("/api/vendor/products")
+      if (res.ok) {
+        const all: ReplacementProduct[] = await res.json()
+        setReplacements(
+          all.filter((p) =>
+            p.is_available
+            && p.id !== item.product_id
+            && p.price * item.quantity <= item.total_price
+            && (p.stock_quantity == null || p.stock_quantity >= item.quantity),
+          ),
+        )
+      }
+    } catch { setReplacements([]) }
+  }
+
+  async function applySubstitution(item: OrderItem, action: "remove" | "substitute") {
+    if (action === "substitute" && !replacementId) {
+      toast.error("Choisissez un produit de remplacement")
+      return
+    }
+    setSubBusy(true)
+    try {
+      const res = await fetch(`/api/vendor/orders/${orderId}/substitute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order_item_id: item.id,
+          action,
+          ...(action === "substitute" ? { replacement_product_id: replacementId } : {}),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? "Erreur serveur"); return }
+      toast.success(data.summary ?? "Commande mise à jour — client notifié")
+      setSubstitutingItemId(null)
+      await fetchOrder()
+    } finally {
+      setSubBusy(false)
+    }
+  }
+
   const statusCfg = order ? (STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending) : null
   const nextStatus = order ? VENDOR_TRANSITIONS[order.status] : null
+  const canEditItems = order ? ["pending", "confirmed", "preparing"].includes(order.status) : false
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -260,25 +323,100 @@ export default function VendorOrderDetailPage() {
                     <h2 className="font-semibold text-gray-900">Articles commandés</h2>
                     <span className="ml-auto text-sm text-gray-500">{order.items.length} article{order.items.length > 1 ? "s" : ""}</span>
                   </div>
+                  {canEditItems && order.substitution_preference && (
+                    <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-800">
+                      En cas de rupture, le client préfère :{" "}
+                      <span className="font-semibold">
+                        {order.substitution_preference === "substitute" ? "un remplacement par un article similaire"
+                          : order.substitution_preference === "refund" ? "le retrait et le remboursement de l'article"
+                          : "être contacté avant toute modification"}
+                      </span>
+                      {order.substitution_preference === "contact" && order.customer?.phone && (
+                        <> — <a href={`tel:${order.customer.phone}`} className="underline font-semibold">{order.customer.phone}</a></>
+                      )}
+                    </div>
+                  )}
                   <div className="divide-y divide-gray-50">
                     {order.items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-4 px-5 py-4">
-                        {item.product?.images?.[0] ? (
-                          <img
-                            src={item.product.images[0]}
-                            alt={item.product.name}
-                            className="w-14 h-14 rounded-xl object-cover bg-gray-100"
-                          />
-                        ) : (
-                          <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center">
-                            <Package size={20} className="text-gray-400" />
+                      <div key={item.id}>
+                        <div className="flex items-center gap-4 px-5 py-4">
+                          {item.product?.images?.[0] ? (
+                            <img
+                              src={item.product.images[0]}
+                              alt={item.product.name}
+                              className="w-14 h-14 rounded-xl object-cover bg-gray-100"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center">
+                              <Package size={20} className="text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{item.product?.name ?? "Produit supprimé"}</p>
+                            <p className="text-sm text-gray-500">Qté : {item.quantity} × {formatCFA(item.unit_price)}</p>
+                          </div>
+                          <p className="font-bold text-gray-900">{formatCFA(item.total_price)}</p>
+                          {canEditItems && substitutingItemId !== item.id && (
+                            <button
+                              onClick={() => openSubstitution(item)}
+                              className="text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-200 hover:bg-amber-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
+                            >
+                              Rupture ?
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Panneau substitution / retrait */}
+                        {substitutingItemId === item.id && (
+                          <div className="mx-5 mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+                            <p className="text-sm font-semibold text-amber-900">
+                              « {item.product?.name ?? "Article"} » est en rupture ?
+                            </p>
+                            <p className="text-xs text-amber-700">
+                              Remplacez-le par un produit équivalent (prix égal ou inférieur — la différence est
+                              remboursée au client) ou retirez-le de la commande. Le client sera notifié.
+                            </p>
+                            {replacements.length > 0 ? (
+                              <select
+                                value={replacementId}
+                                onChange={(e) => setReplacementId(e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl bg-white border border-amber-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                              >
+                                <option value="">— Choisir un remplacement —</option>
+                                {replacements.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name} · {formatCFA(p.price)} ({formatCFA(p.price * item.quantity)} × {item.quantity})
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <p className="text-xs text-amber-600">
+                                Aucun produit de remplacement à prix égal ou inférieur disponible.
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {replacements.length > 0 && (
+                                <Button size="sm" disabled={subBusy || !replacementId}
+                                  className="rounded-full bg-amber-600 hover:bg-amber-600/90 text-white gap-1"
+                                  onClick={() => applySubstitution(item, "substitute")}>
+                                  <RefreshCw size={13} className={subBusy ? "animate-spin" : ""} />
+                                  Remplacer
+                                </Button>
+                              )}
+                              <Button size="sm" variant="outline" disabled={subBusy}
+                                className="rounded-full border-red-200 text-red-600 hover:bg-red-50 gap-1"
+                                onClick={() => applySubstitution(item, "remove")}>
+                                <XCircle size={13} />
+                                Retirer et rembourser
+                              </Button>
+                              <Button size="sm" variant="ghost" disabled={subBusy}
+                                className="rounded-full text-gray-500"
+                                onClick={() => setSubstitutingItemId(null)}>
+                                Fermer
+                              </Button>
+                            </div>
                           </div>
                         )}
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.product?.name ?? "Produit supprimé"}</p>
-                          <p className="text-sm text-gray-500">Qté : {item.quantity} × {formatCFA(item.unit_price)}</p>
-                        </div>
-                        <p className="font-bold text-gray-900">{formatCFA(item.total_price)}</p>
                       </div>
                     ))}
                   </div>
