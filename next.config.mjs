@@ -107,23 +107,13 @@ const nextConfig = {
   },
 
   // ── SEO redirects ────────────────────────────────────────────────────────────
+  // NOTE: www ↔ apex canonicalization is handled by Vercel's domain settings.
+  // Do NOT add host-based redirects here — they conflict with Vercel's own
+  // domain redirect and create an infinite redirect loop.
   async redirects() {
     return [
       { source: "/home",  destination: "/", permanent: true },
       { source: "/index", destination: "/", permanent: true },
-      // Canonicalize: www → non-www  (avoids duplicate content in Google index)
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "www.quickgo237.com" }],
-        destination: "https://quickgo237.com/:path*",
-        permanent: true,
-      },
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "www.quickgo.cm" }],
-        destination: "https://quickgo.cm/:path*",
-        permanent: true,
-      },
     ]
   },
 }
