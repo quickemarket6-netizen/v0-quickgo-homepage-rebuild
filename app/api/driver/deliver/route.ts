@@ -99,6 +99,27 @@ export async function POST(request: Request) {
     console.error(`[deliver] release funds échoué pour ${orderId}:`, release.error)
   }
 
+  // ── Bonus de parrainage ─────────────────────────────────────────────────────
+  // Si c'est la première commande livrée d'un filleul, son parrain est
+  // crédité (RPC idempotente — un seul versement par filleul, à vie).
+  const { data: referralReward } = await supabase.rpc("reward_referral", {
+    p_referred_id: order.customer_id,
+  })
+  if (referralReward?.success) {
+    await supabase.from("notifications").insert({
+      user_id: referralReward.referrer_id,
+      title: "Bonus de parrainage 🎉",
+      message: `Votre filleul a reçu sa première commande : ${new Intl.NumberFormat("fr-FR").format(Number(referralReward.amount))} FCFA crédités sur votre portefeuille QuickGo Pay.`,
+      type: "wallet",
+      data: { referred_id: order.customer_id },
+    })
+    await sendPushToUser(referralReward.referrer_id, {
+      title: "Bonus de parrainage 🎉",
+      body: `${new Intl.NumberFormat("fr-FR").format(Number(referralReward.amount))} FCFA crédités — votre filleul a reçu sa première commande.`,
+      url: "/wallet",
+    })
+  }
+
   // Notification client (in-app + push web)
   await supabase.from("notifications").insert({
     user_id: order.customer_id,

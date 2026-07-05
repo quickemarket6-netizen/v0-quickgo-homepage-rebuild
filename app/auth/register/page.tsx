@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -67,7 +67,17 @@ const formFields = [
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
+
+  // Code de parrainage (?ref=CODE) : mémorisé jusqu'à la première connexion,
+  // où il est activé automatiquement (voir /marketplace).
+  useEffect(() => {
+    const ref = searchParams.get("ref")
+    if (ref && /^[A-Za-z0-9]{4,20}$/.test(ref)) {
+      try { localStorage.setItem("quickgo-ref", ref.toUpperCase()) } catch { /* stockage indisponible */ }
+    }
+  }, [searchParams])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)

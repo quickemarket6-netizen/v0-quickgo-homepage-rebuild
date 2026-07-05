@@ -8,6 +8,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Gift, Star, Zap, TrendingUp, Trophy, ChevronRight, Loader2 } from "lucide-react"
 import { toast } from "sonner"
+import { ReferralCard } from "@/components/wallet/ReferralCard"
 
 type Reward = {
   id: string
@@ -104,6 +105,11 @@ export default function RewardsPage() {
                   <span className="text-white/70 text-xs">5 000 pts pour Gold</span>
                 </div>
               </div>
+            </div>
+
+            {/* Parrainage — bonus wallet à la 1re commande du filleul */}
+            <div className="mb-8">
+              <ReferralCard />
             </div>
 
             {/* Stats */}

@@ -137,6 +137,22 @@ export default function MarketplacePage() {
       .then((r) => r.ok ? r.json() : [])
       .then((d) => { if (Array.isArray(d)) setOffers(d) })
       .catch(() => {})
+
+    // Active le code de parrainage mémorisé à l'inscription (?ref=CODE).
+    // Nettoyé après tentative : le serveur refuse de toute façon les
+    // rattachements tardifs ou invalides.
+    try {
+      const ref = localStorage.getItem("quickgo-ref")
+      if (ref) {
+        fetch("/api/referral", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: ref }),
+        })
+          .then((r) => { if (r.status !== 401) localStorage.removeItem("quickgo-ref") })
+          .catch(() => {})
+      }
+    } catch { /* stockage indisponible */ }
   }, [])
 
   useEffect(() => {

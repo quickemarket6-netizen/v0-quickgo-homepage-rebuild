@@ -21,13 +21,14 @@ import {
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar/navbar"
 import { Footer } from "@/components/footer/footer"
+import { ReferralCard } from "@/components/wallet/ReferralCard"
 
 const benefits = [
   {
     icon: DollarSign,
-    title: "Commissions attractives",
-    description: "Gagnez jusqu'a 15% de commission sur chaque vente generee par votre lien.",
-    highlight: "15%"
+    title: "1 000 FCFA par filleul",
+    description: "Crédités sur votre portefeuille QuickGo Pay dès la première commande livrée de votre filleul.",
+    highlight: "1 000 F"
   },
   {
     icon: Users,
@@ -36,66 +37,39 @@ const benefits = [
     highlight: "Illimite"
   },
   {
-    icon: Gift,
-    title: "Bonus de bienvenue",
-    description: "Recevez 5 000 FCFA de bonus des votre premiere conversion reussie.",
-    highlight: "5 000 FCFA"
+    icon: Zap,
+    title: "Versement automatique",
+    description: "Aucune demande à faire : le bonus arrive tout seul sur votre wallet, avec une notification.",
+    highlight: "Auto"
   },
   {
-    icon: TrendingUp,
-    title: "Revenus passifs",
-    description: "Continuez a gagner tant que vos filleuls utilisent QuickGo.",
-    highlight: "Passif"
+    icon: Gift,
+    title: "Utilisable partout",
+    description: "Vos gains paient vos commandes, transferts et livraisons sur QuickGo.",
+    highlight: "Wallet"
   }
 ]
 
 const steps = [
   {
     step: "01",
-    title: "Inscrivez-vous",
-    description: "Creez votre compte affilié gratuitement en quelques minutes."
+    title: "Obtenez votre code",
+    description: "Votre code et votre lien uniques sont dans Portefeuille → Récompenses."
   },
   {
     step: "02",
-    title: "Obtenez votre lien",
-    description: "Recevez votre lien de parrainage unique et vos outils marketing."
+    title: "Partagez",
+    description: "Envoyez votre lien sur WhatsApp, vos reseaux sociaux ou de vive voix."
   },
   {
     step: "03",
-    title: "Partagez",
-    description: "Partagez votre lien sur vos reseaux sociaux, blog ou site web."
+    title: "Votre filleul s'inscrit",
+    description: "Il crée son compte via votre lien (ou entre votre code) avant sa premiere commande."
   },
   {
     step: "04",
     title: "Gagnez",
-    description: "Recevez vos commissions directement sur votre compte QuickGo Pay."
-  }
-]
-
-const tiers = [
-  {
-    name: "Bronze",
-    requirement: "0-10 filleuls",
-    commission: "10%",
-    color: "from-amber-600 to-amber-800"
-  },
-  {
-    name: "Argent",
-    requirement: "11-50 filleuls",
-    commission: "12%",
-    color: "from-gray-400 to-gray-600"
-  },
-  {
-    name: "Or",
-    requirement: "51-100 filleuls",
-    commission: "15%",
-    color: "from-yellow-400 to-yellow-600"
-  },
-  {
-    name: "Platine",
-    requirement: "100+ filleuls",
-    commission: "20%",
-    color: "from-cyan-400 to-blue-600"
+    description: "1 000 FCFA sur votre QuickGo Pay dès que sa premiere commande est livree."
   }
 ]
 
@@ -140,7 +114,7 @@ export default function AffiliatePage() {
                 transition={{ delay: 0.2 }}
                 className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto"
               >
-                Rejoignez notre programme d&apos;affiliation et gagnez jusqu&apos;a 20% de commission sur chaque nouvelle inscription et commande.
+                Parrainez vos proches : 1 000 FCFA crédités sur votre portefeuille QuickGo Pay dès la première commande livrée de chaque filleul.
               </motion.p>
               
               <motion.div
@@ -233,40 +207,19 @@ export default function AffiliatePage() {
           </div>
         </section>
 
-        {/* Commission Tiers */}
+        {/* Votre code — visible uniquement si connecté */}
         <section className="py-20 bg-card/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Niveaux de commission
+                Votre lien de parrainage
               </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Plus vous parrainez, plus vous gagnez
+              <p className="text-muted-foreground">
+                Connecté ? Votre code, votre lien et vos gains apparaissent ici.
+                Sinon, <Link href="/auth/login?next=/affiliate" className="text-quickgo-blue hover:underline">connectez-vous</Link>.
               </p>
             </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {tiers.map((tier, index) => (
-                <motion.div
-                  key={tier.name}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="relative p-6 rounded-2xl bg-card border border-border overflow-hidden"
-                >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${tier.color} opacity-10`} />
-                  <div className="relative">
-                    <div className="text-sm text-muted-foreground mb-2">{tier.requirement}</div>
-                    <div className="text-2xl font-bold text-foreground mb-1">{tier.name}</div>
-                    <div className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-quickgo-blue to-quickgo-lime">
-                      {tier.commission}
-                    </div>
-                    <div className="text-sm text-muted-foreground">de commission</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <ReferralCard />
           </div>
         </section>
 
