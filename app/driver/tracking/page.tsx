@@ -36,11 +36,12 @@ const STATUS_LABELS: Record<string, string> = {
   preparing:  "En préparation",
   ready:      "Prête",
   picked_up:  "Récupérée",
-  in_transit: "En route",
+  delivering: "En route",
   delivered:  "Livrée",
 }
 
-const ACTIVE_DRIVER_STATUSES = ["picked_up", "in_transit", "ready"]
+// Statuts conformes à l'enum SQL ("in_transit" n'existe pas)
+const ACTIVE_DRIVER_STATUSES = ["ready", "picked_up", "delivering"]
 
 export default function DriverTrackingPage() {
   const [driverId, setDriverId]     = useState<string | null>(null)
@@ -76,7 +77,7 @@ export default function DriverTrackingPage() {
           customer:profiles!orders_user_id_fkey(full_name, phone),
           items:order_items(product_name, quantity)
         `)
-        .eq("driver_id", driver.id)
+        .eq("driver_id", user.id)   // orders.driver_id référence auth.users(id)
         .in("status", ACTIVE_DRIVER_STATUSES)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -94,14 +95,34 @@ export default function DriverTrackingPage() {
   const updateStatus = async (newStatus: string) => {
     if (!activeOrder) return
     setStatusMsg("Mise à jour…")
+
+    // La livraison passe par le serveur : horodatage, encaissement cash
+    // (cash_on_hand + journal), crédit et libération des fonds vendeur.
+    if (newStatus === "delivered") {
+      const res = await fetch("/api/driver/deliver", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order_id: activeOrder.id }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setStatusMsg("Erreur: " + (data.error ?? "livraison non confirmée"))
+        return
+      }
+      setActiveOrder(o => o ? { ...o, status: "delivered" } : null)
+      setStatusMsg(
+        data.cash_on_hand != null
+          ? `Livraison confirmée ✓ — Cash en main : ${new Intl.NumberFormat("fr-FR").format(data.cash_on_hand)} FCFA`
+          : "Livraison confirmée ✓",
+      )
+      setTimeout(() => setStatusMsg(null), 5000)
+      return
+    }
+
     const supabase = createClient()
-    // Horodater la livraison à la clôture : sans ça les gains du livreur
-    // (filtrés sur actual_delivery_time) ne seraient jamais comptabilisés.
-    const patch: { status: string; actual_delivery_time?: string } = { status: newStatus }
-    if (newStatus === "delivered") patch.actual_delivery_time = new Date().toISOString()
     const { error } = await supabase
       .from("orders")
-      .update(patch)
+      .update({ status: newStatus })
       .eq("id", activeOrder.id)
 
     if (error) {

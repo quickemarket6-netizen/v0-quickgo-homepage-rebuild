@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
+import { CASH_ON_HAND_CAP } from "@/lib/payments/cash"
 
 // GET  /api/driver/available  — orders ready for pickup with no driver assigned
 // POST /api/driver/available  — driver accepts a delivery job
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
 
   const { data: driver } = await supabase
     .from("drivers")
-    .select("id")
+    .select("id, cash_on_hand")
     .eq("user_id", user.id)
     .single()
 
@@ -114,13 +115,28 @@ export async function POST(req: NextRequest) {
   // Race condition guard — only accept if still unassigned and ready
   const { data: order } = await supabase
     .from("orders")
-    .select("id, status, driver_id")
+    .select("id, status, driver_id, payment_method, total")
     .eq("id", order_id)
     .single()
 
   if (!order) return NextResponse.json({ error: "Commande introuvable" }, { status: 404 })
   if (order.status !== "ready") return NextResponse.json({ error: "Commande déjà prise en charge" }, { status: 409 })
   if (order.driver_id) return NextResponse.json({ error: "Commande déjà assignée à un livreur" }, { status: 409 })
+
+  // Plafond de cash en main : une commande cash de plus ne doit pas faire
+  // dépasser le plafond, sinon le livreur doit d'abord remettre ses espèces.
+  if (order.payment_method === "cash") {
+    const cashOnHand = Number(driver.cash_on_hand ?? 0)
+    if (cashOnHand + Number(order.total ?? 0) > CASH_ON_HAND_CAP) {
+      return NextResponse.json(
+        {
+          error: `Plafond d'espèces atteint (${new Intl.NumberFormat("fr-FR").format(cashOnHand)} / ${new Intl.NumberFormat("fr-FR").format(CASH_ON_HAND_CAP)} FCFA). Remettez votre cash à la plateforme pour accepter de nouvelles commandes cash.`,
+          code: "CASH_CAP_REACHED",
+        },
+        { status: 403 },
+      )
+    }
+  }
 
   // orders.driver_id référence auth.users(id) → on stocke user.id (= profiles.id).
   // Statut "delivering" : commande assignée et en cours d'acheminement — c'est

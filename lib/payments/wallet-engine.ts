@@ -157,7 +157,7 @@ export async function releasePendingFunds(orderId: string): Promise<{
   const { data: result } = await supabase.rpc("release_vendor_funds", {
     p_vendor_id: commLog.vendor_id,
     p_amount: commLog.vendor_net_amount,
-    p_order_id: orderId,
+    p_commission_log_id: commLog.id,
   })
 
   if (!result?.success) {

@@ -24,6 +24,7 @@ import {
   Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { DriverCashCard } from "@/components/driver/CashCard"
 
 const earningsData = {
   today: 18750,
@@ -134,6 +135,9 @@ export default function DriverEarningsPage() {
       </header>
 
       <main className="p-4 lg:p-6 space-y-6">
+        {/* Cash en main — réconciliation paiement à la livraison */}
+        <DriverCashCard />
+
         {/* Main Earnings Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[

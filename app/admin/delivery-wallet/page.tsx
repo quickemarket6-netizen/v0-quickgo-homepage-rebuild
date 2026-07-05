@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { CashRemittancesPanel } from "@/components/admin/CashRemittancesPanel"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface DeliveryWallet {
@@ -281,6 +282,9 @@ export default function AdminDeliveryWalletPage() {
         </motion.header>
 
         <main className="flex-1 p-8 space-y-6">
+          {/* Réconciliation du cash collecté à la livraison */}
+          <CashRemittancesPanel />
+
           {/* Wallet balance cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
