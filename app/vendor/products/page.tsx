@@ -12,9 +12,12 @@ import {
   ChevronDown, ChevronRight, Zap, Boxes, Truck, Ticket, MessageSquare, Bell,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
+import { ProductImageUploader } from "@/components/vendor/ProductImageUploader"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Category { name: string; slug: string }
+interface CategoryOption { id: string; name: string }
 interface Product {
   id: string
   name: string
@@ -24,6 +27,7 @@ interface Product {
   stock_quantity: number
   is_available: boolean
   images: string[] | null
+  category_id: string | null
   category: Category | null
   created_at: string
 }
@@ -122,7 +126,7 @@ export default function VendorProductsPage() {
       setLoadingProducts(true)
       const { data: prods } = await supabase
         .from("products")
-        .select("id, name, description, price, original_price, stock_quantity, is_available, images, category:categories(name, slug), created_at")
+        .select("id, name, description, price, original_price, stock_quantity, is_available, images, category_id, category:categories(name, slug), created_at")
         .eq("vendor_id", v.id)
         .order("created_at", { ascending: false })
       setProducts((prods as Product[]) ?? [])
@@ -156,6 +160,92 @@ export default function VendorProductsPage() {
     setSelected(selected.length === filtered.length ? [] : filtered.map((p) => p.id))
   const toggleSection = (label: string) =>
     setExpandedSections((s) => ({ ...s, [label]: !s[label] }))
+
+  // ── Édition / suppression ─────────────────────────────────────────────────
+  const [editing, setEditing] = useState<Product | null>(null)
+  const [editForm, setEditForm] = useState({
+    name: "", description: "", price: "", original_price: "",
+    stock_quantity: "", category_id: "", is_available: true, images: [] as string[],
+  })
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [categories, setCategories] = useState<CategoryOption[]>([])
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => { if (Array.isArray(d)) setCategories(d) })
+      .catch(() => {})
+  }, [])
+
+  const openEdit = (p: Product) => {
+    setEditing(p)
+    setEditForm({
+      name: p.name,
+      description: p.description ?? "",
+      price: String(p.price),
+      original_price: p.original_price != null ? String(p.original_price) : "",
+      stock_quantity: String(p.stock_quantity ?? 0),
+      category_id: p.category_id ?? "",
+      is_available: p.is_available,
+      images: p.images ?? [],
+    })
+  }
+
+  const saveEdit = async () => {
+    if (!editing) return
+    const price = Number(editForm.price)
+    const stock = Number(editForm.stock_quantity)
+    if (!editForm.name.trim() || !Number.isFinite(price) || price <= 0) {
+      toast.error("Nom et prix valides requis")
+      return
+    }
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/vendor/products/${editing.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editForm.name,
+          description: editForm.description || null,
+          price,
+          original_price: editForm.original_price ? Number(editForm.original_price) : null,
+          stock_quantity: Number.isFinite(stock) ? stock : 0,
+          ...(editForm.category_id ? { category_id: editForm.category_id } : {}),
+          is_available: editForm.is_available,
+          images: editForm.images,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? "Enregistrement impossible"); return }
+      setProducts((prev) => prev.map((p) => p.id === editing.id
+        ? {
+            ...p, ...data,
+            category: editForm.category_id
+              ? { name: categories.find((c) => c.id === editForm.category_id)?.name ?? p.category?.name ?? "", slug: p.category?.slug ?? "" }
+              : p.category,
+          }
+        : p))
+      toast.success("Produit mis à jour")
+      setEditing(null)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteProduct = async (p: Product) => {
+    if (!confirm(`Supprimer « ${p.name} » ? Cette action est définitive.`)) return
+    setDeletingId(p.id)
+    try {
+      const res = await fetch(`/api/vendor/products/${p.id}`, { method: "DELETE" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? "Suppression impossible"); return }
+      setProducts((prev) => prev.filter((x) => x.id !== p.id))
+      toast.success("Produit supprimé")
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const isLoading = loadingVendor || loadingProducts
 
@@ -595,6 +685,8 @@ export default function VendorProductsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              title="Modifier"
+                              onClick={() => openEdit(product)}
                               className="h-8 w-8 p-0 rounded-lg hover:bg-[#3b82f6]/10 hover:text-[#3b82f6] text-white/30 transition-colors"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -602,16 +694,23 @@ export default function VendorProductsPage() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              title="Voir sur le marketplace"
+                              asChild
                               className="h-8 w-8 p-0 rounded-lg hover:bg-[#a3e635]/10 hover:text-[#a3e635] text-white/30 transition-colors"
                             >
-                              <Eye className="w-3.5 h-3.5" />
+                              <Link href={`/marketplace/product/${product.id}`} target="_blank">
+                                <Eye className="w-3.5 h-3.5" />
+                              </Link>
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
+                              title="Supprimer"
+                              disabled={deletingId === product.id}
+                              onClick={() => deleteProduct(product)}
                               className="h-8 w-8 p-0 rounded-lg hover:bg-[#ef4444]/10 hover:text-[#ef4444] text-white/30 transition-colors"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className={`w-3.5 h-3.5 ${deletingId === product.id ? "animate-pulse" : ""}`} />
                             </Button>
                           </div>
                         </td>
@@ -624,6 +723,110 @@ export default function VendorProductsPage() {
           </div>
         </div>
       </main>
+
+      {/* ── Modal d'édition ──────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {editing && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => !saving && setEditing(null)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 40, scale: 0.97 }}
+              className="fixed inset-x-0 bottom-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2
+                sm:w-[560px] z-50 max-h-[90vh] overflow-y-auto
+                bg-[#111118] border border-[#1e1e2e] rounded-t-3xl sm:rounded-2xl p-6 space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-white">Modifier le produit</h2>
+                <button onClick={() => !saving && setEditing(null)}
+                  className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+                  ✕
+                </button>
+              </div>
+
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Photos</label>
+                <ProductImageUploader
+                  images={editForm.images}
+                  onChange={(images) => setEditForm((f) => ({ ...f, images }))}
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Nom du produit *</label>
+                <Input value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className="bg-[#16161f] border-[#1e1e2e] text-white rounded-xl h-11" />
+              </div>
+
+              <div>
+                <label className="text-xs text-white/40 mb-1.5 block">Description</label>
+                <textarea value={editForm.description} rows={3}
+                  onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-[#16161f] border border-[#1e1e2e] text-sm text-white
+                    focus:outline-none focus:border-[#3b82f6]/50 resize-none" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">Prix (FCFA) *</label>
+                  <Input type="number" min={1} value={editForm.price}
+                    onChange={(e) => setEditForm((f) => ({ ...f, price: e.target.value }))}
+                    className="bg-[#16161f] border-[#1e1e2e] text-white rounded-xl h-11" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">Prix barré (optionnel)</label>
+                  <Input type="number" min={0} value={editForm.original_price}
+                    onChange={(e) => setEditForm((f) => ({ ...f, original_price: e.target.value }))}
+                    className="bg-[#16161f] border-[#1e1e2e] text-white rounded-xl h-11" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">Stock</label>
+                  <Input type="number" min={0} value={editForm.stock_quantity}
+                    onChange={(e) => setEditForm((f) => ({ ...f, stock_quantity: e.target.value }))}
+                    className="bg-[#16161f] border-[#1e1e2e] text-white rounded-xl h-11" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">Catégorie</label>
+                  <select value={editForm.category_id}
+                    onChange={(e) => setEditForm((f) => ({ ...f, category_id: e.target.value }))}
+                    className="w-full h-11 px-3 rounded-xl bg-[#16161f] border border-[#1e1e2e] text-sm text-white
+                      focus:outline-none focus:border-[#3b82f6]/50">
+                    <option value="">— Choisir —</option>
+                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-[#16161f] border border-[#1e1e2e] cursor-pointer">
+                <input type="checkbox" checked={editForm.is_available}
+                  onChange={(e) => setEditForm((f) => ({ ...f, is_available: e.target.checked }))}
+                  className="w-4 h-4 accent-[#a3e635]" />
+                <div>
+                  <p className="text-sm text-white font-medium">Produit visible sur le marketplace</p>
+                  <p className="text-xs text-white/40">Décochez pour le retirer temporairement de la vente</p>
+                </div>
+              </label>
+
+              <div className="flex gap-2 pt-2">
+                <Button onClick={saveEdit} disabled={saving}
+                  className="flex-1 h-11 rounded-xl bg-[#a3e635] text-black font-bold hover:bg-[#a3e635]/90">
+                  {saving ? "Enregistrement…" : "Enregistrer les modifications"}
+                </Button>
+                <Button variant="outline" disabled={saving} onClick={() => setEditing(null)}
+                  className="h-11 rounded-xl border-[#1e1e2e] text-white/60 hover:text-white">
+                  Annuler
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

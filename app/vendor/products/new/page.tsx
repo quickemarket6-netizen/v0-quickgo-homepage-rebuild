@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
+import { ProductImageUploader } from "@/components/vendor/ProductImageUploader"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Category { id: string; name: string; slug: string; color: string; icon: string }
@@ -97,7 +98,7 @@ export default function NewProductPage() {
   const [categoryId, setCategoryId]         = useState("")
   const [stock, setStock]                   = useState("0")
   const [isFeatured, setIsFeatured]         = useState(false)
-  const [imageUrls, setImageUrls]           = useState<string[]>([""])
+  const [imageUrls, setImageUrls]           = useState<string[]>([])
 
   // ── Video ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -175,11 +176,6 @@ export default function NewProductPage() {
       setSubmitting(false)
     }
   }
-
-  // ── Image URL helpers ─────────────────────────────────────────────────────
-  const addImageUrl    = () => setImageUrls((u) => [...u, ""])
-  const removeImageUrl = (i: number) => setImageUrls((u) => u.filter((_, j) => j !== i))
-  const updateImageUrl = (i: number, v: string) => setImageUrls((u) => u.map((x, j) => j === i ? v : x))
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
@@ -483,42 +479,11 @@ export default function NewProductPage() {
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
               className="bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] rounded-2xl p-6 space-y-4">
               <h2 className="text-white font-bold flex items-center gap-2">
-                <ImagePlus className="w-4 h-4 text-[#8b5cf6]" /> Images
+                <ImagePlus className="w-4 h-4 text-[#8b5cf6]" /> Photos du produit
               </h2>
-              <p className="text-white/40 text-xs">Ajoutez des URLs d&apos;images (JPG, PNG, WebP). La première sera l&apos;image principale.</p>
+              <p className="text-white/40 text-xs">Ajoutez des photos depuis votre téléphone ou ordinateur.</p>
 
-              <div className="space-y-3">
-                {imageUrls.map((url, i) => (
-                  <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-[#0a0a0f] border border-[#1e1e2e] overflow-hidden shrink-0 flex items-center justify-center">
-                      {url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }} />
-                      ) : (
-                        <ImagePlus className="w-4 h-4 text-white/20" />
-                      )}
-                    </div>
-                    <input value={url} onChange={(e) => updateImageUrl(i, e.target.value)}
-                      placeholder={`URL de l'image ${i + 1}…`}
-                      className="flex-1 h-10 px-4 bg-[#0a0a0f] border border-[#1e1e2e] rounded-xl text-white placeholder-white/30
-                        focus:outline-none focus:border-[#8b5cf6]/50 text-sm transition-colors" />
-                    {imageUrls.length > 1 && (
-                      <button type="button" onClick={() => removeImageUrl(i)}
-                        className="w-8 h-8 rounded-lg bg-[#ef4444]/10 hover:bg-[#ef4444]/20 flex items-center justify-center text-[#ef4444] transition-colors">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-
-              {imageUrls.length < 5 && (
-                <button type="button" onClick={addImageUrl}
-                  className="flex items-center gap-2 text-xs text-[#8b5cf6] hover:text-[#8b5cf6]/80 transition-colors">
-                  <Plus className="w-3.5 h-3.5" /> Ajouter une image
-                </button>
-              )}
+              <ProductImageUploader images={imageUrls} onChange={setImageUrls} />
             </motion.div>
 
             {/* Submit */}
