@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { sendPushToUser } from "@/lib/push/send"
 
@@ -137,7 +138,9 @@ export async function POST(
     // Reprise des fonds en attente crédités au vendeur au moment du paiement.
     // credit_vendor_pending (SECURITY DEFINER) accepte un montant négatif :
     // il annule à la fois pending_balance et total_earned.
-    const { data: commLog } = await supabase
+    // commission_logs n'est pas lisible par le client (RLS) → service-role.
+    const fin = createAdminClient() ?? supabase
+    const { data: commLog } = await fin
       .from("commission_logs")
       .select("id, vendor_id, vendor_net_amount")
       .eq("order_id", id)
@@ -145,13 +148,13 @@ export async function POST(
       .single()
 
     if (commLog) {
-      const { data: reversed } = await supabase.rpc("credit_vendor_pending", {
+      const { data: reversed } = await fin.rpc("credit_vendor_pending", {
         p_vendor_id: commLog.vendor_id,
         p_amount: -commLog.vendor_net_amount,
         p_order_id: id,
       })
       if (reversed?.success) {
-        await supabase
+        await fin
           .from("commission_logs")
           .update({ status: "cancelled" })
           .eq("id", commLog.id)

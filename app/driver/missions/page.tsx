@@ -40,6 +40,9 @@ interface DeliveryJob {
   difficulty: "easy" | "medium" | "hard"
   traffic: "light" | "moderate" | "heavy"
   featured: boolean
+  // true = livraison de colis P2P (table delivery_requests), acceptée via
+  // /api/delivery/[id] et non /api/driver/available
+  isParcel?: boolean
 }
 
 const _STATIC_MISSIONS: DeliveryJob[] = [
@@ -158,13 +161,44 @@ export default function DriverMissionsPage() {
   const fetchMissions = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/driver/available")
-      if (res.ok) {
-        const data = await res.json()
-        setMissions(Array.isArray(data) ? data : [])
-      } else {
-        setMissions([])
+      // Deux sources : commandes marketplace prêtes + demandes de colis P2P
+      const [ordersRes, parcelsRes] = await Promise.all([
+        fetch("/api/driver/available"),
+        fetch("/api/delivery"),
+      ])
+      const orders: DeliveryJob[] = ordersRes.ok ? await ordersRes.json() : []
+
+      let parcels: DeliveryJob[] = []
+      if (parcelsRes.ok) {
+        const raw = await parcelsRes.json()
+        if (Array.isArray(raw)) {
+          parcels = raw.map((r: {
+            id: string; tracking_number: string | null
+            pickup_address: string | null; delivery_address: string | null
+            price: number | null; distance_km: number | null
+            distance_from_driver: number | null; estimated_duration: number | null
+            package_type: string | null
+          }) => ({
+            id: r.id,
+            order_number: r.tracking_number ?? undefined,
+            type: "package",
+            isParcel: true,
+            merchant: `Colis ${r.tracking_number ?? ""}`.trim(),
+            pickup: r.pickup_address ?? "Point de retrait",
+            dropoff: r.delivery_address ?? "Destination",
+            distance: r.distance_from_driver ?? r.distance_km ?? 0,
+            earnings: r.price ?? 0,
+            estimatedTime: r.estimated_duration ?? 30,
+            surge: 1,
+            rating: 5,
+            difficulty: (r.package_type === "large" || r.package_type === "fragile" ? "medium" : "easy") as DeliveryJob["difficulty"],
+            traffic: "moderate" as const,
+            featured: false,
+          }))
+        }
       }
+
+      setMissions([...(Array.isArray(orders) ? orders : []), ...parcels])
     } catch {
       setMissions([])
     } finally {
@@ -177,11 +211,19 @@ export default function DriverMissionsPage() {
   const handleAccept = async (missionId: string) => {
     setAccepting(missionId)
     try {
-      const res = await fetch("/api/driver/available", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order_id: missionId }),
-      })
+      const mission = missions.find((m) => m.id === missionId)
+      // Colis P2P et commandes marketplace ont des endpoints d'acceptation distincts
+      const res = mission?.isParcel
+        ? await fetch(`/api/delivery/${missionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "accept" }),
+          })
+        : await fetch("/api/driver/available", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order_id: missionId }),
+          })
       if (res.ok) {
         setMissions(prev => prev.filter(m => m.id !== missionId))
         setSelectedMission(null)

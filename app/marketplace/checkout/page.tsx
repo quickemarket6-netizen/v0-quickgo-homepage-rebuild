@@ -71,6 +71,33 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [saveAddress, setSaveAddress] = useState(false)
 
+  // Code promo appliqué au panier : pré-rempli et re-validé automatiquement
+  // (le serveur reste la source de vérité sur la remise).
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("quickgo-promo")
+      if (saved && !promoApplied) {
+        setPromoCode(saved)
+        fetch("/api/promo/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: saved, subtotal: getTotalPrice() }),
+        })
+          .then((r) => r.json())
+          .then((body) => {
+            if (body.valid) {
+              setPromoDiscount(body.discount ?? 0)
+              setPromoApplied(true)
+            } else {
+              sessionStorage.removeItem("quickgo-promo")
+            }
+          })
+          .catch(() => {})
+      }
+    } catch { /* stockage indisponible */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     fetch("/api/addresses")
       .then((r) => (r.ok ? r.json() : []))

@@ -44,11 +44,13 @@ const PAYMENT_METHODS = [
   { name: "Mastercard",      color: "bg-red-500" },
 ]
 
+// Chaque action mène à un flux réel : recharge CinetPay, transfert entre
+// utilisateurs, récompenses/parrainage, code PIN.
 const QUICK_ACTIONS = [
-  { icon: Plus,           label: "Recharger", action: "recharge" },
-  { icon: Send,           label: "Envoyer",   action: "send" },
-  { icon: ArrowDownLeft,  label: "Retirer",   action: "withdraw" },
-  { icon: QrCode,         label: "Scanner",   action: "scan" },
+  { icon: Plus,   label: "Recharger",   action: "recharge" as const },
+  { icon: Send,   label: "Envoyer",     href: "/wallet/transfer" },
+  { icon: Gift,   label: "Récompenses", href: "/wallet/rewards" },
+  { icon: QrCode, label: "Sécurité",    href: "/wallet/security" },
 ]
 
 function fmt(n: number) {
@@ -72,6 +74,7 @@ export default function WalletPage() {
   const [showRecharge, setShowRecharge] = useState(false)
   const [rechargeAmt, setRechargeAmt]  = useState("")
   const [recharging, setRecharging]    = useState(false)
+  const [rechargeError, setRechargeError] = useState<string | null>(null)
 
   async function loadWallet() {
     const res = await fetch("/api/wallet")
@@ -85,24 +88,34 @@ export default function WalletPage() {
 
   useEffect(() => { loadWallet() }, [])
 
+  // Recharge réelle via CinetPay (Orange Money / MTN MoMo) : le wallet n'est
+  // crédité qu'au retour du webhook, après vérification du paiement.
   async function handleRecharge(e: React.FormEvent) {
     e.preventDefault()
     const amount = parseInt(rechargeAmt)
-    if (!amount || amount < 100) return
-    setRecharging(true)
-    const res = await fetch("/api/wallet", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "credit", amount, description: "Recharge QuickGo Pay" }),
-    })
-    if (res.ok) {
-      const data = await res.json()
-      setBalance(data.new_balance)
-      setTransactions(prev => [data.transaction, ...prev])
-      setShowRecharge(false)
-      setRechargeAmt("")
+    if (!amount || amount < 500) {
+      setRechargeError("Montant minimum : 500 FCFA")
+      return
     }
-    setRecharging(false)
+    setRecharging(true)
+    setRechargeError(null)
+    try {
+      const res = await fetch("/api/wallet/topup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.payment_url) {
+        setRechargeError(data.error ?? "Impossible d'initier la recharge. Réessayez.")
+        return
+      }
+      window.location.href = data.payment_url
+    } catch {
+      setRechargeError("Erreur réseau. Réessayez.")
+    } finally {
+      setRecharging(false)
+    }
   }
 
   return (
@@ -305,7 +318,10 @@ export default function WalletPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6 + i * 0.05, type: "spring", stiffness: 200 }}
                             whileHover={{ y: -4, scale: 1.05 }}
-                            onClick={() => a.action === "recharge" && setShowRecharge(true)}
+                            onClick={() => {
+                              if ("action" in a && a.action === "recharge") setShowRecharge(true)
+                              else if ("href" in a && a.href) window.location.href = a.href
+                            }}
                             className="flex flex-col items-center gap-2 p-3 rounded-xl bg-black/10 hover:bg-black/20 transition-colors"
                           >
                             <a.icon className="h-5 w-5 text-black" />
@@ -442,11 +458,11 @@ export default function WalletPage() {
                   <label className="text-sm text-zinc-400 mb-2 block">Montant (CFA)</label>
                   <Input
                     type="number"
-                    min="100"
+                    min="500"
                     step="100"
                     placeholder="Ex: 5 000"
                     value={rechargeAmt}
-                    onChange={(e) => setRechargeAmt(e.target.value)}
+                    onChange={(e) => { setRechargeAmt(e.target.value); setRechargeError(null) }}
                     className="h-12 bg-zinc-900 border-lime-500/30 text-white"
                   />
                 </div>
@@ -462,6 +478,9 @@ export default function WalletPage() {
                     </button>
                   ))}
                 </div>
+                {rechargeError && (
+                  <p className="text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2">{rechargeError}</p>
+                )}
                 <Button
                   type="submit"
                   disabled={recharging || !rechargeAmt}
@@ -470,9 +489,13 @@ export default function WalletPage() {
                   {recharging ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    "Confirmer la recharge"
+                    "Payer avec Orange Money / MTN MoMo"
                   )}
                 </Button>
+                <p className="text-xs text-zinc-500 text-center">
+                  Vous serez redirigé vers la page de paiement sécurisée CinetPay.
+                  Le solde est crédité dès confirmation du paiement.
+                </p>
               </form>
             </motion.div>
           </motion.div>

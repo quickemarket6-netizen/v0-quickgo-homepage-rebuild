@@ -5,7 +5,16 @@
  */
 
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import type { SupabaseClient } from "@supabase/supabase-js"
+
+// commission_logs n'est accessible qu'aux admins/vendeurs via RLS, or ces
+// fonctions sont appelées depuis des sessions client/livreur/webhook. Les
+// mutations financières passent par le client service-role quand il est
+// configuré ; l'appelant reste responsable des contrôles d'appartenance.
+async function financialClient(db?: SupabaseClient): Promise<SupabaseClient> {
+  return db ?? createAdminClient() ?? (await createClient()) as unknown as SupabaseClient
+}
 
 const QUICKGO_COMMISSION_RATE = 0.07  // 7% platform commission
 const PAYMENT_FEE_RATE = 0.02         // 2% CinetPay payment fee
@@ -67,13 +76,15 @@ export function calculateCommission(grossAmount: number, deliveryFee: number, cu
 /**
  * Credit vendor pending balance when order is paid
  * Called after successful CinetPay webhook
+ * `db` optionnel : le webhook (sans session) passe le client service-role,
+ * sinon le client de session est utilisé.
  */
-export async function creditVendorPending(params: OrderFinancials): Promise<{
+export async function creditVendorPending(params: OrderFinancials, db?: SupabaseClient): Promise<{
   success: boolean
   commission?: ReturnType<typeof calculateCommission>
   error?: string
 }> {
-  const supabase = await createClient()
+  const supabase = await financialClient(db)
   const commission = calculateCommission(params.grossAmount, params.deliveryFee, params.customCommissionRate)
 
   // Atomic: insert commission log + credit pending balance
@@ -134,12 +145,12 @@ export async function creditVendorPending(params: OrderFinancials): Promise<{
  * Release pending → available after delivery confirmation
  * Called when order status becomes "delivered"
  */
-export async function releasePendingFunds(orderId: string): Promise<{
+export async function releasePendingFunds(orderId: string, db?: SupabaseClient): Promise<{
   success: boolean
   amount?: number
   error?: string
 }> {
-  const supabase = await createClient()
+  const supabase = await financialClient(db)
 
   // Get commission log for this order
   const { data: commLog, error: logError } = await supabase

@@ -11,16 +11,19 @@ export async function GET() {
     return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
   }
   
-  // Get driver
+  // Get driver — la colonne de disponibilité est `status` (online/delivering/
+  // offline/suspended), pas `is_online` qui n'existe dans aucune migration
   const { data: driver } = await supabase
     .from("drivers")
-    .select("id, current_latitude, current_longitude")
+    .select("id, status, current_latitude, current_longitude")
     .eq("user_id", user.id)
-    .eq("is_online", true)
     .single()
-  
+
   if (!driver) {
-    return NextResponse.json({ error: "Vous devez etre en ligne" }, { status: 403 })
+    return NextResponse.json({ error: "Profil livreur non trouvé" }, { status: 404 })
+  }
+  if (!["online", "delivering"].includes(driver.status ?? "")) {
+    return NextResponse.json({ error: "Vous devez être en ligne" }, { status: 403 })
   }
   
   // Get pending delivery requests
@@ -117,7 +120,44 @@ export async function POST(request: Request) {
   
   // Generate tracking number
   const tracking_number = `QGD-${Date.now().toString(36).toUpperCase()}`
-  
+
+  // Paiement QuickGo Pay : débit atomique AVANT la création de la demande —
+  // le cash reste dû au livreur à la remise du colis.
+  if (payment_method === "quickgo_pay") {
+    let debited = false
+    for (let attempt = 0; attempt < 3 && !debited; attempt++) {
+      const { data: profile } = await supabase
+        .from("profiles").select("wallet_balance").eq("id", user.id).single()
+      const balance = Number(profile?.wallet_balance ?? 0)
+      if (balance < price) {
+        return NextResponse.json(
+          { error: `Solde QuickGo Pay insuffisant (${new Intl.NumberFormat("fr-FR").format(balance)} FCFA pour ${new Intl.NumberFormat("fr-FR").format(price)} FCFA).` },
+          { status: 400 },
+        )
+      }
+      const { data: upd } = await supabase
+        .from("profiles")
+        .update({ wallet_balance: balance - price })
+        .eq("id", user.id)
+        .eq("wallet_balance", profile?.wallet_balance ?? 0)
+        .select("id")
+      if (upd && upd.length > 0) {
+        debited = true
+        await supabase.from("wallet_transactions").insert({
+          user_id: user.id,
+          type: "debit",
+          amount: price,
+          balance_after: balance - price,
+          reference: tracking_number,
+          description: `Livraison colis ${tracking_number}`,
+        })
+      }
+    }
+    if (!debited) {
+      return NextResponse.json({ error: "Solde modifié pendant l'opération, réessayez." }, { status: 409 })
+    }
+  }
+
   const { data, error } = await supabase
     .from("delivery_requests")
     .insert({
@@ -143,10 +183,27 @@ export async function POST(request: Request) {
     })
     .select()
     .single()
-  
+
   if (error) {
+    // Compensation : la demande n'a pas été créée → rembourse le débit wallet
+    if (payment_method === "quickgo_pay") {
+      const { data: profile } = await supabase
+        .from("profiles").select("wallet_balance").eq("id", user.id).single()
+      const balance = Number(profile?.wallet_balance ?? 0)
+      await supabase.from("profiles")
+        .update({ wallet_balance: balance + price })
+        .eq("id", user.id)
+      await supabase.from("wallet_transactions").insert({
+        user_id: user.id,
+        type: "credit",
+        amount: price,
+        balance_after: balance + price,
+        reference: tracking_number,
+        description: `Remboursement — création de livraison ${tracking_number} échouée`,
+      })
+    }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  
+
   return NextResponse.json(data, { status: 201 })
 }

@@ -65,6 +65,12 @@ export default function FavoritesPage() {
       vendorId: fav.product.vendor?.id,
       vendorName: fav.product.vendor?.name,
     })
+    // Synchronise aussi le panier serveur (multi-appareils), comme la page boutique
+    fetch("/api/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: fav.product.id, quantity: 1 }),
+    }).catch(() => {})
   }
 
   const filtered = favorites.filter((f) =>

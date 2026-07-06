@@ -5,6 +5,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyPayment, validateWebhookSignature } from "@/lib/payments/cinetpay"
 import { creditVendorPending, calculateCommission } from "@/lib/payments/wallet-engine"
@@ -41,7 +42,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
   }
 
-  const supabase = await createClient()
+  // Le webhook n'a AUCUNE session utilisateur : sous le client anon, le RLS
+  // bloque silencieusement les updates (payment_transactions n'a pas de
+  // policy UPDATE, orders exige auth.uid()). Le client service-role est
+  // indispensable ici.
+  const admin = createAdminClient()
+  if (!admin) {
+    console.error("[webhook] SUPABASE_SERVICE_ROLE_KEY manquante — le règlement des paiements ne peut pas aboutir")
+  }
+  const supabase = admin ?? await createClient()
 
   // Look up payment transaction
   const { data: txn } = await supabase
@@ -104,6 +113,55 @@ export async function POST(req: NextRequest) {
     .update({ status: "completed", updated_at: new Date().toISOString() })
     .eq("id", txn.id)
 
+  // ── Recharge de portefeuille (transaction sans commande) ────────────────────
+  // Les recharges QuickGo Pay portent un transaction_id préfixé TOPUP et
+  // aucun order_id : on crédite le wallet du client, une seule fois
+  // (idempotence par référence de transaction).
+  if (!txn.order_id && typeof txn.transaction_id === "string" && txn.transaction_id.startsWith("TOPUP") && txn.customer_id) {
+    const { data: alreadyCredited } = await supabase
+      .from("wallet_transactions")
+      .select("id")
+      .eq("reference", txn.transaction_id)
+      .limit(1)
+
+    if (!alreadyCredited || alreadyCredited.length === 0) {
+      let credited = false
+      for (let attempt = 0; attempt < 3 && !credited; attempt++) {
+        const { data: profile } = await supabase
+          .from("profiles").select("wallet_balance").eq("id", txn.customer_id).single()
+        const balance = Number(profile?.wallet_balance ?? 0)
+        const { data: upd } = await supabase
+          .from("profiles")
+          .update({ wallet_balance: balance + Number(txn.amount) })
+          .eq("id", txn.customer_id)
+          .eq("wallet_balance", profile?.wallet_balance ?? 0)
+          .select("id")
+        if (upd && upd.length > 0) {
+          credited = true
+          await supabase.from("wallet_transactions").insert({
+            user_id: txn.customer_id,
+            type: "credit",
+            amount: Number(txn.amount),
+            balance_after: balance + Number(txn.amount),
+            reference: txn.transaction_id,
+            description: "Recharge QuickGo Pay (Mobile Money)",
+          })
+          await supabase.from("notifications").insert({
+            user_id: txn.customer_id,
+            title: "Recharge réussie 💳",
+            message: `${new Intl.NumberFormat("fr-FR").format(Number(txn.amount))} FCFA ajoutés à votre portefeuille QuickGo Pay.`,
+            type: "wallet",
+            data: { transaction_id: txn.transaction_id },
+          })
+        }
+      }
+      if (!credited) {
+        console.error(`[webhook] crédit de recharge non appliqué pour ${txn.transaction_id}`)
+      }
+    }
+    return NextResponse.json({ message: "OK" })
+  }
+
   // Update order payment status + status to confirmed.
   // Panier multi-vendeurs : le paiement couvre tout le groupe de checkout —
   // chaque sous-commande passe à "paid" et chaque vendeur est crédité.
@@ -153,7 +211,7 @@ export async function POST(req: NextRequest) {
           grossAmount: order.total,
           deliveryFee: order.delivery_fee ?? 0,
           customCommissionRate: order.vendors?.commission_rate ?? undefined,
-        })
+        }, supabase)
       }
     }
   }

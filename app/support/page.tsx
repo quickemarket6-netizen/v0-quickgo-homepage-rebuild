@@ -76,21 +76,25 @@ const popularQuestions = [
   { label: "Comment contacter le support ?", slug: "compte" },
 ]
 
+// Canaux réels uniquement : WhatsApp et téléphone sur les lignes support
+// effectives, email sur la boîte support. Pas de « chat en direct » fictif.
 const contactMethods = [
   {
     icon: MessageSquare,
-    title: "Chat en direct",
-    description: "Réponse instantanée",
+    title: "WhatsApp",
+    description: "+237 690 773 615",
     availability: "24/7",
-    action: "Démarrer le chat",
+    action: "Écrire sur WhatsApp",
+    href: "https://wa.me/237690773615?text=Bonjour%2C%20j%27ai%20besoin%20d%27aide%20avec%20QuickGo",
     primary: true,
   },
   {
     icon: Phone,
     title: "Téléphone",
-    description: "+237 6 95 55 55 55",
+    description: "+237 694 341 586",
     availability: "8h - 22h",
     action: "Appeler",
+    href: "tel:+237694341586",
   },
   {
     icon: Mail,
@@ -98,6 +102,7 @@ const contactMethods = [
     description: "support@quickgo.cm",
     availability: "Réponse sous 24h",
     action: "Envoyer un email",
+    href: "mailto:support@quickgo.cm",
   },
 ]
 
@@ -252,7 +257,7 @@ export default function SupportPage() {
                   <p className="text-xs text-muted-foreground mb-4">
                     Disponible: {method.availability}
                   </p>
-                  <Link href={method.primary ? "/dashboard/messages" : method.title === "Email" ? "mailto:support@quickgo.cm" : "tel:+237695555555"}>
+                  <Link href={method.href} target={method.href.startsWith("https") ? "_blank" : undefined}>
                     <Button
                       className={method.primary ? "bg-primary text-primary-foreground" : ""}
                       variant={method.primary ? "default" : "outline"}

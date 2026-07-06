@@ -8,7 +8,7 @@ import {
   Home, Compass, Package, MapPin, Heart, Wallet, MessageSquare,
   Tag, HelpCircle, Settings, Bell, ShoppingCart, ChevronRight,
   ChevronLeft, Star, Plus, Bike, Car, Zap, UtensilsCrossed,
-  ShoppingBag, Phone as PhoneIcon, Moon, Crown, Truck,
+  ShoppingBag, Phone as PhoneIcon, Crown, Truck,
   History, TicketPercent, ArrowRight, X,
 } from "lucide-react"
 import { GlobalSearch } from "@/components/marketplace/GlobalSearch"
@@ -68,9 +68,9 @@ const QUICK_ACTIONS = [
 ]
 
 const HERO_SLIDES = [
-  { title: "Everything Local.", accent: "Delivered Fast.", desc: "Produits, repas, courses, pharmacie et plus…\nLivrés chez vous en un clic.", cta: "Commandez maintenant", from: "#3b82f6", to: "#06b6d4" },
-  { title: "Livraison Express", accent: "en 30 min.", desc: "Nos livreurs partenaires sont prêts à vous servir\n24h/24, 7j/7.", cta: "Voir les vendeurs", from: "#8b5cf6", to: "#3b82f6" },
-  { title: "QuickGo Premium", accent: "— Livraison 0 F.", desc: "Abonnez-vous et profitez de livraisons gratuites\net d'offres exclusives.", cta: "Devenir Premium", from: "#a3e635", to: "#22c55e" },
+  { title: "Everything Local.", accent: "Delivered Fast.", desc: "Produits, repas, courses, pharmacie et plus…\nLivrés chez vous en un clic.", cta: "Commandez maintenant", href: "/marketplace/products", from: "#3b82f6", to: "#06b6d4" },
+  { title: "Livraison Express", accent: "en 30 min.", desc: "Nos livreurs partenaires sont prêts à vous servir\n24h/24, 7j/7.", cta: "Voir les boutiques", href: "/marketplace/shops", from: "#8b5cf6", to: "#3b82f6" },
+  { title: "Parrainez vos proches", accent: "— 1 000 F offerts.", desc: "Votre filleul commande, vous êtes crédité\nsur votre portefeuille QuickGo Pay.", cta: "Obtenir mon code", href: "/wallet/rewards", from: "#a3e635", to: "#22c55e" },
 ]
 
 const ORDER_STATUS: Record<string, { label: string; color: string; step: number }> = {
@@ -211,16 +211,17 @@ export default function MarketplacePage() {
           ))}
         </nav>
 
-        {/* Premium Banner */}
-        <div className="mx-3 mb-3 p-4 rounded-2xl bg-gradient-to-br from-[#eab308]/20 to-[#f97316]/20 border border-[#eab308]/20">
+        {/* Parrainage — 1 000 F par filleul, crédités au wallet */}
+        <div className="mx-3 mb-3 p-4 rounded-2xl bg-gradient-to-br from-[#a3e635]/20 to-[#22c55e]/10 border border-[#a3e635]/20">
           <div className="flex items-center gap-2 mb-2">
-            <Crown className="w-4 h-4 text-[#eab308]" />
-            <span className="text-white font-semibold text-sm">QuickGo Premium</span>
+            <Crown className="w-4 h-4 text-[#a3e635]" />
+            <span className="text-white font-semibold text-sm">Parrainez, gagnez</span>
           </div>
-          <p className="text-xs text-white/40 mb-3">Livraison gratuite, offres exclusives et plus</p>
-          <button className="w-full py-1.5 rounded-xl bg-[#a3e635] text-black text-xs font-bold hover:bg-[#a3e635]/90 transition-colors">
-            Devenir Premium
-          </button>
+          <p className="text-xs text-white/40 mb-3">1 000 F sur votre wallet à la première commande de chaque filleul</p>
+          <Link href="/wallet/rewards"
+            className="block text-center w-full py-1.5 rounded-xl bg-[#a3e635] text-black text-xs font-bold hover:bg-[#a3e635]/90 transition-colors">
+            Obtenir mon code
+          </Link>
         </div>
 
         {/* User Profile + XP */}
@@ -255,13 +256,6 @@ export default function MarketplacePage() {
           </div>
         ) : null}
 
-        {/* Dark mode toggle */}
-        <div className="px-5 pb-4 flex items-center justify-between">
-          <span className="text-xs text-white/30 flex items-center gap-2"><Moon className="w-3.5 h-3.5" /> Mode Sombre</span>
-          <div className="w-9 h-5 bg-[#3b82f6] rounded-full relative">
-            <div className="absolute right-0.5 top-0.5 w-4 h-4 rounded-full bg-white" />
-          </div>
-        </div>
       </aside>
 
       {/* ── Main Content ── */}
@@ -317,9 +311,10 @@ export default function MarketplacePage() {
                     <br /><span className="text-[#a3e635]">{HERO_SLIDES[heroIdx].accent}</span>
                   </h2>
                   <p className="text-sm text-white/70 mt-2 whitespace-pre-line">{HERO_SLIDES[heroIdx].desc}</p>
-                  <button className="mt-4 px-5 py-2 rounded-full bg-white text-black font-semibold text-sm flex items-center gap-2 hover:bg-white/90 transition-colors">
+                  <Link href={HERO_SLIDES[heroIdx].href}
+                    className="mt-4 inline-flex px-5 py-2 rounded-full bg-white text-black font-semibold text-sm items-center gap-2 hover:bg-white/90 transition-colors">
                     {HERO_SLIDES[heroIdx].cta} <ArrowRight className="w-4 h-4" />
-                  </button>
+                  </Link>
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -460,15 +455,16 @@ export default function MarketplacePage() {
             </div>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: "Orange Money", color: "bg-[#f97316]/15 text-[#f97316]", icon: "🟠" },
-                { label: "MTN MoMo",     color: "bg-[#eab308]/15 text-[#eab308]", icon: "🟡" },
-                { label: "Historique",   color: "bg-white/5 text-white/40",        icon: <History className="w-4 h-4" /> },
-                { label: "Coupons",      color: "bg-white/5 text-white/40",        icon: <TicketPercent className="w-4 h-4" /> },
+                { label: "Recharger",  href: "/wallet",              color: "bg-[#f97316]/15 text-[#f97316]", icon: "🟠" },
+                { label: "Envoyer",    href: "/wallet/transfer",     color: "bg-[#eab308]/15 text-[#eab308]", icon: "🟡" },
+                { label: "Historique", href: "/wallet",              color: "bg-white/5 text-white/40",        icon: <History className="w-4 h-4" /> },
+                { label: "Promos",     href: "/marketplace/offers",  color: "bg-white/5 text-white/40",        icon: <TicketPercent className="w-4 h-4" /> },
               ].map((item, i) => (
-                <button key={i} className={`flex flex-col items-center gap-1 p-2 rounded-xl ${item.color} transition-colors hover:opacity-80`}>
+                <Link key={i} href={item.href}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl ${item.color} transition-colors hover:opacity-80`}>
                   <span className="text-base">{typeof item.icon === "string" ? item.icon : item.icon}</span>
                   <span className="text-[9px] leading-tight text-center">{item.label}</span>
-                </button>
+                </Link>
               ))}
             </div>
           </div>

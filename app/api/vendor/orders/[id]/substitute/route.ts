@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { NextResponse } from "next/server"
 import { sendPushToUser } from "@/lib/push/send"
 
@@ -223,7 +224,9 @@ export async function POST(
 
     // Réduction des fonds en attente du vendeur, nets de commission :
     // le vendeur ne doit conserver que sa part sur le nouveau total.
-    const { data: commLog } = await supabase
+    // L'update de commission_logs est réservé aux admins (RLS) → service-role.
+    const fin = createAdminClient() ?? supabase
+    const { data: commLog } = await fin
       .from("commission_logs")
       .select("id, quickgo_commission_rate, gross_amount, quickgo_commission, payment_fees, vendor_net_amount")
       .eq("order_id", id)
@@ -240,14 +243,14 @@ export async function POST(
       )
 
       if (deltaVendorNet > 0) {
-        const { data: reversed } = await supabase.rpc("credit_vendor_pending", {
+        const { data: reversed } = await fin.rpc("credit_vendor_pending", {
           p_vendor_id: order.vendor_id,
           p_amount: -deltaVendorNet,
           p_order_id: id,
         })
         if (reversed?.success) {
           // Le log reste cohérent avec ce qui sera libéré à la livraison
-          await supabase
+          await fin
             .from("commission_logs")
             .update({
               gross_amount: Number(commLog.gross_amount) - delta,

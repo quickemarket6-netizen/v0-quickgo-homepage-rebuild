@@ -99,9 +99,12 @@ export default function CartPage() {
       .catch(() => {})
   }, [setItems])
 
-  const subtotal    = getTotalPrice()
-  const deliveryFee = subtotal > 500000 ? 0 : 2500
-  const total       = subtotal + deliveryFee - promoDiscount
+  // Aligné sur le calcul serveur : sous-total + 2% de frais de service.
+  // Les frais de livraison dépendent de l'option choisie et du nombre de
+  // boutiques — ils sont calculés au checkout, pas inventés ici.
+  const subtotal   = getTotalPrice()
+  const serviceFee = Math.round(subtotal * 0.02)
+  const total      = subtotal + serviceFee - promoDiscount
 
   const applyPromo = async () => {
     if (!promoCode) return
@@ -118,6 +121,8 @@ export default function CartPage() {
         setPromoApplied(true)
         setPromoDiscount(data.discount ?? 0)
         setPromoDescription(data.description ?? `Code ${promoCode.toUpperCase()} appliqué`)
+        // Transmis au checkout pour ne pas avoir à le retaper
+        try { sessionStorage.setItem("quickgo-promo", promoCode.trim()) } catch { /* stockage indisponible */ }
       } else {
         setPromoError("Code promo invalide ou expiré")
       }
@@ -332,10 +337,12 @@ export default function CartPage() {
                         <span className="text-foreground">{formatPrice(subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Frais de service (2%)</span>
+                        <span className="text-foreground">{formatPrice(serviceFee)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Livraison</span>
-                        <span className={deliveryFee === 0 ? "text-secondary" : "text-foreground"}>
-                          {deliveryFee === 0 ? "Gratuite" : formatPrice(deliveryFee)}
-                        </span>
+                        <span className="text-muted-foreground text-xs">Calculée à l&apos;étape suivante</span>
                       </div>
                       {promoDiscount > 0 && (
                         <div className="flex justify-between text-sm">
@@ -346,9 +353,14 @@ export default function CartPage() {
                     </div>
 
                     {/* Total */}
-                    <div className="flex justify-between py-6">
-                      <span className="text-lg font-bold text-foreground">Total</span>
-                      <span className="text-2xl font-bold text-foreground">{formatPrice(total)}</span>
+                    <div className="py-6">
+                      <div className="flex justify-between">
+                        <span className="text-lg font-bold text-foreground">Total (hors livraison)</span>
+                        <span className="text-2xl font-bold text-foreground">{formatPrice(total)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Frais de livraison selon l&apos;option choisie (Express, Standard, Programmé), par boutique.
+                      </p>
                     </div>
 
                     {/* Checkout Button */}
@@ -371,22 +383,6 @@ export default function CartPage() {
                       </div>
                     </div>
 
-                    {/* Free Delivery Progress */}
-                    {deliveryFee > 0 && (
-                      <div className="mt-6 p-3 rounded-xl bg-primary/10 border border-primary/20">
-                        <p className="text-sm text-foreground">
-                          Plus que{" "}
-                          <span className="font-bold text-primary">{formatPrice(500000 - subtotal)}</span> pour la
-                          livraison gratuite
-                        </p>
-                        <div className="mt-2 h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${Math.min(100, (subtotal / 500000) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
                   </motion.div>
                 </div>
               </motion.div>
