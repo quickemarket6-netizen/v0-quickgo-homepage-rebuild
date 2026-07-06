@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
+import { sendPushToUser } from "@/lib/push/send"
 
 async function getVendorId(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data } = await supabase
@@ -92,5 +93,38 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Dispatch : la commande vient de passer « prête » → prévenir les livreurs
+  // en ligne pour qu'elle soit récupérée sans attendre qu'ils rafraîchissent.
+  if (update.status === "ready") {
+    const { data: vendor } = await supabase
+      .from("vendors").select("name, city").eq("id", vendorId).single()
+    const { data: onlineDrivers } = await supabase
+      .from("drivers")
+      .select("user_id")
+      .eq("status", "online")
+      .limit(20)
+
+    const title = "Nouvelle course disponible 🛵"
+    const message = `Commande ${data.order_number} prête chez ${vendor?.name ?? "une boutique"}${vendor?.city ? ` (${vendor.city})` : ""} — ${new Intl.NumberFormat("fr-FR").format(data.delivery_fee ?? 0)} FCFA de course.`
+
+    for (const d of onlineDrivers ?? []) {
+      if (!d.user_id) continue
+      await supabase.from("notifications").insert({
+        user_id: d.user_id,
+        title,
+        message,
+        type: "delivery",
+        data: { order_id: id },
+      })
+      await sendPushToUser(d.user_id, {
+        title,
+        body: message,
+        url: "/driver/missions",
+        tag: `ready-${id}`,
+      })
+    }
+  }
+
   return NextResponse.json(data)
 }

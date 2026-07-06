@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Phone,
@@ -87,39 +87,69 @@ export function QuickContact({ userType, currentUser, onSendMessage, className }
   const [sent, setSent] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
 
-  // Mock recipients based on user type
-  const getRecipients = (): ContactTarget[] => {
-    const support: ContactTarget = {
-      id: 'support',
-      name: 'Support QuickGo',
-      phone: dlContacts.cameroun2.phone,
-      email: dlContacts.email,
-      type: 'support'
-    }
-
-    switch (userType) {
-      case 'customer':
-        return [
-          support,
-          { id: 'driver-1', name: 'Paul Kamga (Livreur)', phone: '237655123456', type: 'driver' },
-          { id: 'vendor-1', name: 'Super Marche Central', phone: '237677889900', email: 'contact@supermarche.cm', type: 'vendor' },
-        ]
-      case 'driver':
-        return [
-          support,
-          { id: 'customer-1', name: 'Marie Dupont (Client)', phone: '237699887766', type: 'customer' },
-          { id: 'vendor-1', name: 'Restaurant Le Gourmet', phone: '237655443322', type: 'vendor' },
-        ]
-      case 'vendor':
-        return [
-          support,
-          { id: 'customer-1', name: 'Jean Mbarga (Client)', phone: '237688776655', type: 'customer' },
-          { id: 'driver-1', name: 'Emmanuel N. (Livreur)', phone: '237666554433', type: 'driver' },
-        ]
-      default:
-        return [support]
-    }
+  // Contacts réels, dérivés de la commande / livraison active de
+  // l'utilisateur. Le support est toujours proposé.
+  const SUPPORT_CONTACT: ContactTarget = {
+    id: 'support',
+    name: 'Support QuickGo',
+    phone: dlContacts.cameroun2.phone,
+    email: dlContacts.email,
+    type: 'support',
   }
+  const [recipients, setRecipients] = useState<ContactTarget[]>([SUPPORT_CONTACT])
+
+  useEffect(() => {
+    const normalizePhone = (p?: string | null) => (p ? p.replace(/[^0-9]/g, "") : undefined)
+    const load = async () => {
+      const found: ContactTarget[] = []
+      try {
+        if (userType === 'customer') {
+          const res = await fetch('/api/orders')
+          if (res.ok) {
+            const orders: Array<{
+              status: string
+              vendor: { name: string; phone: string | null } | null
+              driver: { user: { full_name: string | null; phone: string | null } | null } | null
+            }> = await res.json()
+            const active = orders.find((o) => !['delivered', 'cancelled'].includes(o.status))
+            if (active?.driver?.user?.phone) {
+              found.push({ id: 'driver', name: `${active.driver.user.full_name ?? 'Livreur'} (Livreur)`, phone: normalizePhone(active.driver.user.phone), type: 'driver' })
+            }
+            if (active?.vendor?.phone) {
+              found.push({ id: 'vendor', name: active.vendor.name, phone: normalizePhone(active.vendor.phone), type: 'vendor' })
+            }
+          }
+        } else if (userType === 'driver') {
+          const res = await fetch('/api/driver/active-delivery')
+          if (res.ok) {
+            const d = await res.json()
+            const customer = d?.order?.customer ?? d?.customer
+            const vendor = d?.order?.vendor ?? d?.vendor
+            if (customer?.phone) found.push({ id: 'customer', name: `${customer.full_name ?? 'Client'} (Client)`, phone: normalizePhone(customer.phone), type: 'customer' })
+            if (vendor?.phone) found.push({ id: 'vendor', name: vendor.name ?? 'Boutique', phone: normalizePhone(vendor.phone), type: 'vendor' })
+          }
+        } else if (userType === 'vendor') {
+          const res = await fetch('/api/vendor/orders')
+          if (res.ok) {
+            const payload = await res.json()
+            const orders: Array<{
+              status: string
+              customer: { full_name: string | null; phone: string | null } | null
+              driver: { full_name: string | null; phone: string | null } | null
+            }> = Array.isArray(payload) ? payload : payload.data ?? []
+            const active = orders.find((o) => !['delivered', 'cancelled'].includes(o.status))
+            if (active?.customer?.phone) found.push({ id: 'customer', name: `${active.customer.full_name ?? 'Client'} (Client)`, phone: normalizePhone(active.customer.phone), type: 'customer' })
+            if (active?.driver?.phone) found.push({ id: 'driver', name: `${active.driver.full_name ?? 'Livreur'} (Livreur)`, phone: normalizePhone(active.driver.phone), type: 'driver' })
+          }
+        }
+      } catch { /* pas de commande active ou non connecté — support seul */ }
+      setRecipients([SUPPORT_CONTACT, ...found])
+    }
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userType])
+
+  const getRecipients = (): ContactTarget[] => recipients
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text)
