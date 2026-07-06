@@ -143,9 +143,10 @@ export async function POST(request: Request) {
   const vendorIds = [...groups.keys()]
   const { data: vendors } = await supabase
     .from("vendors")
-    .select("id, delivery_fee")
+    .select("id, delivery_fee, owner_id")
     .in("id", vendorIds)
   const vendorFeeMap = new Map((vendors ?? []).map((v) => [v.id, v.delivery_fee as number | null]))
+  const vendorOwnerMap = new Map((vendors ?? []).map((v) => [v.id, v.owner_id as string | null]))
 
   const optionFee = DELIVERY_OPTION_FEES[delivery_option as string]
 
@@ -415,6 +416,30 @@ export async function POST(request: Request) {
       : `Votre commande ${orderNumbers} a été reçue et est en cours de traitement.`,
     url: "/marketplace/orders",
   })
+
+  // Alerter chaque boutique — une commande qui dort sans que le vendeur le
+  // sache est une commande perdue (le Realtime du dashboard ne couvre que
+  // l'onglet ouvert).
+  for (const order of createdOrders) {
+    const ownerId = vendorOwnerMap.get(order.vendor_id)
+    if (!ownerId) continue
+    const itemCount = allOrderItems.filter((li) => li.order_id === order.id)
+      .reduce((s, li) => s + li.quantity, 0)
+    const message = `Commande ${order.order_number} — ${itemCount} article${itemCount > 1 ? "s" : ""}, ${new Intl.NumberFormat("fr-FR").format(order.total)} FCFA (${payment_method === "cash" ? "paiement à la livraison" : "paiement en ligne"}).`
+    await supabase.from("notifications").insert({
+      user_id: ownerId,
+      title: "Nouvelle commande 🛎️",
+      message,
+      type: "order",
+      data: { order_id: order.id },
+    })
+    await sendPushToUser(ownerId, {
+      title: "Nouvelle commande 🛎️",
+      body: message,
+      url: `/vendor/orders/${order.id}`,
+      tag: `new-order-${order.id}`,
+    })
+  }
 
   // Réponse : ancre (première commande) à la racine pour compatibilité,
   // plus le détail du groupe.

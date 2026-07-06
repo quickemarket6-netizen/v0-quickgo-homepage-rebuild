@@ -148,7 +148,14 @@ export default function SettingsPage() {
 
   const [email,       setEmail]       = useState("")
   const [profileForm, setProfileForm] = useState({ full_name: "", phone: "" })
-  const [shopForm,    setShopForm]    = useState({ name: "", description: "", category: "", address: "", delivery_radius: "" })
+  const [shopForm,    setShopForm]    = useState({
+    name: "", description: "", category: "", address: "", city: "",
+    delivery_radius: "", delivery_fee: "", delivery_time_min: "",
+    logo_url: "", cover_url: "",
+  })
+  const [isOpen, setIsOpen] = useState(true)
+  const [togglingOpen, setTogglingOpen] = useState(false)
+  const [uploadingImg, setUploadingImg] = useState<"logo" | "cover" | null>(null)
   const [notifPrefs,  setNotifPrefs]  = useState<NotifPrefs>({ orders: true, reviews: true, payments: true, system: true, marketing: false })
   const [pwForm,      setPwForm]      = useState({ new_password: "", confirm: "" })
   const [showPw,      setShowPw]      = useState(false)
@@ -182,12 +189,18 @@ export default function SettingsPage() {
     setEmail(d.profile?.email ?? "")
     setProfileForm({ full_name: d.profile?.full_name ?? "", phone: d.profile?.phone ?? "" })
     setShopForm({
-      name:             d.vendor?.name            ?? "",
-      description:      d.vendor?.description     ?? "",
-      category:         d.vendor?.category        ?? "",
-      address:          d.vendor?.address         ?? "",
-      delivery_radius:  String(d.vendor?.delivery_radius ?? ""),
+      name:              d.vendor?.name            ?? "",
+      description:       d.vendor?.description     ?? "",
+      category:          d.vendor?.category        ?? "",
+      address:           d.vendor?.address         ?? "",
+      city:              d.vendor?.city            ?? "",
+      delivery_radius:   String(d.vendor?.delivery_radius ?? ""),
+      delivery_fee:      String(d.vendor?.delivery_fee ?? ""),
+      delivery_time_min: String(d.vendor?.delivery_time_min ?? ""),
+      logo_url:          d.vendor?.logo_url        ?? "",
+      cover_url:         d.vendor?.cover_url       ?? "",
     })
+    setIsOpen(d.vendor?.is_open ?? true)
     setNotifPrefs(d.notification_prefs ?? { orders: true, reviews: true, payments: true, system: true, marketing: false })
     setLoading(false)
   }, [])
@@ -204,7 +217,13 @@ export default function SettingsPage() {
     let body: Record<string, unknown> = {}
 
     if (activeTab === "profile")       body = { section: "profile",       ...profileForm }
-    if (activeTab === "shop")          body = { section: "shop",          ...shopForm, delivery_radius: shopForm.delivery_radius ? Number(shopForm.delivery_radius) : null }
+    if (activeTab === "shop")          body = {
+      section: "shop",
+      ...shopForm,
+      delivery_radius:   shopForm.delivery_radius   ? Number(shopForm.delivery_radius)   : null,
+      delivery_fee:      shopForm.delivery_fee      !== "" ? Number(shopForm.delivery_fee)      : undefined,
+      delivery_time_min: shopForm.delivery_time_min !== "" ? Number(shopForm.delivery_time_min) : undefined,
+    }
     if (activeTab === "notifications") body = { section: "notifications", prefs: notifPrefs }
     if (activeTab === "security") {
       if (!pwForm.new_password.trim()) { setError("Entrez un nouveau mot de passe"); setSaving(false); return }
@@ -222,6 +241,43 @@ export default function SettingsPage() {
     showSaved()
     if (activeTab === "security") setPwForm({ new_password: "", confirm: "" })
     if (activeTab === "shop" && shopForm.name) setVendorName(shopForm.name)
+  }
+
+  // Ouvert/Fermé : appliqué immédiatement (pas besoin d'« Enregistrer »)
+  const toggleOpen = async (next: boolean) => {
+    setTogglingOpen(true)
+    const prev = isOpen
+    setIsOpen(next)
+    try {
+      const res = await fetch("/api/vendor/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section: "availability", is_open: next }),
+      })
+      if (!res.ok) setIsOpen(prev)
+    } catch {
+      setIsOpen(prev)
+    } finally {
+      setTogglingOpen(false)
+    }
+  }
+
+  // Upload logo / couverture (réutilise le bucket public d'images)
+  const uploadShopImage = async (kind: "logo" | "cover", file: File) => {
+    setUploadingImg(kind)
+    try {
+      const form = new FormData()
+      form.append("file", file)
+      const res = await fetch("/api/vendor/products/upload", { method: "POST", body: form })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && data.url) {
+        setShopForm(f => kind === "logo" ? { ...f, logo_url: data.url } : { ...f, cover_url: data.url })
+      } else {
+        setError(data.error ?? "Échec de l'envoi de l'image")
+      }
+    } finally {
+      setUploadingImg(null)
+    }
   }
 
   const activeColor = SETTINGS_TABS.find(t => t.key === activeTab)?.color ?? "#6366f1"
@@ -436,6 +492,57 @@ export default function SettingsPage() {
                     {/* ── Shop ── */}
                     {activeTab === "shop" && (
                       <>
+                        {/* Ouvert/Fermé — pilotage de la pastille publique, effet immédiat */}
+                        <div className={`flex items-center justify-between p-4 rounded-xl border ${
+                          isOpen ? "bg-[#22c55e]/10 border-[#22c55e]/25" : "bg-[#ef4444]/10 border-[#ef4444]/25"
+                        }`}>
+                          <div>
+                            <p className="text-sm font-bold text-white flex items-center gap-2">
+                              <span className={`w-2.5 h-2.5 rounded-full ${isOpen ? "bg-[#22c55e] animate-pulse" : "bg-[#ef4444]"}`} />
+                              Boutique {isOpen ? "ouverte" : "fermée"}
+                            </p>
+                            <p className="text-xs text-white/40 mt-0.5">
+                              {isOpen
+                                ? "Visible « Ouvert » sur le marketplace — vous recevez des commandes."
+                                : "Affichée « Fermé » — mettez en pause quand vous ne pouvez pas préparer."}
+                            </p>
+                          </div>
+                          <button onClick={() => toggleOpen(!isOpen)} disabled={togglingOpen}
+                            className={`relative w-12 h-7 rounded-full transition-all shrink-0 ml-4 ${isOpen ? "bg-[#22c55e]" : "bg-white/15"}`}>
+                            <motion.div animate={{ x: isOpen ? 22 : 2 }} transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              className="absolute top-1 w-5 h-5 rounded-full bg-white shadow-md" />
+                          </button>
+                        </div>
+
+                        {/* Logo + couverture */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {(["logo", "cover"] as const).map((kind) => {
+                            const url = kind === "logo" ? shopForm.logo_url : shopForm.cover_url
+                            return (
+                              <div key={kind} className="space-y-1.5">
+                                <label className="text-xs text-white/50 font-medium uppercase tracking-wide block">
+                                  {kind === "logo" ? "Logo" : "Image de couverture"}
+                                </label>
+                                <label className={`relative block rounded-xl border border-dashed border-[#1e1e2e] hover:border-[#06b6d4]/50
+                                  cursor-pointer overflow-hidden transition-colors ${kind === "logo" ? "aspect-square max-w-[120px]" : "aspect-[3/1]"}`}>
+                                  {url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={url} alt={kind} className="absolute inset-0 w-full h-full object-cover" />
+                                  ) : null}
+                                  <div className={`absolute inset-0 flex flex-col items-center justify-center gap-1 text-white/40
+                                    ${url ? "bg-black/50 opacity-0 hover:opacity-100 transition-opacity" : ""}`}>
+                                    <Camera className="w-4 h-4" />
+                                    <span className="text-[10px]">{uploadingImg === kind ? "Envoi…" : url ? "Changer" : "Ajouter"}</span>
+                                  </div>
+                                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                                    disabled={uploadingImg !== null}
+                                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadShopImage(kind, f); e.target.value = "" }} />
+                                </label>
+                              </div>
+                            )
+                          })}
+                        </div>
+
                         <Field label="Nom de la boutique" value={shopForm.name} onChange={v => setShopForm(f => ({ ...f, name: v }))} placeholder="Ma boutique" />
                         <Field label="Description" value={shopForm.description} onChange={v => setShopForm(f => ({ ...f, description: v }))} placeholder="Décrivez votre boutique et vos produits…" rows={3} />
                         <div className="space-y-1.5">
@@ -446,8 +553,13 @@ export default function SettingsPage() {
                             {SHOP_CATEGORIES.map(c => <option key={c}>{c}</option>)}
                           </select>
                         </div>
-                        <Field label="Adresse" value={shopForm.address} onChange={v => setShopForm(f => ({ ...f, address: v }))} placeholder="Rue, ville, pays" rows={2} />
-                        <Field label="Rayon de livraison (km)" value={shopForm.delivery_radius} onChange={v => setShopForm(f => ({ ...f, delivery_radius: v }))} placeholder="Ex: 25" type="number" />
+                        <Field label="Adresse" value={shopForm.address} onChange={v => setShopForm(f => ({ ...f, address: v }))} placeholder="Rue, quartier…" rows={2} />
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field label="Ville" value={shopForm.city} onChange={v => setShopForm(f => ({ ...f, city: v }))} placeholder="Yaoundé" />
+                          <Field label="Rayon de livraison (km)" value={shopForm.delivery_radius} onChange={v => setShopForm(f => ({ ...f, delivery_radius: v }))} placeholder="Ex: 25" type="number" />
+                          <Field label="Frais de livraison (FCFA)" value={shopForm.delivery_fee} onChange={v => setShopForm(f => ({ ...f, delivery_fee: v }))} placeholder="Ex: 1 000 (0 = gratuite)" type="number" />
+                          <Field label="Délai de livraison (min)" value={shopForm.delivery_time_min} onChange={v => setShopForm(f => ({ ...f, delivery_time_min: v }))} placeholder="Ex: 30" type="number" />
+                        </div>
                       </>
                     )}
 

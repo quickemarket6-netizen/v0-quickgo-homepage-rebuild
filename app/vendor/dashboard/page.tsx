@@ -20,6 +20,7 @@ import {
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface OrderItem { product_name: string; quantity: number; unit_price: number; total_price: number }
@@ -250,16 +251,53 @@ export default function VendorDashboardPage() {
 
   useEffect(() => { fetchDashboard(7) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Real-time orders
+  // Carillon « nouvelle commande » — WebAudio, aucun fichier à charger.
+  // Style Uber Eats Merchant : deux notes montantes bien audibles.
+  const playOrderChime = useCallback(() => {
+    try {
+      type AudioWindow = Window & { webkitAudioContext?: typeof AudioContext }
+      const Ctx = window.AudioContext ?? (window as AudioWindow).webkitAudioContext
+      if (!Ctx) return
+      const ctx = new Ctx()
+      const note = (freq: number, start: number, dur: number) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = "sine"
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.001, ctx.currentTime + start)
+        gain.gain.exponentialRampToValueAtTime(0.35, ctx.currentTime + start + 0.02)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur)
+        osc.connect(gain).connect(ctx.destination)
+        osc.start(ctx.currentTime + start)
+        osc.stop(ctx.currentTime + start + dur)
+      }
+      note(880, 0, 0.35)
+      note(1174.66, 0.18, 0.5)
+      setTimeout(() => ctx.close().catch(() => {}), 1500)
+    } catch { /* audio bloqué par le navigateur */ }
+  }, [])
+
+  // Real-time orders — rafraîchit les chiffres + alerte sonore/visuelle
   useEffect(() => {
     if (!data?.vendor.id) return
     const sb = supabase.current
     const channel = sb.channel(`vendor-${data.vendor.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `vendor_id=eq.${data.vendor.id}` },
-        () => fetchDashboard(period))
+        (payload: { new?: { id?: string; order_number?: string } }) => {
+          playOrderChime()
+          const row = payload.new
+          toast.success("Nouvelle commande reçue ! 🛎️", {
+            description: row?.order_number ? `Commande ${row.order_number}` : undefined,
+            duration: 10_000,
+            action: row?.id
+              ? { label: "Voir", onClick: () => { window.location.href = `/vendor/orders/${row.id}` } }
+              : undefined,
+          })
+          fetchDashboard(period)
+        })
       .subscribe()
     return () => { sb.removeChannel(channel) }
-  }, [data?.vendor.id, fetchDashboard, period])
+  }, [data?.vendor.id, fetchDashboard, period, playOrderChime])
 
   // Ctrl+K search focus
   useEffect(() => {

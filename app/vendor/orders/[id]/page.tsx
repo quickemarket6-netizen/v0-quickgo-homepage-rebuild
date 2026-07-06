@@ -59,7 +59,7 @@ const navItems = [
   { icon: Users, label: "Clients CRM", href: "/vendor/crm" },
   { icon: Wallet, label: "Finances", href: "/vendor/finances" },
   { icon: BarChart3, label: "Analytics", href: "/vendor/analytics" },
-  { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
+  { icon: Settings, label: "Paramètres", href: "/vendor/settings" },
 ]
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; cls: string; bg: string }> = {
@@ -449,10 +449,36 @@ export default function VendorOrderDetailPage() {
                       <span>Total payé par le client</span>
                       <span className="text-lg">{formatCFA(order.total)}</span>
                     </div>
-                    <div className="bg-blue-50 rounded-xl p-3 flex justify-between text-blue-800 font-semibold">
-                      <span>Votre revenu net (après commission 5%)</span>
-                      <span>{formatCFA(order.subtotal * 0.95)}</span>
-                    </div>
+                    {/* Décomposition alignée sur le moteur financier (wallet-engine) :
+                        commission 7% sur le sous-total produits, frais de paiement
+                        2% sur le total — la livraison revient au livreur. */}
+                    {(() => {
+                      const commission = Math.round(order.subtotal * 0.07)
+                      const paymentFees = Math.round(order.total * 0.02)
+                      const net = Math.max(0, order.total - (order.delivery_fee ?? 0) - commission - paymentFees)
+                      return (
+                        <div className="bg-blue-50 rounded-xl p-3 space-y-1.5">
+                          <div className="flex justify-between text-xs text-blue-700/70">
+                            <span>Commission QuickGo (7% du sous-total)</span>
+                            <span>-{formatCFA(commission)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs text-blue-700/70">
+                            <span>Frais de paiement (2%)</span>
+                            <span>-{formatCFA(paymentFees)}</span>
+                          </div>
+                          {(order.delivery_fee ?? 0) > 0 && (
+                            <div className="flex justify-between text-xs text-blue-700/70">
+                              <span>Livraison (reversée au livreur)</span>
+                              <span>-{formatCFA(order.delivery_fee)}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between text-blue-800 font-semibold pt-1 border-t border-blue-100">
+                            <span>Votre revenu net</span>
+                            <span>{formatCFA(net)}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                   <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
                     <CreditCard size={12} />

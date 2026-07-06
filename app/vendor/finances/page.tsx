@@ -75,7 +75,7 @@ const navItems = [
   { icon: ShoppingBag, label: "Commandes", href: "/vendor/orders" },
   { icon: Users, label: "Clients CRM", href: "/vendor/crm" },
   { icon: Wallet, label: "Finances", href: "/vendor/finances", active: true },
-  { icon: Settings, label: "Paramètres", href: "/dashboard/settings" },
+  { icon: Settings, label: "Paramètres", href: "/vendor/settings" },
 ]
 
 // ─── Helpers ─────────────────────────────────────────────────────
