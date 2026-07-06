@@ -39,15 +39,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
   }
   
-  const { product_id, quantity = 1 } = await request.json()
-  
-  // Check if item already exists
-  const { data: existing } = await supabase
+  const { product_id, quantity = 1, variant_id } = await request.json()
+
+  // Check if item already exists — la même variante s'incrémente, une autre
+  // variante du même produit crée sa propre ligne
+  let existingQuery = supabase
     .from("cart_items")
     .select("id, quantity")
     .eq("user_id", user.id)
     .eq("product_id", product_id)
-    .single()
+  if (variant_id) existingQuery = existingQuery.eq("variant_id", variant_id)
+  const { data: existingRows } = await existingQuery.limit(1)
+  const existing = existingRows?.[0] ?? null
   
   if (existing) {
     // Update quantity
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
   // Insert new item
   const { data, error } = await supabase
     .from("cart_items")
-    .insert({ user_id: user.id, product_id, quantity })
+    .insert({ user_id: user.id, product_id, quantity, ...(variant_id ? { variant_id } : {}) })
     .select()
     .single()
   

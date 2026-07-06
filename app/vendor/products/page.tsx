@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -10,6 +10,7 @@ import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, UserCog, BarChart3,
   Tag, Star, Settings, HelpCircle, Plus, Search, Edit2, Trash2, Eye,
   ChevronDown, ChevronRight, Zap, Boxes, Truck, Ticket, MessageSquare, Bell,
+  Upload, Download,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
@@ -178,6 +179,9 @@ export default function VendorProductsPage() {
       .catch(() => {})
   }, [])
 
+  // Variantes (taille, contenance…) éditées avec le produit
+  const [editVariants, setEditVariants] = useState<{ label: string; price: string; stock_quantity: string }[]>([])
+
   const openEdit = (p: Product) => {
     setEditing(p)
     setEditForm({
@@ -190,6 +194,19 @@ export default function VendorProductsPage() {
       is_available: p.is_available,
       images: p.images ?? [],
     })
+    setEditVariants([])
+    fetch(`/api/vendor/products/${p.id}/variants`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((vs: { label: string; price: number; stock_quantity: number | null }[]) => {
+        if (Array.isArray(vs)) {
+          setEditVariants(vs.map((v) => ({
+            label: v.label,
+            price: String(v.price),
+            stock_quantity: v.stock_quantity != null ? String(v.stock_quantity) : "",
+          })))
+        }
+      })
+      .catch(() => {})
   }
 
   const saveEdit = async () => {
@@ -218,6 +235,27 @@ export default function VendorProductsPage() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) { toast.error(data.error ?? "Enregistrement impossible"); return }
+
+      // Variantes : remplacement du jeu complet (best-effort — nécessite la
+      // migration add_vendor_features.sql)
+      const cleanVariants = editVariants.filter((v) => v.label.trim() && Number(v.price) > 0)
+      const vRes = await fetch(`/api/vendor/products/${editing.id}/variants`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variants: cleanVariants.map((v, i) => ({
+            label: v.label.trim(),
+            price: Number(v.price),
+            stock_quantity: v.stock_quantity === "" ? null : Number(v.stock_quantity),
+            position: i,
+          })),
+        }),
+      }).catch(() => null)
+      if (vRes && !vRes.ok) {
+        const vErr = await vRes.json().catch(() => ({}))
+        toast.error(vErr.error ?? "Variantes non enregistrées")
+      }
+
       setProducts((prev) => prev.map((p) => p.id === editing.id
         ? {
             ...p, ...data,
@@ -231,6 +269,109 @@ export default function VendorProductsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  // ── Import / Export CSV ───────────────────────────────────────────────────
+  const csvInputRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+
+  // Parse CSV minimal mais correct : gère les champs entre guillemets
+  // (virgules et retours à la ligne inclus) et les guillemets doublés.
+  const parseCsv = (text: string): string[][] => {
+    const rows: string[][] = []
+    let row: string[] = [], field = "", inQuotes = false
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i]
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++ }
+          else inQuotes = false
+        } else field += c
+      } else if (c === '"') inQuotes = true
+      else if (c === ",") { row.push(field); field = "" }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++
+        row.push(field); field = ""
+        if (row.some((f) => f.trim() !== "")) rows.push(row)
+        row = []
+      } else field += c
+    }
+    row.push(field)
+    if (row.some((f) => f.trim() !== "")) rows.push(row)
+    return rows
+  }
+
+  const importCsv = async (file: File) => {
+    setImporting(true)
+    try {
+      const text = await file.text()
+      const rows = parseCsv(text)
+      if (rows.length < 2) { toast.error("CSV vide (en-tête + au moins une ligne attendus)"); return }
+
+      const header = rows[0].map((h) => h.trim().toLowerCase())
+      const col = (names: string[]) => header.findIndex((h) => names.includes(h))
+      const iName = col(["name", "nom", "produit"])
+      const iPrice = col(["price", "prix"])
+      if (iName === -1 || iPrice === -1) {
+        toast.error("Colonnes requises manquantes : « name/nom » et « price/prix »")
+        return
+      }
+      const iDesc = col(["description"])
+      const iOrig = col(["original_price", "prix_barre", "prix barré"])
+      const iStock = col(["stock", "stock_quantity", "quantite", "quantité"])
+      const iCat = col(["category", "categorie", "catégorie"])
+      const iImages = col(["images", "image", "image_url"])
+
+      const productsPayload = rows.slice(1).map((r) => ({
+        name: r[iName]?.trim(),
+        price: r[iPrice]?.trim(),
+        description: iDesc >= 0 ? r[iDesc]?.trim() : undefined,
+        original_price: iOrig >= 0 ? r[iOrig]?.trim() : undefined,
+        stock_quantity: iStock >= 0 ? r[iStock]?.trim() : undefined,
+        category: iCat >= 0 ? r[iCat]?.trim() : undefined,
+        images: iImages >= 0 && r[iImages]?.trim()
+          ? r[iImages].split(";").map((u) => u.trim()).filter(Boolean)
+          : undefined,
+      }))
+
+      const res = await fetch("/api/vendor/products/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: productsPayload }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? "Import échoué"); return }
+
+      toast.success(`${data.created} produit${data.created > 1 ? "s" : ""} importé${data.created > 1 ? "s" : ""}`,
+        data.skipped > 0
+          ? { description: `${data.skipped} ligne${data.skipped > 1 ? "s" : ""} ignorée${data.skipped > 1 ? "s" : ""} : ${(data.errors as { row: number; error: string }[]).slice(0, 3).map((e) => `ligne ${e.row} (${e.error})`).join(", ")}${data.skipped > 3 ? "…" : ""}`, duration: 10_000 }
+          : undefined)
+      // Recharge la liste
+      window.location.reload()
+    } catch {
+      toast.error("Fichier illisible")
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const exportCsv = () => {
+    const esc = (v: unknown) => {
+      const s = String(v ?? "")
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const header = "name,description,price,original_price,stock_quantity,category,images"
+    const lines = products.map((p) => [
+      p.name, p.description ?? "", p.price, p.original_price ?? "",
+      p.stock_quantity ?? 0, p.category?.name ?? "", (p.images ?? []).join(";"),
+    ].map(esc).join(","))
+    const blob = new Blob(["﻿" + [header, ...lines].join("\n")], { type: "text/csv;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `produits-quickgo-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const deleteProduct = async (p: Product) => {
@@ -421,6 +562,19 @@ export default function VendorProductsPage() {
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
               </div>
+              {/* Import / Export CSV */}
+              <Button variant="outline" onClick={() => csvInputRef.current?.click()} disabled={importing}
+                className="h-9 border-[#1e1e2e] bg-transparent text-white/60 hover:text-white text-sm rounded-xl gap-2 px-3">
+                <Upload className={`w-4 h-4 ${importing ? "animate-pulse" : ""}`} />
+                <span className="hidden md:inline">{importing ? "Import…" : "Importer CSV"}</span>
+              </Button>
+              <Button variant="outline" onClick={exportCsv} disabled={products.length === 0}
+                className="h-9 border-[#1e1e2e] bg-transparent text-white/60 hover:text-white text-sm rounded-xl gap-2 px-3">
+                <Download className="w-4 h-4" />
+                <span className="hidden md:inline">Exporter</span>
+              </Button>
+              <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) importCsv(f); e.target.value = "" }} />
               {/* Add product */}
               <Link href="/vendor/products/new">
                 <Button className="h-9 bg-[#a3e635] hover:bg-[#a3e635]/90 text-black font-bold text-sm rounded-xl gap-2 px-4">
@@ -801,6 +955,49 @@ export default function VendorProductsPage() {
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
+              </div>
+
+              {/* Variantes — taille, contenance, couleur… */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-white/40">Variantes (optionnel)</label>
+                  {editVariants.length < 20 && (
+                    <button type="button"
+                      onClick={() => setEditVariants((v) => [...v, { label: "", price: editForm.price, stock_quantity: "" }])}
+                      className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 font-medium">
+                      + Ajouter une variante
+                    </button>
+                  )}
+                </div>
+                {editVariants.length === 0 ? (
+                  <p className="text-xs text-white/25">
+                    Ex : « 500 ml », « Rouge — M »… Chaque variante a son prix et son stock.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-[1fr_90px_70px_28px] gap-2 text-[10px] text-white/30 uppercase tracking-wide px-1">
+                      <span>Libellé</span><span>Prix (F)</span><span>Stock</span><span />
+                    </div>
+                    {editVariants.map((v, i) => (
+                      <div key={i} className="grid grid-cols-[1fr_90px_70px_28px] gap-2 items-center">
+                        <Input value={v.label} placeholder="Ex : 500 ml"
+                          onChange={(e) => setEditVariants((arr) => arr.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
+                          className="bg-[#16161f] border-[#1e1e2e] text-white rounded-lg h-9 text-sm" />
+                        <Input type="number" min={1} value={v.price} placeholder="Prix"
+                          onChange={(e) => setEditVariants((arr) => arr.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                          className="bg-[#16161f] border-[#1e1e2e] text-white rounded-lg h-9 text-sm" />
+                        <Input type="number" min={0} value={v.stock_quantity} placeholder="∞"
+                          onChange={(e) => setEditVariants((arr) => arr.map((x, j) => j === i ? { ...x, stock_quantity: e.target.value } : x))}
+                          className="bg-[#16161f] border-[#1e1e2e] text-white rounded-lg h-9 text-sm" />
+                        <button type="button" onClick={() => setEditVariants((arr) => arr.filter((_, j) => j !== i))}
+                          className="h-9 w-7 rounded-lg text-[#ef4444]/70 hover:text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors">
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-white/25">Stock vide = non suivi (illimité). Supprimer toutes les variantes repasse en produit simple.</p>
+                  </div>
+                )}
               </div>
 
               <label className="flex items-center gap-3 p-3 rounded-xl bg-[#16161f] border border-[#1e1e2e] cursor-pointer">

@@ -8,7 +8,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { useCart } from "@/lib/store/cart"
+import { useCart, cartItemProductId } from "@/lib/store/cart"
 import type { CartItem } from "@/lib/store/cart"
 import {
   ShoppingCart,
@@ -33,6 +33,7 @@ const formatPrice = (price: number) => {
 interface ApiCartItem {
   id: string
   product_id: string
+  variant_id?: string | null
   quantity: number
   product: {
     id: string
@@ -42,6 +43,10 @@ interface ApiCartItem {
     vendor: { id: string; name: string } | null
   } | null
 }
+
+// Clé locale d'une ligne : produit seul ou produit::variante
+const localKey = (productId: string, variantId?: string | null) =>
+  variantId ? `${productId}::${variantId}` : productId
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, setItems, getTotalPrice } = useCart()
@@ -62,11 +67,11 @@ export default function CartPage() {
       .then((data: ApiCartItem[] | null) => {
         if (!data || data.length === 0) return
 
-        // Build a map: product_id → DB cart row
+        // Build a map: clé locale (produit ou produit::variante) → DB cart row
         const dbMap = new Map(
           data
             .filter((d) => d.product != null)
-            .map((d) => [d.product!.id, d])
+            .map((d) => [localKey(d.product!.id, d.variant_id), d])
         )
 
         // Snapshot current local state without adding a render dependency
@@ -82,9 +87,11 @@ export default function CartPage() {
 
         // Append DB items that have no local counterpart (added from another device/session)
         const dbOnly: CartItem[] = data
-          .filter((d) => d.product != null && !seen.has(d.product!.id))
+          .filter((d) => d.product != null && !seen.has(localKey(d.product!.id, d.variant_id)))
           .map((d) => ({
-            id:           d.product!.id,
+            id:           localKey(d.product!.id, d.variant_id),
+            productId:    d.product!.id,
+            variantId:    d.variant_id ?? undefined,
             cartItemDbId: d.id,
             name:         d.product!.name,
             price:        d.product!.price,
@@ -137,7 +144,7 @@ export default function CartPage() {
     // Always attempt the DB delete: prefer the UUID, fall back to product_id
     const url = item.cartItemDbId
       ? `/api/cart?id=${item.cartItemDbId}`
-      : `/api/cart?product_id=${item.id}`
+      : `/api/cart?product_id=${cartItemProductId(item)}`
     fetch(url, { method: "DELETE" }).catch(() => {})
     removeItem(item.id)
   }
@@ -214,7 +221,7 @@ export default function CartPage() {
                         className="p-4 lg:p-6 rounded-2xl bg-card border border-border/50"
                       >
                         <div className="flex gap-4">
-                          <Link href={`/marketplace/product/${item.id}`} className="shrink-0">
+                          <Link href={`/marketplace/product/${cartItemProductId(item)}`} className="shrink-0">
                             <div className="relative w-24 h-24 lg:w-32 lg:h-32 rounded-xl overflow-hidden bg-muted/30">
                               {item.image && (
                                 <Image
@@ -232,7 +239,7 @@ export default function CartPage() {
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <p className="text-xs text-muted-foreground">{item.brand}</p>
-                                <Link href={`/marketplace/product/${item.id}`}>
+                                <Link href={`/marketplace/product/${cartItemProductId(item)}`}>
                                   <h3 className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-2">
                                     {item.name}
                                   </h3>

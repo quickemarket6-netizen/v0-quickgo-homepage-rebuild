@@ -12,6 +12,7 @@ import {
   AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts"
 import { Button } from "@/components/ui/button"
+import { ProductStatsTable } from "@/components/vendor/ProductStatsTable"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -671,6 +672,9 @@ export default function VendorRevenuePage() {
               </motion.div>
             </div>
           )}
+
+          {/* Performance produits — vues, ventes, conversion (30 j) */}
+          <ProductStatsTable />
 
         </div>
       </main>

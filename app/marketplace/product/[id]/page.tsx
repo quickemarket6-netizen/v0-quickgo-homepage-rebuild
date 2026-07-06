@@ -17,10 +17,16 @@ import {
   Zap, MapPin, Phone, ArrowRight, Share2,
 } from "lucide-react"
 
+interface ProductVariant {
+  id: string; label: string; price: number
+  stock_quantity: number | null; is_available: boolean
+}
+
 interface Product {
   id: string; name: string; price: number; original_price: number | null
   description: string | null; stock_quantity: number | null; rating: number | null
   images: string[] | null; image_url: string | null; is_available: boolean
+  variants?: ProductVariant[]
   vendor: {
     id: string; name: string; slug: string; rating: number | null
     phone: string | null; address: string | null
@@ -50,6 +56,7 @@ export default function ProductPage() {
   const [favLoading, setFavLoading] = useState(false)
   const [reviews, setReviews] = useState<Review[]>([])
   const [reviewStats, setReviewStats] = useState<{ count: number; average: number } | null>(null)
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -99,13 +106,30 @@ export default function ProductPage() {
     setFavLoading(false)
   }
 
+  const variants = product?.variants ?? []
+  const selectedVariant = variants.find((v) => v.id === selectedVariantId) ?? null
+  const effectivePrice = selectedVariant?.price ?? product?.price ?? 0
+  const effectiveStock = selectedVariant ? selectedVariant.stock_quantity : product?.stock_quantity ?? null
+
   const handleAddToCart = () => {
     if (!product) return
+    if (variants.length > 0 && !selectedVariant) {
+      toast.error("Choisissez une variante avant d'ajouter au panier")
+      return
+    }
+    // Id local composite pour les variantes — un même produit peut être au
+    // panier en plusieurs déclinaisons
+    const localId = selectedVariant ? `${product.id}::${selectedVariant.id}` : product.id
+    const displayName = selectedVariant ? `${product.name} (${selectedVariant.label})` : product.name
+
     for (let i = 0; i < quantity; i++) {
       addItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
+        id: localId,
+        productId: product.id,
+        variantId: selectedVariant?.id,
+        variantLabel: selectedVariant?.label,
+        name: displayName,
+        price: effectivePrice,
         image: product.image_url ?? product.images?.[0],
         vendorId: product.vendor?.id,
         vendorName: product.vendor?.name,
@@ -114,15 +138,15 @@ export default function ProductPage() {
     fetch("/api/cart", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product_id: product.id, quantity }),
+      body: JSON.stringify({ product_id: product.id, quantity, variant_id: selectedVariant?.id }),
     })
       .then((r) => r.ok ? r.json() : null)
       .then((dbItem: { id?: string } | null) => {
         // Write the DB UUID back into the store so handleRemove can DELETE it directly
-        if (dbItem?.id) useCart.getState().patchItem(product.id, { cartItemDbId: dbItem.id })
+        if (dbItem?.id) useCart.getState().patchItem(localId, { cartItemDbId: dbItem.id })
       })
       .catch(() => {})
-    toast.success(`${quantity}× ${product.name} ajouté au panier`, {
+    toast.success(`${quantity}× ${displayName} ajouté au panier`, {
       action: { label: "Voir le panier", onClick: () => router.push("/marketplace/cart") },
     })
   }
@@ -172,7 +196,12 @@ export default function ProductPage() {
   const images = [product.image_url, ...(product.images ?? [])].filter(Boolean) as string[]
   const discount = product.original_price && product.original_price > product.price
     ? Math.round((1 - product.price / product.original_price) * 100) : null
-  const inStock = product.is_available && (product.stock_quantity == null || product.stock_quantity > 0)
+  const variantInStock = (v: ProductVariant) => v.is_available && (v.stock_quantity == null || v.stock_quantity > 0)
+  const inStock = product.is_available && (
+    variants.length > 0
+      ? (selectedVariant ? variantInStock(selectedVariant) : variants.some(variantInStock))
+      : (product.stock_quantity == null || product.stock_quantity > 0)
+  )
 
   // Structured data schema.org/Product — rich results Google (prix, dispo, note)
   const productJsonLd = {
@@ -275,20 +304,52 @@ export default function ProductPage() {
                 )}
               </div>
 
-              {/* Price */}
+              {/* Price — celui de la variante sélectionnée le cas échéant */}
               <div className="flex items-end gap-3">
-                <span className="text-4xl font-bold text-foreground">{formatPrice(product.price)}</span>
-                {product.original_price && (
+                <span className="text-4xl font-bold text-foreground">{formatPrice(effectivePrice)}</span>
+                {!selectedVariant && product.original_price && (
                   <span className="text-xl text-muted-foreground line-through mb-0.5">{formatPrice(product.original_price)}</span>
                 )}
               </div>
+
+              {/* Variantes (taille, contenance…) */}
+              {variants.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-foreground mb-2">
+                    Choisissez une option {selectedVariant && <span className="text-muted-foreground font-normal">— {selectedVariant.label}</span>}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {variants.map((v) => {
+                      const vOut = !v.is_available || (v.stock_quantity != null && v.stock_quantity <= 0)
+                      const active = selectedVariantId === v.id
+                      return (
+                        <button key={v.id} disabled={vOut}
+                          onClick={() => { setSelectedVariantId(v.id); setQuantity(1) }}
+                          className={`px-4 py-2 rounded-xl border-2 text-sm font-medium transition-colors ${
+                            active
+                              ? "border-primary bg-primary/10 text-primary"
+                              : vOut
+                                ? "border-border text-muted-foreground/40 line-through cursor-not-allowed"
+                                : "border-border text-foreground hover:border-primary/50"
+                          }`}
+                        >
+                          {v.label}
+                          <span className={`block text-xs ${active ? "text-primary/80" : "text-muted-foreground"}`}>
+                            {formatPrice(v.price)}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Stock */}
               <div className={`flex items-center gap-2 text-sm font-medium ${inStock ? "text-green-500" : "text-destructive"}`}>
                 {inStock ? <Check className="w-4 h-4" /> : null}
                 {inStock
-                  ? product.stock_quantity != null && product.stock_quantity < 10
-                    ? `Plus que ${product.stock_quantity} en stock`
+                  ? effectiveStock != null && effectiveStock < 10
+                    ? `Plus que ${effectiveStock} en stock`
                     : "En stock"
                   : "Rupture de stock"}
               </div>
@@ -305,11 +366,11 @@ export default function ProductPage() {
                       <Minus className="w-4 h-4" />
                     </button>
                     <span className="w-12 text-center font-semibold">{quantity}</span>
-                    <button onClick={() => setQuantity((q) => Math.min(product.stock_quantity ?? 99, q + 1))} className="px-4 py-3 hover:bg-muted transition-colors">
+                    <button onClick={() => setQuantity((q) => Math.min(effectiveStock ?? 99, q + 1))} className="px-4 py-3 hover:bg-muted transition-colors">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
-                  <span className="text-sm text-muted-foreground">Total : <span className="font-bold text-foreground">{formatPrice(product.price * quantity)}</span></span>
+                  <span className="text-sm text-muted-foreground">Total : <span className="font-bold text-foreground">{formatPrice(effectivePrice * quantity)}</span></span>
                 </div>
                 <div className="flex gap-3">
                   <Button size="lg" className="flex-1 h-14 rounded-xl gap-2" disabled={!inStock} onClick={handleAddToCart}>

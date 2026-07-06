@@ -2,6 +2,9 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
 export interface CartItem {
+  // Identifiant local unique : product_id pour un produit simple,
+  // `${product_id}::${variant_id}` pour une variante (un même produit peut
+  // être au panier en plusieurs variantes).
   id: string
   cartItemDbId?: string  // DB UUID from cart_items.id, for API mutations
   name: string
@@ -10,12 +13,21 @@ export interface CartItem {
   image?: string
   vendorId?: string
   vendorName?: string
+  // Variante choisie (taille, contenance…)
+  variantId?: string
+  variantLabel?: string
   // extended / legacy fields
   productId?: string
   brand?: string
   color?: string
   vendor?: string
   originalPrice?: number
+}
+
+// Résout l'id produit réel d'une ligne de panier (les lignes avec variante
+// portent un id composite local).
+export function cartItemProductId(item: Pick<CartItem, "id" | "productId">): string {
+  return item.productId ?? item.id.split("::")[0]
 }
 
 interface CartState {

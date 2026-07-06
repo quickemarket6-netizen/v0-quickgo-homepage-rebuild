@@ -48,6 +48,7 @@ interface Order {
   updated_at: string
   delivered_at: string | null
   estimated_delivery_at: string | null
+  estimated_delivery_time: string | null
   items: OrderItem[]
   customer: { full_name: string; phone: string; avatar_url: string | null } | null
   driver: { full_name: string; phone: string } | null
@@ -172,6 +173,24 @@ export default function VendorOrderDetailPage() {
       toast.success("Commande annulée")
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "Erreur serveur")
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  // Annonce l'ETA au client (notification + push côté serveur)
+  async function setEta(mins: number) {
+    setUpdating(true)
+    try {
+      const res = await fetch(`/api/vendor/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eta_minutes: mins }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { toast.error(data.error ?? "Erreur"); return }
+      setOrder((prev) => prev ? { ...prev, estimated_delivery_time: data.estimated_delivery_time } : prev)
+      toast.success(`Client prévenu : livraison estimée dans ${mins} min`)
     } finally {
       setUpdating(false)
     }
@@ -479,6 +498,26 @@ export default function VendorOrderDetailPage() {
                 {order.status !== "cancelled" && order.status !== "delivered" && (
                   <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] p-5 space-y-3">
                     <h2 className="font-semibold text-white">Actions</h2>
+
+                    {/* ETA — annoncer un délai réaliste au client */}
+                    <div>
+                      <p className="text-xs text-white/40 mb-2">Livraison estimée dans…</p>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {[20, 30, 45, 60].map((mins) => (
+                          <button key={mins} disabled={updating}
+                            onClick={() => setEta(mins)}
+                            className="py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-white/60
+                              hover:bg-[#3b82f6]/15 hover:text-[#3b82f6] border border-[#1e1e2e] transition-colors">
+                            {mins} min
+                          </button>
+                        ))}
+                      </div>
+                      {order.estimated_delivery_time && (
+                        <p className="text-[11px] text-white/30 mt-1.5">
+                          Annoncée : {new Date(order.estimated_delivery_time).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      )}
+                    </div>
                     {nextStatus && (
                       <Button
                         onClick={advanceStatus}

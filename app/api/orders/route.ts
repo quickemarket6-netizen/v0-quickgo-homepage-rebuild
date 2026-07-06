@@ -98,9 +98,25 @@ export async function POST(request: Request) {
   }
   const priceMap = new Map(products.map(p => [p.id, p]))
 
+  // Variantes éventuelles : prix et stock PAR VARIANTE, jamais côté client
+  type Variant = { id: string; product_id: string; label: string; price: number; stock_quantity: number | null; is_available: boolean }
+  const variantIds = items.map((i: any) => i.variant_id).filter(Boolean) as string[]
+  const variantMap = new Map<string, Variant>()
+  if (variantIds.length > 0) {
+    const { data: variants } = await supabase
+      .from("product_variants")
+      .select("id, product_id, label, price, stock_quantity, is_available")
+      .in("id", variantIds)
+    for (const v of variants ?? []) variantMap.set(v.id, v as Variant)
+  }
+
   // Single validation pass: verify each item and build normalized line items,
   // grouped by the product's real vendor. Quantity validated explicitly.
-  type LineItem = { product_id: string; product_name: string; quantity: number; unit_price: number; total_price: number; notes?: string }
+  type LineItem = {
+    product_id: string; product_name: string; quantity: number
+    unit_price: number; total_price: number; notes?: string
+    variant_id?: string; variant_label?: string
+  }
   const groups = new Map<string, { lineItems: LineItem[]; subtotal: number }>()
   let combinedSubtotal = 0
 
@@ -114,24 +130,42 @@ export async function POST(request: Request) {
     if (!Number.isInteger(qty) || qty < 1 || qty > 999) {
       return NextResponse.json({ error: `Quantité invalide pour ${product.name}` }, { status: 400 })
     }
-    // Contrôle de stock (les produits à stock non suivi ont stock_quantity null)
-    if (product.stock_quantity != null && product.stock_quantity < qty) {
+
+    let variant: Variant | null = null
+    if (item.variant_id) {
+      variant = variantMap.get(item.variant_id) ?? null
+      if (!variant || variant.product_id !== product.id) {
+        return NextResponse.json({ error: `Variante invalide pour ${product.name}` }, { status: 400 })
+      }
+      if (!variant.is_available) {
+        return NextResponse.json({ error: `Variante indisponible : ${product.name} (${variant.label})` }, { status: 400 })
+      }
+      if (variant.stock_quantity != null && variant.stock_quantity < qty) {
+        return NextResponse.json(
+          { error: `Stock insuffisant pour ${product.name} (${variant.label}) — ${variant.stock_quantity} restant${variant.stock_quantity > 1 ? "s" : ""}.` },
+          { status: 400 },
+        )
+      }
+    } else if (product.stock_quantity != null && product.stock_quantity < qty) {
+      // Contrôle de stock produit (stock non suivi = null)
       return NextResponse.json(
         { error: `Stock insuffisant pour ${product.name} (${product.stock_quantity} restant${product.stock_quantity > 1 ? "s" : ""}).` },
         { status: 400 },
       )
     }
 
-    const lineTotal = product.price * qty
+    const unitPrice = variant ? variant.price : product.price
+    const lineTotal = unitPrice * qty
     combinedSubtotal += lineTotal
     const group = groups.get(product.vendor_id) ?? { lineItems: [], subtotal: 0 }
     group.lineItems.push({
       product_id: product.id,
-      product_name: product.name,
+      product_name: variant ? `${product.name} (${variant.label})` : product.name,
       quantity: qty,
-      unit_price: product.price,
+      unit_price: unitPrice,
       total_price: lineTotal,
       notes: item.notes,
+      ...(variant ? { variant_id: variant.id, variant_label: variant.label } : {}),
     })
     group.subtotal += lineTotal
     groups.set(product.vendor_id, group)
@@ -180,49 +214,63 @@ export async function POST(request: Request) {
   }
 
   // ── Décrémentation du stock (A5) ───────────────────────────────────────────
-  // Verrou optimiste par produit avec 3 tentatives : le stock est réservé
+  // Verrou optimiste avec 3 tentatives, par UNITÉ de stock : la variante
+  // quand la ligne en porte une, le produit sinon. Le stock est réservé
   // AVANT la création des commandes, et restauré si quoi que ce soit échoue
-  // ensuite. Les produits à stock non suivi (null) sont ignorés.
-  const qtyByProduct = new Map<string, number>()
+  // ensuite. Les stocks non suivis (null) sont ignorés.
+  type StockUnit = { kind: "product" | "variant"; id: string }
+  const qtyByUnit = new Map<string, { unit: StockUnit; qty: number }>()
   for (const group of groups.values()) {
     for (const li of group.lineItems) {
-      qtyByProduct.set(li.product_id, (qtyByProduct.get(li.product_id) ?? 0) + li.quantity)
+      const unit: StockUnit = li.variant_id
+        ? { kind: "variant", id: li.variant_id }
+        : { kind: "product", id: li.product_id }
+      const key = `${unit.kind}:${unit.id}`
+      const entry = qtyByUnit.get(key) ?? { unit, qty: 0 }
+      entry.qty += li.quantity
+      qtyByUnit.set(key, entry)
     }
   }
 
-  const stockAdjusted: { id: string; qty: number }[] = []
+  const unitTable = (u: StockUnit) => (u.kind === "variant" ? "product_variants" : "products")
+
+  const stockAdjusted: { unit: StockUnit; qty: number }[] = []
   const restoreStock = async () => {
     for (const adj of stockAdjusted) {
       const { data: fresh } = await supabase
-        .from("products").select("stock_quantity").eq("id", adj.id).single()
+        .from(unitTable(adj.unit)).select("stock_quantity").eq("id", adj.unit.id).single()
       if (fresh?.stock_quantity != null) {
         await supabase
-          .from("products")
+          .from(unitTable(adj.unit))
           .update({ stock_quantity: fresh.stock_quantity + adj.qty, is_available: true })
-          .eq("id", adj.id)
+          .eq("id", adj.unit.id)
       }
     }
   }
 
-  for (const [pid, qty] of qtyByProduct) {
-    if (priceMap.get(pid)?.stock_quantity == null) continue
+  for (const { unit, qty } of qtyByUnit.values()) {
+    const tracked = unit.kind === "variant"
+      ? variantMap.get(unit.id)?.stock_quantity != null
+      : priceMap.get(unit.id)?.stock_quantity != null
+    if (!tracked) continue
+
     let ok = false
     for (let attempt = 0; attempt < 3 && !ok; attempt++) {
       const { data: fresh } = await supabase
-        .from("products").select("stock_quantity, name").eq("id", pid).single()
+        .from(unitTable(unit)).select("stock_quantity").eq("id", unit.id).single()
       const cur = fresh?.stock_quantity
       if (cur == null) { ok = true; break }
       if (cur < qty) {
         await restoreStock()
         return NextResponse.json(
-          { error: `Stock insuffisant pour ${fresh?.name ?? "un produit"} (${cur} restant${cur > 1 ? "s" : ""}).` },
+          { error: `Stock insuffisant (${cur} restant${cur > 1 ? "s" : ""}).` },
           { status: 400 },
         )
       }
       const { data: upd } = await supabase
-        .from("products")
+        .from(unitTable(unit))
         .update({ stock_quantity: cur - qty, is_available: cur - qty > 0 })
-        .eq("id", pid)
+        .eq("id", unit.id)
         .eq("stock_quantity", cur)   // verrou optimiste
         .select("id")
       ok = !!upd && upd.length > 0
@@ -231,7 +279,7 @@ export async function POST(request: Request) {
       await restoreStock()
       return NextResponse.json({ error: "Conflit de stock, veuillez réessayer." }, { status: 409 })
     }
-    stockAdjusted.push({ id: pid, qty })
+    stockAdjusted.push({ unit, qty })
   }
 
   // Identifiant de groupe uniquement pour les paniers multi-vendeurs, inséré

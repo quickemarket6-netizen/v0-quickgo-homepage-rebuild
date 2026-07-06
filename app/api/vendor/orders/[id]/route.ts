@@ -60,6 +60,16 @@ export async function PATCH(
   const allowed = ["status", "notes"]
   const update = Object.fromEntries(Object.entries(body).filter(([k]) => allowed.includes(k)))
 
+  // ETA par commande : le vendeur annonce un délai réaliste (préparation +
+  // livraison) au lieu du forfait de 45 min posé à la création.
+  if (body.eta_minutes !== undefined) {
+    const mins = Number(body.eta_minutes)
+    if (!Number.isInteger(mins) || mins < 5 || mins > 240) {
+      return NextResponse.json({ error: "ETA invalide (5 à 240 minutes)" }, { status: 400 })
+    }
+    update.estimated_delivery_time = new Date(Date.now() + mins * 60_000).toISOString()
+  }
+
   if (!Object.keys(update).length)
     return NextResponse.json({ error: "Aucun champ modifiable fourni" }, { status: 400 })
 
@@ -93,6 +103,25 @@ export async function PATCH(
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // ETA annoncée → prévenir le client (in-app + push)
+  if (update.estimated_delivery_time && data.customer_id) {
+    const etaLabel = new Date(update.estimated_delivery_time as string)
+      .toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    await supabase.from("notifications").insert({
+      user_id: data.customer_id,
+      title: "Heure de livraison estimée 🕐",
+      message: `Votre commande ${data.order_number} est prévue vers ${etaLabel}.`,
+      type: "order",
+      data: { order_id: id },
+    })
+    await sendPushToUser(data.customer_id, {
+      title: "Heure de livraison estimée 🕐",
+      body: `Commande ${data.order_number} — livraison prévue vers ${etaLabel}.`,
+      url: "/marketplace/orders",
+      tag: `eta-${id}`,
+    })
+  }
 
   // Dispatch : la commande vient de passer « prête » → prévenir les livreurs
   // en ligne pour qu'elle soit récupérée sans attendre qu'ils rafraîchissent.

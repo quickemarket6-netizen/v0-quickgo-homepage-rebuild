@@ -78,23 +78,38 @@ export async function POST(
   }
 
   // ── Restauration du stock ──────────────────────────────────────────────────
-  // Verrou optimiste par produit (même pattern que la décrémentation à la
-  // commande). Les produits à stock non suivi (null) sont ignorés.
-  const { data: items } = await supabase
+  // Verrou optimiste par unité de stock : la variante si la ligne en porte
+  // une, le produit sinon. Les stocks non suivis (null) sont ignorés.
+  // Requête tolérante : la colonne variant_id peut ne pas exister tant que
+  // add_vendor_features.sql n'est pas appliquée.
+  type RestorableItem = { product_id: string | null; variant_id?: string | null; quantity: number }
+  let items: RestorableItem[] | null = null
+  const withVariant = await supabase
     .from("order_items")
-    .select("product_id, quantity")
+    .select("product_id, variant_id, quantity")
     .eq("order_id", id)
+  if (withVariant.data) {
+    items = withVariant.data as RestorableItem[]
+  } else {
+    const plain = await supabase
+      .from("order_items")
+      .select("product_id, quantity")
+      .eq("order_id", id)
+    items = (plain.data ?? []) as RestorableItem[]
+  }
 
   for (const item of items ?? []) {
-    if (!item.product_id) continue
+    const table = (item as { variant_id?: string | null }).variant_id ? "product_variants" : "products"
+    const unitId = (item as { variant_id?: string | null }).variant_id ?? item.product_id
+    if (!unitId) continue
     for (let attempt = 0; attempt < 3; attempt++) {
       const { data: fresh } = await supabase
-        .from("products").select("stock_quantity").eq("id", item.product_id).single()
+        .from(table).select("stock_quantity").eq("id", unitId).single()
       if (fresh?.stock_quantity == null) break
       const { data: upd } = await supabase
-        .from("products")
+        .from(table)
         .update({ stock_quantity: fresh.stock_quantity + item.quantity, is_available: true })
-        .eq("id", item.product_id)
+        .eq("id", unitId)
         .eq("stock_quantity", fresh.stock_quantity)
         .select("id")
       if (upd && upd.length > 0) break

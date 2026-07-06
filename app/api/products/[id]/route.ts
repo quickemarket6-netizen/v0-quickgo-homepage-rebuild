@@ -17,10 +17,35 @@ export async function GET(
     `)
     .eq("id", id)
     .single()
+
+  // Variantes (taille, contenance…) — requête séparée et tolérante : la
+  // table peut ne pas exister tant que add_vendor_features.sql n'est pas
+  // appliquée, la fiche doit s'afficher quand même.
+  let variants: unknown[] = []
+  if (data) {
+    const { data: v } = await supabase
+      .from("product_variants")
+      .select("id, label, price, stock_quantity, is_available, position")
+      .eq("product_id", id)
+      .order("position")
+    variants = v ?? []
+  }
   
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 404 })
   }
-  
-  return NextResponse.json(data)
+
+  // Statistiques de conversion : une vue par affichage de fiche.
+  // Best-effort et non bloquant — tolère l'absence de la table
+  // (migration add_vendor_features.sql non appliquée).
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from("product_views").insert({
+      product_id: id,
+      vendor_id: (data as { vendor?: { id?: string } | null }).vendor?.id ?? null,
+      viewer_id: user?.id ?? null,
+    })
+  } catch { /* table absente ou RLS — la fiche s'affiche quand même */ }
+
+  return NextResponse.json({ ...data, variants })
 }

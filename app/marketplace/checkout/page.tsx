@@ -10,7 +10,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useCart } from "@/lib/store/cart"
+import { useCart, cartItemProductId } from "@/lib/store/cart"
 import {
   ChevronLeft, ChevronRight, MapPin, Truck, Shield,
   Clock, Check, Zap, CheckCircle, Package, ArrowRight,
@@ -198,7 +198,10 @@ export default function CheckoutPage() {
       }
 
       const orderItems = items.map((item) => ({
-        product_id: item.id,
+        // Les lignes avec variante portent un id local composite — le serveur
+        // reçoit le vrai product_id + variant_id et re-calcule les prix
+        product_id: cartItemProductId(item),
+        variant_id: item.variantId,
         product_name: item.name,
         quantity: item.quantity,
         unit_price: item.price,
