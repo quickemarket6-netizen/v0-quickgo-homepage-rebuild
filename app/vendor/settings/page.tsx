@@ -20,11 +20,6 @@ type Tab = "profile" | "shop" | "notifications" | "security"
 interface NotifPrefs { orders: boolean; reviews: boolean; payments: boolean; system: boolean; marketing: boolean }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const BACKGROUND_VIDEOS = [
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/background%20videos%20E-market%20hero-tiwMHaJdezDuLsRvu9dKGD6duCx1gr.mp4",
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/video%20market%20place%20background%20hero-ukKWRfEszbAZsD07cLFE1nT4OaJHBS.mp4",
-]
-
 const SETTINGS_TABS: { key: Tab; label: string; sub: string; color: string; Icon: React.FC<{ className?: string; style?: React.CSSProperties }> }[] = [
   { key: "profile",       label: "Mon profil",    sub: "Identité & contact",     color: "#6366f1", Icon: User      },
   { key: "shop",          label: "Ma boutique",   sub: "Infos & configuration",  color: "#06b6d4", Icon: Building2 },
@@ -135,8 +130,6 @@ function SaveBtn({ saving, saved, onClick, color = "#6366f1" }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const supabase = useRef(createClient()).current
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [videoIdx, setVideoIdx] = useState(0)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({})
   const [vendorName, setVendorName] = useState("")
 
@@ -168,15 +161,6 @@ export default function SettingsPage() {
         .then((r: { data: { name: string } | null }) => { if (r.data) setVendorName(r.data.name) })
     })
   }, [supabase])
-
-  // Video cycling
-  useEffect(() => {
-    const video = videoRef.current; if (!video) return
-    video.src = BACKGROUND_VIDEOS[videoIdx % BACKGROUND_VIDEOS.length]; video.load()
-    const onCanPlay = () => video.play().catch(() => {})
-    video.addEventListener("canplay", onCanPlay)
-    return () => video.removeEventListener("canplay", onCanPlay)
-  }, [videoIdx])
 
   const toggleSection = (label: string) =>
     setExpandedSections(prev => ({ ...prev, [label]: !prev[label] }))
@@ -367,8 +351,6 @@ export default function SettingsPage() {
 
         {/* Header */}
         <div className="relative overflow-hidden bg-[#111118] shrink-0">
-          <video ref={videoRef} muted loop playsInline onEnded={() => setVideoIdx(i => i + 1)}
-            className="absolute inset-0 w-full h-full object-cover opacity-25" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/60 via-transparent to-[#0a0a0f]" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#111118] via-transparent to-[#111118]" />
           <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 6, repeat: Infinity }}

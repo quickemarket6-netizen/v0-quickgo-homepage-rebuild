@@ -11,6 +11,7 @@ import {
   BarChart3, PrinterIcon, User, CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { VendorSidebar } from "@/components/vendor/VendorSidebar"
 import { toast } from "sonner"
 
 interface OrderItem {
@@ -63,14 +64,14 @@ const navItems = [
 ]
 
 const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; cls: string; bg: string }> = {
-  pending:    { label: "En attente",    icon: Clock,         cls: "text-amber-700",  bg: "bg-amber-100"  },
-  confirmed:  { label: "Confirmée",     icon: CheckCircle2,  cls: "text-blue-700",   bg: "bg-blue-100"   },
-  preparing:  { label: "En préparation",icon: Package,       cls: "text-purple-700", bg: "bg-purple-100" },
-  ready:      { label: "Prête",         icon: CheckCircle2,  cls: "text-indigo-700", bg: "bg-indigo-100" },
-  picked_up:  { label: "Récupérée",     icon: Truck,         cls: "text-cyan-700",   bg: "bg-cyan-100"   },
-  delivering: { label: "En livraison",  icon: Truck,         cls: "text-blue-700",   bg: "bg-blue-100"   },
-  delivered:  { label: "Livrée",        icon: CheckCircle2,  cls: "text-green-700",  bg: "bg-green-100"  },
-  cancelled:  { label: "Annulée",       icon: XCircle,       cls: "text-red-700",    bg: "bg-red-100"    },
+  pending:    { label: "En attente",    icon: Clock,         cls: "text-amber-400",  bg: "bg-amber-500/15"  },
+  confirmed:  { label: "Confirmée",     icon: CheckCircle2,  cls: "text-blue-400",   bg: "bg-blue-500/15"   },
+  preparing:  { label: "En préparation",icon: Package,       cls: "text-purple-400", bg: "bg-purple-500/15" },
+  ready:      { label: "Prête",         icon: CheckCircle2,  cls: "text-indigo-400", bg: "bg-indigo-500/15" },
+  picked_up:  { label: "Récupérée",     icon: Truck,         cls: "text-cyan-400",   bg: "bg-cyan-500/15"   },
+  delivering: { label: "En livraison",  icon: Truck,         cls: "text-blue-400",   bg: "bg-blue-500/15"   },
+  delivered:  { label: "Livrée",        icon: CheckCircle2,  cls: "text-green-400",  bg: "bg-green-500/15"  },
+  cancelled:  { label: "Annulée",       icon: XCircle,       cls: "text-red-400",    bg: "bg-red-500/15"    },
 }
 
 const VENDOR_TRANSITIONS: Record<string, string | null> = {
@@ -228,46 +229,19 @@ export default function VendorOrderDetailPage() {
   const canEditItems = order ? ["pending", "confirmed", "preparing"].includes(order.status) : false
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-60 bg-white border-r border-gray-100 flex flex-col fixed h-full z-20 shadow-sm">
-        <div className="p-5 border-b border-gray-100">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-quickgo-blue to-quickgo-cyan rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">Q</span>
-            </div>
-            <span className="font-bold bg-gradient-to-r from-quickgo-blue to-quickgo-cyan bg-clip-text text-transparent">QuickGo</span>
-          </Link>
-          <span className="text-xs text-gray-500 mt-0.5 block">Espace Vendeur</span>
-        </div>
-        <nav className="flex-1 p-3 space-y-0.5">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                item.active
-                  ? "bg-gradient-to-r from-quickgo-blue/10 to-quickgo-cyan/10 text-quickgo-blue font-semibold"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            >
-              <item.icon size={17} />
-              <span className="text-sm">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <VendorSidebar />
 
-      <div className="ml-60 flex-1 flex flex-col">
+      <div className="lg:ml-60 flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <header className="bg-[#16161f] border-b border-[#1e1e2e] px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div className="flex items-center gap-3">
-            <Link href="/vendor/orders" className="p-2 rounded-xl hover:bg-gray-50 transition-colors">
-              <ArrowLeft size={18} className="text-gray-600" />
+            <Link href="/vendor/orders" className="p-2 rounded-xl hover:bg-white/5 transition-colors">
+              <ArrowLeft size={18} className="text-white/50" />
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-gray-900">
+                <h1 className="text-lg font-bold text-white">
                   {order ? `Commande #${order.order_number}` : "Chargement..."}
                 </h1>
                 {statusCfg && (
@@ -278,7 +252,7 @@ export default function VendorOrderDetailPage() {
                 )}
               </div>
               {order && (
-                <p className="text-sm text-gray-500">Passée le {formatDate(order.created_at)}</p>
+                <p className="text-sm text-white/40">Passée le {formatDate(order.created_at)}</p>
               )}
             </div>
           </div>
@@ -301,8 +275,8 @@ export default function VendorOrderDetailPage() {
             </div>
           ) : !order ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3">
-              <AlertCircle className="text-gray-300" size={48} />
-              <p className="text-gray-500">Commande introuvable</p>
+              <AlertCircle className="text-white/20" size={48} />
+              <p className="text-white/40">Commande introuvable</p>
               <Link href="/vendor/orders">
                 <Button variant="outline">Retour aux commandes</Button>
               </Link>
@@ -317,14 +291,14 @@ export default function VendorOrderDetailPage() {
               <div className="col-span-2 space-y-6">
 
                 {/* Order items */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
+                <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] overflow-hidden">
+                  <div className="px-5 py-4 border-b border-[#1e1e2e] flex items-center gap-2">
                     <Package size={18} className="text-quickgo-blue" />
-                    <h2 className="font-semibold text-gray-900">Articles commandés</h2>
-                    <span className="ml-auto text-sm text-gray-500">{order.items.length} article{order.items.length > 1 ? "s" : ""}</span>
+                    <h2 className="font-semibold text-white">Articles commandés</h2>
+                    <span className="ml-auto text-sm text-white/40">{order.items.length} article{order.items.length > 1 ? "s" : ""}</span>
                   </div>
                   {canEditItems && order.substitution_preference && (
-                    <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 text-xs text-blue-800">
+                    <div className="px-5 py-2 bg-blue-500/10 border-b border-blue-500/20 text-xs text-blue-300">
                       En cas de rupture, le client préfère :{" "}
                       <span className="font-semibold">
                         {order.substitution_preference === "substitute" ? "un remplacement par un article similaire"
@@ -336,7 +310,7 @@ export default function VendorOrderDetailPage() {
                       )}
                     </div>
                   )}
-                  <div className="divide-y divide-gray-50">
+                  <div className="divide-y divide-[#1e1e2e]">
                     {order.items.map((item) => (
                       <div key={item.id}>
                         <div className="flex items-center gap-4 px-5 py-4">
@@ -344,22 +318,22 @@ export default function VendorOrderDetailPage() {
                             <img
                               src={item.product.images[0]}
                               alt={item.product.name}
-                              className="w-14 h-14 rounded-xl object-cover bg-gray-100"
+                              className="w-14 h-14 rounded-xl object-cover bg-white/5"
                             />
                           ) : (
-                            <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center">
-                              <Package size={20} className="text-gray-400" />
+                            <div className="w-14 h-14 rounded-xl bg-white/5 flex items-center justify-center">
+                              <Package size={20} className="text-white/30" />
                             </div>
                           )}
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">{item.product?.name ?? "Produit supprimé"}</p>
-                            <p className="text-sm text-gray-500">Qté : {item.quantity} × {formatCFA(item.unit_price)}</p>
+                            <p className="font-medium text-white">{item.product?.name ?? "Produit supprimé"}</p>
+                            <p className="text-sm text-white/40">Qté : {item.quantity} × {formatCFA(item.unit_price)}</p>
                           </div>
-                          <p className="font-bold text-gray-900">{formatCFA(item.total_price)}</p>
+                          <p className="font-bold text-white">{formatCFA(item.total_price)}</p>
                           {canEditItems && substitutingItemId !== item.id && (
                             <button
                               onClick={() => openSubstitution(item)}
-                              className="text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-200 hover:bg-amber-50 rounded-full px-3 py-1.5 transition-colors shrink-0"
+                              className="text-xs font-medium text-amber-400 hover:text-amber-400 border border-amber-500/25 hover:bg-amber-500/10 rounded-full px-3 py-1.5 transition-colors shrink-0"
                             >
                               Rupture ?
                             </button>
@@ -368,11 +342,11 @@ export default function VendorOrderDetailPage() {
 
                         {/* Panneau substitution / retrait */}
                         {substitutingItemId === item.id && (
-                          <div className="mx-5 mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 space-y-3">
+                          <div className="mx-5 mb-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-3">
                             <p className="text-sm font-semibold text-amber-900">
                               « {item.product?.name ?? "Article"} » est en rupture ?
                             </p>
-                            <p className="text-xs text-amber-700">
+                            <p className="text-xs text-amber-400">
                               Remplacez-le par un produit équivalent (prix égal ou inférieur — la différence est
                               remboursée au client) ou retirez-le de la commande. Le client sera notifié.
                             </p>
@@ -380,7 +354,7 @@ export default function VendorOrderDetailPage() {
                               <select
                                 value={replacementId}
                                 onChange={(e) => setReplacementId(e.target.value)}
-                                className="w-full px-3 py-2 rounded-xl bg-white border border-amber-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                className="w-full px-3 py-2 rounded-xl bg-[#16161f] border border-amber-500/25 text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-300"
                               >
                                 <option value="">— Choisir un remplacement —</option>
                                 {replacements.map((p) => (
@@ -390,7 +364,7 @@ export default function VendorOrderDetailPage() {
                                 ))}
                               </select>
                             ) : (
-                              <p className="text-xs text-amber-600">
+                              <p className="text-xs text-amber-400">
                                 Aucun produit de remplacement à prix égal ou inférieur disponible.
                               </p>
                             )}
@@ -404,13 +378,13 @@ export default function VendorOrderDetailPage() {
                                 </Button>
                               )}
                               <Button size="sm" variant="outline" disabled={subBusy}
-                                className="rounded-full border-red-200 text-red-600 hover:bg-red-50 gap-1"
+                                className="rounded-full border-red-500/25 text-red-400 hover:bg-red-500/15 gap-1"
                                 onClick={() => applySubstitution(item, "remove")}>
                                 <XCircle size={13} />
                                 Retirer et rembourser
                               </Button>
                               <Button size="sm" variant="ghost" disabled={subBusy}
-                                className="rounded-full text-gray-500"
+                                className="rounded-full text-white/40"
                                 onClick={() => setSubstitutingItemId(null)}>
                                 Fermer
                               </Button>
@@ -423,29 +397,29 @@ export default function VendorOrderDetailPage() {
                 </div>
 
                 {/* Price breakdown */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                  <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] p-5">
+                  <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
                     <CreditCard size={18} className="text-quickgo-blue" />
                     Récapitulatif financier
                   </h2>
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-gray-600">
+                    <div className="flex justify-between text-white/50">
                       <span>Sous-total produits</span>
                       <span>{formatCFA(order.subtotal)}</span>
                     </div>
                     {order.delivery_fee > 0 && (
-                      <div className="flex justify-between text-gray-600">
+                      <div className="flex justify-between text-white/50">
                         <span>Frais de livraison</span>
                         <span>{formatCFA(order.delivery_fee)}</span>
                       </div>
                     )}
                     {order.discount > 0 && (
-                      <div className="flex justify-between text-green-600">
+                      <div className="flex justify-between text-green-400">
                         <span>Réduction</span>
                         <span>-{formatCFA(order.discount)}</span>
                       </div>
                     )}
-                    <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
+                    <div className="border-t border-[#1e1e2e] pt-2 flex justify-between font-bold text-white">
                       <span>Total payé par le client</span>
                       <span className="text-lg">{formatCFA(order.total)}</span>
                     </div>
@@ -457,22 +431,22 @@ export default function VendorOrderDetailPage() {
                       const paymentFees = Math.round(order.total * 0.02)
                       const net = Math.max(0, order.total - (order.delivery_fee ?? 0) - commission - paymentFees)
                       return (
-                        <div className="bg-blue-50 rounded-xl p-3 space-y-1.5">
-                          <div className="flex justify-between text-xs text-blue-700/70">
+                        <div className="bg-blue-500/10 rounded-xl p-3 space-y-1.5">
+                          <div className="flex justify-between text-xs text-blue-400/70">
                             <span>Commission QuickGo (7% du sous-total)</span>
                             <span>-{formatCFA(commission)}</span>
                           </div>
-                          <div className="flex justify-between text-xs text-blue-700/70">
+                          <div className="flex justify-between text-xs text-blue-400/70">
                             <span>Frais de paiement (2%)</span>
                             <span>-{formatCFA(paymentFees)}</span>
                           </div>
                           {(order.delivery_fee ?? 0) > 0 && (
-                            <div className="flex justify-between text-xs text-blue-700/70">
+                            <div className="flex justify-between text-xs text-blue-400/70">
                               <span>Livraison (reversée au livreur)</span>
                               <span>-{formatCFA(order.delivery_fee)}</span>
                             </div>
                           )}
-                          <div className="flex justify-between text-blue-800 font-semibold pt-1 border-t border-blue-100">
+                          <div className="flex justify-between text-blue-300 font-semibold pt-1 border-t border-blue-500/20">
                             <span>Votre revenu net</span>
                             <span>{formatCFA(net)}</span>
                           </div>
@@ -480,10 +454,10 @@ export default function VendorOrderDetailPage() {
                       )
                     })()}
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+                  <div className="mt-3 flex items-center gap-2 text-xs text-white/30">
                     <CreditCard size={12} />
                     Paiement : {order.payment_method ?? "CinetPay"} ·
-                    <span className={order.payment_status === "paid" ? "text-green-600 font-medium" : "text-amber-600 font-medium"}>
+                    <span className={order.payment_status === "paid" ? "text-green-400 font-medium" : "text-amber-400 font-medium"}>
                       {order.payment_status === "paid" ? "Payé" : "En attente"}
                     </span>
                   </div>
@@ -491,9 +465,9 @@ export default function VendorOrderDetailPage() {
 
                 {/* Notes */}
                 {order.notes && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                    <p className="text-sm font-medium text-amber-800 mb-1">Note du client</p>
-                    <p className="text-sm text-amber-700">{order.notes}</p>
+                  <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4">
+                    <p className="text-sm font-medium text-amber-300 mb-1">Note du client</p>
+                    <p className="text-sm text-amber-400">{order.notes}</p>
                   </div>
                 )}
               </div>
@@ -503,8 +477,8 @@ export default function VendorOrderDetailPage() {
 
                 {/* Actions */}
                 {order.status !== "cancelled" && order.status !== "delivered" && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-                    <h2 className="font-semibold text-gray-900">Actions</h2>
+                  <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] p-5 space-y-3">
+                    <h2 className="font-semibold text-white">Actions</h2>
                     {nextStatus && (
                       <Button
                         onClick={advanceStatus}
@@ -522,14 +496,14 @@ export default function VendorOrderDetailPage() {
                         variant="outline"
                         onClick={cancelOrder}
                         disabled={updating}
-                        className="w-full border-red-200 text-red-600 hover:bg-red-50 gap-2"
+                        className="w-full border-red-500/25 text-red-400 hover:bg-red-500/15 gap-2"
                       >
                         <XCircle size={15} />
                         Annuler la commande
                       </Button>
                     )}
                     {!nextStatus && order.status !== "cancelled" && order.status !== "delivered" && (
-                      <p className="text-xs text-gray-500 text-center">
+                      <p className="text-xs text-white/40 text-center">
                         En attente du livreur
                       </p>
                     )}
@@ -537,14 +511,14 @@ export default function VendorOrderDetailPage() {
                 )}
 
                 {/* Customer info */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                  <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] p-5">
+                  <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
                     <User size={16} className="text-quickgo-blue" />
                     Client
                   </h2>
                   {order.customer ? (
                     <div className="space-y-2">
-                      <p className="font-medium text-gray-900">{order.customer.full_name}</p>
+                      <p className="font-medium text-white">{order.customer.full_name}</p>
                       <a
                         href={`tel:${order.customer.phone}`}
                         className="flex items-center gap-2 text-sm text-quickgo-blue hover:underline"
@@ -554,20 +528,20 @@ export default function VendorOrderDetailPage() {
                       </a>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400">Informations non disponibles</p>
+                    <p className="text-sm text-white/30">Informations non disponibles</p>
                   )}
                 </div>
 
                 {/* Delivery address */}
                 {order.delivery_address && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                    <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] p-5">
+                    <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
                       <MapPin size={16} className="text-quickgo-blue" />
                       Adresse de livraison
                     </h2>
-                    <p className="text-sm text-gray-700">{order.delivery_address.address}</p>
+                    <p className="text-sm text-white/70">{order.delivery_address.address}</p>
                     {order.delivery_address.city && (
-                      <p className="text-sm text-gray-500 mt-1">{order.delivery_address.city}</p>
+                      <p className="text-sm text-white/40 mt-1">{order.delivery_address.city}</p>
                     )}
                     {order.delivery_address.phone && (
                       <a
@@ -583,12 +557,12 @@ export default function VendorOrderDetailPage() {
 
                 {/* Driver info */}
                 {order.driver && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                    <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] p-5">
+                    <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
                       <Truck size={16} className="text-quickgo-blue" />
                       Livreur assigné
                     </h2>
-                    <p className="font-medium text-gray-900">{order.driver.full_name}</p>
+                    <p className="font-medium text-white">{order.driver.full_name}</p>
                     <a
                       href={`tel:${order.driver.phone}`}
                       className="flex items-center gap-2 text-sm text-quickgo-blue hover:underline mt-1"
@@ -600,8 +574,8 @@ export default function VendorOrderDetailPage() {
                 )}
 
                 {/* Timeline */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                  <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] p-5">
+                  <h2 className="font-semibold text-white mb-4 flex items-center gap-2">
                     <Clock size={16} className="text-quickgo-blue" />
                     Chronologie
                   </h2>
@@ -609,16 +583,16 @@ export default function VendorOrderDetailPage() {
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full bg-quickgo-blue mt-1.5 shrink-0" />
                       <div>
-                        <p className="font-medium text-gray-900">Commande passée</p>
-                        <p className="text-gray-500 text-xs">{formatDate(order.created_at)}</p>
+                        <p className="font-medium text-white">Commande passée</p>
+                        <p className="text-white/40 text-xs">{formatDate(order.created_at)}</p>
                       </div>
                     </div>
                     {order.estimated_delivery_at && (
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 rounded-full bg-amber-400 mt-1.5 shrink-0" />
                         <div>
-                          <p className="font-medium text-gray-900">Livraison estimée</p>
-                          <p className="text-gray-500 text-xs">{formatDate(order.estimated_delivery_at)}</p>
+                          <p className="font-medium text-white">Livraison estimée</p>
+                          <p className="text-white/40 text-xs">{formatDate(order.estimated_delivery_at)}</p>
                         </div>
                       </div>
                     )}
@@ -626,8 +600,8 @@ export default function VendorOrderDetailPage() {
                       <div className="flex items-start gap-3">
                         <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0" />
                         <div>
-                          <p className="font-medium text-gray-900">Livrée</p>
-                          <p className="text-gray-500 text-xs">{formatDate(order.delivered_at)}</p>
+                          <p className="font-medium text-white">Livrée</p>
+                          <p className="text-white/40 text-xs">{formatDate(order.delivered_at)}</p>
                         </div>
                       </div>
                     )}

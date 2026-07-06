@@ -21,11 +21,6 @@ import { ProductImageUploader } from "@/components/vendor/ProductImageUploader"
 interface Category { id: string; name: string; slug: string; color: string; icon: string }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const BACKGROUND_VIDEOS = [
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/background%20videos%20E-market%20hero-tiwMHaJdezDuLsRvu9dKGD6duCx1gr.mp4",
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/video%20market%20place%20background%20hero-ukKWRfEszbAZsD07cLFE1nT4OaJHBS.mp4",
-]
-
 const SIDEBAR_ITEMS = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
   { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
@@ -80,8 +75,6 @@ function Field({ label, required, hint, error, children }: {
 export default function NewProductPage() {
   const router = useRouter()
   const supabase = useRef(createClient())
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [videoIdx, setVideoIdx] = useState(0)
   const [vendorName, setVendorName]     = useState("")
   const [vendorInitials, setVendorInitials] = useState("")
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ Produits: true, Portefeuille: false })
@@ -99,17 +92,6 @@ export default function NewProductPage() {
   const [stock, setStock]                   = useState("0")
   const [isFeatured, setIsFeatured]         = useState(false)
   const [imageUrls, setImageUrls]           = useState<string[]>([])
-
-  // ── Video ──────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    video.src = BACKGROUND_VIDEOS[videoIdx % BACKGROUND_VIDEOS.length]
-    video.load()
-    const onCanPlay = () => video.play().catch(() => {})
-    video.addEventListener("canplay", onCanPlay, { once: true })
-    return () => video.removeEventListener("canplay", onCanPlay)
-  }, [videoIdx])
 
   // ── Auth + categories ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -264,8 +246,6 @@ export default function NewProductPage() {
 
         {/* Video Header */}
         <div className="relative overflow-hidden bg-[#111118]">
-          <video ref={videoRef} muted loop playsInline onEnded={() => setVideoIdx((i) => i + 1)}
-            className="absolute inset-0 w-full h-full object-cover opacity-20" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/60 via-transparent to-[#0a0a0f]" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#111118] via-transparent to-[#111118]" />
           <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.25, 0.5, 0.25] }}

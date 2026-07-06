@@ -12,6 +12,7 @@ import {
   X, Eye, Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { VendorSidebar } from "@/components/vendor/VendorSidebar"
 import { toast } from "sonner"
 import { useVendorWallet, useFinancialNotifications } from "@/lib/payments/realtime"
 
@@ -95,22 +96,22 @@ function payoutMethodIcon(m: string) {
 // ─── Status badge ─────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
-    pending: { cls: "bg-amber-100 text-amber-700", label: "En attente" },
-    approved: { cls: "bg-blue-100 text-blue-700", label: "Approuvé" },
-    processing: { cls: "bg-purple-100 text-purple-700", label: "En cours" },
-    completed: { cls: "bg-green-100 text-green-700", label: "Complété" },
-    rejected: { cls: "bg-red-100 text-red-700", label: "Refusé" },
-    failed: { cls: "bg-gray-100 text-gray-600", label: "Échoué" },
-    held: { cls: "bg-amber-100 text-amber-700", label: "En attente" },
-    released: { cls: "bg-green-100 text-green-700", label: "Libéré" },
+    pending: { cls: "bg-amber-500/15 text-amber-400", label: "En attente" },
+    approved: { cls: "bg-blue-500/15 text-blue-400", label: "Approuvé" },
+    processing: { cls: "bg-purple-500/15 text-purple-400", label: "En cours" },
+    completed: { cls: "bg-green-500/15 text-green-400", label: "Complété" },
+    rejected: { cls: "bg-red-500/15 text-red-400", label: "Refusé" },
+    failed: { cls: "bg-white/5 text-white/50", label: "Échoué" },
+    held: { cls: "bg-amber-500/15 text-amber-400", label: "En attente" },
+    released: { cls: "bg-green-500/15 text-green-400", label: "Libéré" },
   }
-  const m = map[status] ?? { cls: "bg-gray-100 text-gray-600", label: status }
+  const m = map[status] ?? { cls: "bg-white/5 text-white/50", label: status }
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${m.cls}`}>{m.label}</span>
 }
 
 // ─── Mini Bar Chart ───────────────────────────────────────────────
 function MiniBarChart({ data }: { data: DailyAnalytic[] }) {
-  if (!data.length) return <div className="h-24 flex items-center justify-center text-gray-400 text-sm">Pas encore de données</div>
+  if (!data.length) return <div className="h-24 flex items-center justify-center text-white/30 text-sm">Pas encore de données</div>
   const max = Math.max(...data.map((d) => d.vendor_net_amount), 1)
   return (
     <div className="flex items-end gap-1 h-24 w-full">
@@ -188,20 +189,20 @@ function PayoutRequestModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+        className="bg-[#16161f] rounded-2xl shadow-2xl w-full max-w-md"
       >
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+        <div className="p-6 border-b border-[#1e1e2e] flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Demande de retrait</h2>
-            <p className="text-sm text-gray-500">Disponible: <span className="font-semibold text-green-600">{formatCFA(availableBalance)}</span></p>
+            <h2 className="text-lg font-bold text-white">Demande de retrait</h2>
+            <p className="text-sm text-white/40">Disponible: <span className="font-semibold text-green-400">{formatCFA(availableBalance)}</span></p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
+          <button onClick={onClose} className="text-white/30 hover:text-white/50 p-1"><X size={20} /></button>
         </div>
 
         <div className="p-6 space-y-5">
           {/* Amount input */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Montant (FCFA)</label>
+            <label className="text-sm font-medium text-white/70 mb-2 block">Montant (FCFA)</label>
             <div className="relative">
               <input
                 type="number"
@@ -210,9 +211,9 @@ function PayoutRequestModal({
                 placeholder="Ex: 50000"
                 min="5000"
                 max={availableBalance}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-lg font-semibold focus:ring-2 focus:ring-quickgo-blue/20 focus:border-quickgo-blue outline-none"
+                className="w-full border border-[#1e1e2e] rounded-xl px-4 py-3 text-lg font-semibold focus:ring-2 focus:ring-quickgo-blue/20 focus:border-quickgo-blue outline-none"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium">FCFA</span>
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-white/30 font-medium">FCFA</span>
             </div>
             {amounts.length > 0 && (
               <div className="flex gap-2 mt-2">
@@ -220,14 +221,14 @@ function PayoutRequestModal({
                   <button
                     key={a}
                     onClick={() => setAmount(String(a))}
-                    className="flex-1 text-xs bg-gray-100 hover:bg-quickgo-blue/10 hover:text-quickgo-blue rounded-lg py-1.5 font-medium transition-colors"
+                    className="flex-1 text-xs bg-white/5 hover:bg-quickgo-blue/10 hover:text-quickgo-blue rounded-lg py-1.5 font-medium transition-colors"
                   >
                     {new Intl.NumberFormat("fr-FR").format(a)}
                   </button>
                 ))}
                 <button
                   onClick={() => setAmount(String(availableBalance))}
-                  className="flex-1 text-xs bg-gray-100 hover:bg-quickgo-blue/10 hover:text-quickgo-blue rounded-lg py-1.5 font-medium transition-colors"
+                  className="flex-1 text-xs bg-white/5 hover:bg-quickgo-blue/10 hover:text-quickgo-blue rounded-lg py-1.5 font-medium transition-colors"
                 >
                   Max
                 </button>
@@ -237,10 +238,10 @@ function PayoutRequestModal({
 
           {/* Account selection */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Compte de réception</label>
+            <label className="text-sm font-medium text-white/70 mb-2 block">Compte de réception</label>
             {payoutAccounts.length === 0 ? (
-              <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
-                <p className="text-sm text-gray-500 mb-2">Aucun compte configuré</p>
+              <div className="border-2 border-dashed border-[#1e1e2e] rounded-xl p-4 text-center">
+                <p className="text-sm text-white/40 mb-2">Aucun compte configuré</p>
                 <Link href="/vendor/payout-accounts" onClick={onClose} className="text-quickgo-blue text-sm font-medium hover:underline">
                   + Ajouter un compte
                 </Link>
@@ -251,12 +252,12 @@ function PayoutRequestModal({
                   <button
                     key={acc.id}
                     onClick={() => setSelectedAccount(acc)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${selectedAccount?.id === acc.id ? "border-quickgo-blue bg-quickgo-blue/5" : "border-gray-100 hover:border-gray-200"}`}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${selectedAccount?.id === acc.id ? "border-quickgo-blue bg-quickgo-blue/5" : "border-[#1e1e2e] hover:border-[#1e1e2e]"}`}
                   >
                     <span className="text-2xl">{payoutMethodIcon(acc.payout_method)}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm">{acc.account_name}</p>
-                      <p className="text-xs text-gray-500">{payoutMethodLabel(acc.payout_method)} · {acc.phone_number}</p>
+                      <p className="font-medium text-white text-sm">{acc.account_name}</p>
+                      <p className="text-xs text-white/40">{payoutMethodLabel(acc.payout_method)} · {acc.phone_number}</p>
                     </div>
                     {acc.is_default && (
                       <span className="text-xs bg-quickgo-blue/10 text-quickgo-blue px-2 py-0.5 rounded-full">Défaut</span>
@@ -269,9 +270,9 @@ function PayoutRequestModal({
           </div>
 
           {/* Info */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex gap-3">
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 flex gap-3">
             <Info className="text-blue-500 shrink-0 mt-0.5" size={16} />
-            <p className="text-xs text-blue-700">
+            <p className="text-xs text-blue-400">
               Votre demande sera traitée dans les 24 heures ouvrées. Minimum: 5 000 F · Maximum journalier: 2 000 000 F
             </p>
           </div>
@@ -345,45 +346,20 @@ export default function VendorFinancesPage() {
   const commissionRate = gross30 > 0 ? Math.round((commission30 / gross30) * 100) : null
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-60 bg-white border-r border-gray-100 flex flex-col fixed h-full z-20 shadow-sm">
-        <div className="p-5 border-b border-gray-100">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-quickgo-blue to-quickgo-cyan rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">Q</span>
-            </div>
-            <span className="font-bold bg-gradient-to-r from-quickgo-blue to-quickgo-cyan bg-clip-text text-transparent">QuickGo</span>
-          </Link>
-          <span className="text-xs text-gray-500 mt-0.5 block">Espace Vendeur</span>
-        </div>
-        <nav className="flex-1 p-3 space-y-0.5">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${item.active
-                ? "bg-gradient-to-r from-quickgo-blue/10 to-quickgo-cyan/10 text-quickgo-blue font-semibold"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
-            >
-              <item.icon size={17} />
-              <span className="text-sm">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-      </div>
+    <div className="min-h-screen bg-[#0a0a0f] flex">
+      <VendorSidebar />
 
       {/* Main */}
-      <div className="ml-60 flex-1 flex flex-col min-h-screen">
+      <div className="lg:ml-60 flex-1 flex flex-col min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <header className="bg-[#16161f] border-b border-[#1e1e2e] px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">Mon portefeuille</h1>
-            <p className="text-sm text-gray-500">Suivi des revenus et gestion des retraits</p>
+            <h1 className="text-lg font-bold text-white">Mon portefeuille</h1>
+            <p className="text-sm text-white/40">Suivi des revenus et gestion des retraits</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="relative p-2 rounded-xl hover:bg-gray-50 transition-colors">
-              <Bell size={18} className="text-gray-600" />
+            <button className="relative p-2 rounded-xl hover:bg-white/5 transition-colors">
+              <Bell size={18} className="text-white/50" />
               {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold">
                   {unreadCount}
@@ -407,12 +383,12 @@ export default function VendorFinancesPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-4"
+              className="bg-red-500/10 border border-red-500/25 rounded-2xl p-4 flex items-center gap-4"
             >
-              <Lock className="text-red-600 shrink-0" size={24} />
+              <Lock className="text-red-400 shrink-0" size={24} />
               <div>
                 <p className="font-semibold text-red-900">Portefeuille temporairement gelé</p>
-                <p className="text-sm text-red-700">
+                <p className="text-sm text-red-400">
                   {((realtimeWallet as unknown) as Record<string, unknown>).freezeReason as string ?? wallet?.freeze_reason ?? "Vérification en cours"}
                   . Contactez le support: support@quickgo.cm
                 </p>
@@ -424,9 +400,9 @@ export default function VendorFinancesPage() {
           {loading ? (
             <div className="grid grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl p-5 animate-pulse h-28">
-                  <div className="h-4 bg-gray-200 rounded w-1/2 mb-3" />
-                  <div className="h-7 bg-gray-200 rounded w-3/4" />
+                <div key={i} className="bg-[#16161f] rounded-2xl p-5 animate-pulse h-28">
+                  <div className="h-4 bg-white/10 rounded w-1/2 mb-3" />
+                  <div className="h-7 bg-white/10 rounded w-3/4" />
                 </div>
               ))}
             </div>
@@ -468,14 +444,14 @@ export default function VendorFinancesPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
-                  className={`bg-white rounded-2xl p-5 shadow-sm border ${card.highlight ? "border-green-200 ring-2 ring-green-100" : "border-gray-100"} relative overflow-hidden`}
+                  className={`bg-[#16161f] rounded-2xl p-5 shadow-sm border ${card.highlight ? "border-green-500/25 ring-2 ring-green-100" : "border-[#1e1e2e]"} relative overflow-hidden`}
                 >
                   <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm mb-3`}>
                     <card.icon className="text-white" size={18} />
                   </div>
-                  <p className="text-xs text-gray-500 mb-1">{card.label}</p>
-                  <p className="text-xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-xs text-gray-400 mt-1">{card.sub}</p>
+                  <p className="text-xs text-white/40 mb-1">{card.label}</p>
+                  <p className="text-xl font-bold text-white">{card.value}</p>
+                  <p className="text-xs text-white/30 mt-1">{card.sub}</p>
                 </motion.div>
               ))}
             </div>
@@ -483,22 +459,22 @@ export default function VendorFinancesPage() {
 
           {/* 30-day stats + chart */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <div className="col-span-2 bg-[#16161f] rounded-2xl p-5 shadow-sm border border-[#1e1e2e]">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-bold text-gray-900">Revenus — 30 derniers jours</h3>
-                  <p className="text-sm text-gray-500">Montant net perçu quotidiennement</p>
+                  <h3 className="font-bold text-white">Revenus — 30 derniers jours</h3>
+                  <p className="text-sm text-white/40">Montant net perçu quotidiennement</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-gray-900">{formatCFA(revenue30)}</p>
-                  <p className="text-xs text-gray-400">Net vendeur / 30j</p>
+                  <p className="text-2xl font-bold text-white">{formatCFA(revenue30)}</p>
+                  <p className="text-xs text-white/30">Net vendeur / 30j</p>
                 </div>
               </div>
               <MiniBarChart data={analytic30} />
             </div>
 
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
-              <h3 className="font-bold text-gray-900">Répartition</h3>
+            <div className="bg-[#16161f] rounded-2xl p-5 shadow-sm border border-[#1e1e2e] space-y-4">
+              <h3 className="font-bold text-white">Répartition</h3>
               <div className="space-y-3">
                 {[
                   { label: "Vos revenus nets", amount: revenue30, color: "bg-green-500" },
@@ -509,10 +485,10 @@ export default function VendorFinancesPage() {
                   return (
                     <div key={i}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-600">{item.label}</span>
-                        <span className="font-semibold text-gray-900">{formatCFA(item.amount)}</span>
+                        <span className="text-white/50">{item.label}</span>
+                        <span className="font-semibold text-white">{formatCFA(item.amount)}</span>
                       </div>
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                         <div className={`h-full ${item.color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
@@ -524,23 +500,23 @@ export default function VendorFinancesPage() {
               <div className="pt-2 space-y-2">
                 <Link
                   href="/vendor/payout-accounts"
-                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors group"
+                  className="flex items-center justify-between p-3 rounded-xl bg-[#0a0a0f] hover:bg-white/5 transition-colors group"
                 >
                   <div className="flex items-center gap-2">
-                    <CreditCard size={16} className="text-gray-500" />
-                    <span className="text-sm text-gray-700">Comptes de paiement</span>
+                    <CreditCard size={16} className="text-white/40" />
+                    <span className="text-sm text-white/70">Comptes de paiement</span>
                   </div>
-                  <ChevronRight size={14} className="text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight size={14} className="text-white/30 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
                 <Link
                   href="/vendor/payouts"
-                  className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors group"
+                  className="flex items-center justify-between p-3 rounded-xl bg-[#0a0a0f] hover:bg-white/5 transition-colors group"
                 >
                   <div className="flex items-center gap-2">
-                    <Activity size={16} className="text-gray-500" />
-                    <span className="text-sm text-gray-700">Historique des retraits</span>
+                    <Activity size={16} className="text-white/40" />
+                    <span className="text-sm text-white/70">Historique des retraits</span>
                   </div>
-                  <ChevronRight size={14} className="text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+                  <ChevronRight size={14} className="text-white/30 group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </div>
             </div>
@@ -548,29 +524,29 @@ export default function VendorFinancesPage() {
 
           {/* Financial Notifications */}
           {notifications.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <h3 className="font-bold text-gray-900">Notifications financières</h3>
+            <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2e]">
+                <h3 className="font-bold text-white">Notifications financières</h3>
                 {unreadCount > 0 && (
-                  <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full font-medium">
                     {unreadCount} non lue{unreadCount > 1 ? "s" : ""}
                   </span>
                 )}
               </div>
-              <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+              <div className="divide-y divide-[#1e1e2e] max-h-64 overflow-y-auto">
                 {notifications.slice(0, 8).map((n) => (
                   <div
                     key={n.id}
                     onClick={() => !n.read && markRead(n.id)}
-                    className={`flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50/50 transition-colors ${!n.read ? "bg-blue-50/30" : ""}`}
+                    className={`flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-white/5/50 transition-colors ${!n.read ? "bg-blue-500/10/30" : ""}`}
                   >
-                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-quickgo-blue" : "bg-gray-200"}`} />
+                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.read ? "bg-quickgo-blue" : "bg-white/10"}`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{n.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">{formatDate(n.created_at)}</p>
+                      <p className="text-sm font-medium text-white">{n.title}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{n.message}</p>
+                      <p className="text-xs text-white/30 mt-1">{formatDate(n.created_at)}</p>
                     </div>
-                    {n.amount && <p className="text-sm font-bold text-gray-900 shrink-0">{formatCFA(n.amount)}</p>}
+                    {n.amount && <p className="text-sm font-bold text-white shrink-0">{formatCFA(n.amount)}</p>}
                   </div>
                 ))}
               </div>
@@ -578,13 +554,13 @@ export default function VendorFinancesPage() {
           )}
 
           {/* Tabs: Payouts + Commissions */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex border-b border-gray-100 px-5">
+          <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] overflow-hidden">
+            <div className="flex border-b border-[#1e1e2e] px-5">
               {(["payouts", "commissions"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? "border-quickgo-blue text-quickgo-blue" : "border-transparent text-gray-500 hover:text-gray-900"}`}
+                  className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? "border-quickgo-blue text-quickgo-blue" : "border-transparent text-white/40 hover:text-white"}`}
                 >
                   {tab === "payouts" ? "Mes retraits" : "Commissions & commandes"}
                 </button>
@@ -593,12 +569,12 @@ export default function VendorFinancesPage() {
 
             {/* Payouts list */}
             {activeTab === "payouts" && (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#1e1e2e]">
                 {!walletData?.payouts?.length ? (
                   <div className="p-12 text-center">
-                    <ArrowUpRight className="mx-auto text-gray-300 mb-3" size={36} />
-                    <p className="text-gray-500 font-medium">Aucun retrait effectué</p>
-                    <p className="text-sm text-gray-400 mt-1">Votre historique de retraits apparaîtra ici</p>
+                    <ArrowUpRight className="mx-auto text-white/20 mb-3" size={36} />
+                    <p className="text-white/40 font-medium">Aucun retrait effectué</p>
+                    <p className="text-sm text-white/30 mt-1">Votre historique de retraits apparaîtra ici</p>
                     {availableBalance >= 5000 && (
                       <Button
                         onClick={() => setShowPayoutModal(true)}
@@ -610,21 +586,21 @@ export default function VendorFinancesPage() {
                   </div>
                 ) : (
                   (walletData?.payouts ?? []).map((p) => (
-                    <div key={p.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                    <div key={p.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/5/50 transition-colors">
                       <span className="text-2xl">{payoutMethodIcon(p.payout_method)}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 text-sm">{payoutMethodLabel(p.payout_method)}</p>
+                          <p className="font-medium text-white text-sm">{payoutMethodLabel(p.payout_method)}</p>
                           <StatusBadge status={p.status} />
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-xs text-white/40 mt-0.5">
                           {p.payout_phone} · {formatDate(p.created_at)}
                         </p>
                         {p.rejection_reason && (
-                          <p className="text-xs text-red-600 mt-0.5">Raison: {p.rejection_reason}</p>
+                          <p className="text-xs text-red-400 mt-0.5">Raison: {p.rejection_reason}</p>
                         )}
                       </div>
-                      <p className="font-bold text-gray-900">{formatCFA(p.amount)}</p>
+                      <p className="font-bold text-white">{formatCFA(p.amount)}</p>
                     </div>
                   ))
                 )}
@@ -633,31 +609,31 @@ export default function VendorFinancesPage() {
 
             {/* Commissions list */}
             {activeTab === "commissions" && (
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-[#1e1e2e]">
                 {!walletData?.commissions?.length ? (
                   <div className="p-12 text-center">
-                    <BarChart3 className="mx-auto text-gray-300 mb-3" size={36} />
-                    <p className="text-gray-500 font-medium">Aucune commission</p>
-                    <p className="text-sm text-gray-400 mt-1">Vos commissions apparaîtront après vos premières ventes</p>
+                    <BarChart3 className="mx-auto text-white/20 mb-3" size={36} />
+                    <p className="text-white/40 font-medium">Aucune commission</p>
+                    <p className="text-sm text-white/30 mt-1">Vos commissions apparaîtront après vos premières ventes</p>
                   </div>
                 ) : (
                   (walletData?.commissions ?? []).map((c) => (
-                    <div key={c.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors">
-                      <div className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                        <Package size={16} className="text-green-600" />
+                    <div key={c.id} className="flex items-center gap-4 px-5 py-4 hover:bg-white/5/50 transition-colors">
+                      <div className="w-9 h-9 rounded-xl bg-green-500/15 flex items-center justify-center shrink-0">
+                        <Package size={16} className="text-green-400" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 text-sm">Vente — {formatDate(c.created_at)}</p>
+                          <p className="font-medium text-white text-sm">Vente — {formatDate(c.created_at)}</p>
                           <StatusBadge status={c.status} />
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                        <p className="text-xs text-white/40 mt-0.5">
                           Brut: {formatCFA(c.gross_amount)} · Commission QuickGo: {formatCFA(c.quickgo_commission)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-green-600">+{formatCFA(c.vendor_net_amount)}</p>
-                        <p className="text-xs text-gray-400">Net vendeur</p>
+                        <p className="font-bold text-green-400">+{formatCFA(c.vendor_net_amount)}</p>
+                        <p className="text-xs text-white/30">Net vendeur</p>
                       </div>
                     </div>
                   ))
