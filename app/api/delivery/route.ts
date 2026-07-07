@@ -177,6 +177,7 @@ export async function POST(request: Request) {
       delivery_phone,
       distance_km,
       estimated_duration,
+      estimated_arrival: new Date(Date.now() + estimated_duration * 60_000).toISOString(),
       price,
       payment_method,
       notes

@@ -13,19 +13,17 @@ export async function GET(
   // Build query — PII fields only returned for authenticated owner/driver
   const isTrackingNumber = id.startsWith("QGD-")
 
-  // Anonymous access via tracking number: return minimal public data (no PII)
+  // Anonymous access via tracking number: return minimal public data (no PII).
+  // Passe par la RPC track_parcel (SECURITY DEFINER) — le RLS de la table
+  // n'autorise aucune lecture anonyme directe.
   if (!user) {
     if (!isTrackingNumber) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
     }
-    // Public tracking: status and estimated arrival only, no PII
-    const { data, error } = await supabase
-      .from("delivery_requests")
-      .select("id, tracking_number, status, pickup_address, delivery_address, estimated_arrival, created_at")
-      .eq("tracking_number", id)
-      .single()
-    if (error) return NextResponse.json({ error: "Livraison non trouvée" }, { status: 404 })
-    return NextResponse.json(data)
+    const { data, error } = await supabase.rpc("track_parcel", { p_tracking: id })
+    const parcel = Array.isArray(data) ? data[0] : data
+    if (error || !parcel) return NextResponse.json({ error: "Livraison non trouvée" }, { status: 404 })
+    return NextResponse.json(parcel)
   }
 
   // Authenticated: fetch full data then verify ownership

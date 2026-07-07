@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCart } from "@/lib/store/cart"
+import { toast } from "sonner"
 import { FeaturedHero } from "@/components/marketplace/FeaturedHero"
 
 interface Product {
@@ -92,8 +93,15 @@ export default function ProductsPage() {
       await fetch(`/api/favorites?product_id=${productId}`, { method: "DELETE" })
       setFavorites((s) => { const n = new Set(s); n.delete(productId); return n })
     } else {
-      await fetch("/api/favorites", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: productId }) })
-      setFavorites((s) => new Set(s).add(productId))
+      const r = await fetch("/api/favorites", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: productId }) })
+      if (r.status === 401) {
+        // Invité : dire pourquoi le cœur ne fait rien, au lieu d'un échec muet
+        toast.error("Connectez-vous pour sauvegarder des favoris", {
+          action: { label: "Se connecter", onClick: () => { window.location.href = "/auth/login?next=/marketplace/products" } },
+        })
+        return
+      }
+      if (r.ok || r.status === 400) setFavorites((s) => new Set(s).add(productId))
     }
   }
 
