@@ -35,6 +35,39 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 404 })
   }
 
+  // Produits similaires : même catégorie d'abord, complétés par la même
+  // boutique si besoin — jusqu'à 8, jamais le produit courant.
+  const p = data as { category_id?: string | null; vendor?: { id?: string } | null }
+  const relatedMap = new Map<string, unknown>()
+  const relatedSelect = `
+    id, name, price, original_price, image_url, images, rating,
+    stock_quantity, is_available,
+    vendor:vendors(id, name, slug, delivery_fee)
+  `
+  if (p.category_id) {
+    const { data: sameCat } = await supabase
+      .from("products")
+      .select(relatedSelect)
+      .eq("category_id", p.category_id)
+      .eq("is_available", true)
+      .neq("id", id)
+      .order("rating", { ascending: false, nullsFirst: false })
+      .limit(8)
+    for (const r of sameCat ?? []) relatedMap.set(r.id, r)
+  }
+  if (relatedMap.size < 8 && p.vendor?.id) {
+    const { data: sameVendor } = await supabase
+      .from("products")
+      .select(relatedSelect)
+      .eq("vendor_id", p.vendor.id)
+      .eq("is_available", true)
+      .neq("id", id)
+      .order("rating", { ascending: false, nullsFirst: false })
+      .limit(8)
+    for (const r of sameVendor ?? []) if (relatedMap.size < 8) relatedMap.set(r.id, r)
+  }
+  const related = [...relatedMap.values()]
+
   // Statistiques de conversion : une vue par affichage de fiche.
   // Best-effort et non bloquant — tolère l'absence de la table
   // (migration add_vendor_features.sql non appliquée).
@@ -47,5 +80,5 @@ export async function GET(
     })
   } catch { /* table absente ou RLS — la fiche s'affiche quand même */ }
 
-  return NextResponse.json({ ...data, variants })
+  return NextResponse.json({ ...data, variants, related })
 }

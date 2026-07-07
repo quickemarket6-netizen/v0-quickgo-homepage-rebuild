@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { InstallAppButton } from "@/components/pwa/InstallAppButton"
+import { NewsletterForm } from "@/components/footer/NewsletterForm"
 
 const footerLinks = {
   company: {
@@ -134,10 +135,10 @@ export function Footer() {
                 <MapPin className="h-4 w-4 text-primary" />
                 <span>Bastos, Yaoundé, Cameroun</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <a href="tel:+237694341586" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Phone className="h-4 w-4 text-primary" />
-                <span>+237 6 95 55 55 55</span>
-              </div>
+                <span>+237 694 341 586</span>
+              </a>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4 text-primary" />
                 <span>contact@quickgo.cm</span>
@@ -183,9 +184,24 @@ export function Footer() {
           ))}
         </div>
         
+        {/* Newsletter */}
+        <div className="mt-12 pt-8 border-t border-border">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-foreground mb-1">
+                Restez informé
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Offres, nouveautés et bons plans — directement dans votre boîte mail.
+              </p>
+            </div>
+            <NewsletterForm />
+          </div>
+        </div>
+
         {/* Installation de l'application (PWA) — pas de badges de stores
             pour une app qui n'y est pas */}
-        <div className="mt-12 pt-8 border-t border-border">
+        <div className="mt-8 pt-8 border-t border-border">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
               <p className="text-sm font-semibold text-foreground mb-2">

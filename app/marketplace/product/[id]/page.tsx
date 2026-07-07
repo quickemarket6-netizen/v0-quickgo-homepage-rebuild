@@ -22,6 +22,13 @@ interface ProductVariant {
   stock_quantity: number | null; is_available: boolean
 }
 
+interface RelatedProduct {
+  id: string; name: string; price: number; original_price: number | null
+  image_url: string | null; images: string[] | null; rating: number | null
+  stock_quantity: number | null
+  vendor: { id: string; name: string; slug: string; delivery_fee: number | null } | null
+}
+
 interface Product {
   id: string; name: string; price: number; original_price: number | null
   description: string | null; stock_quantity: number | null; rating: number | null
@@ -57,6 +64,7 @@ export default function ProductPage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [reviewStats, setReviewStats] = useState<{ count: number; average: number } | null>(null)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null)
+  const [related, setRelated] = useState<RelatedProduct[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -69,6 +77,7 @@ export default function ProductPage() {
       .then((data) => {
         if (data) {
           setProduct(data)
+          setRelated(data.related ?? [])
           // Avis publics de la boutique (les avis sont rattachés au vendeur)
           const vid = data.vendor?.id
           if (vid) {
@@ -476,6 +485,56 @@ export default function ProductPage() {
               )}
             </motion.div>
           </div>
+
+          {/* Produits similaires */}
+          {related.length > 0 && (
+            <div className="mt-14">
+              <h2 className="text-xl font-bold text-foreground mb-5">Vous aimerez aussi</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                {related.map((rp, i) => {
+                  const img = rp.image_url ?? rp.images?.[0] ?? null
+                  const disc = rp.original_price && rp.original_price > rp.price
+                    ? Math.round((1 - rp.price / rp.original_price) * 100) : null
+                  const rpStock = (rp.stock_quantity ?? 1) > 0
+                  return (
+                    <motion.div key={rp.id}
+                      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.04, 0.3) }}>
+                      <Link href={`/marketplace/product/${rp.id}`}
+                        className="group block bg-card border border-border/50 rounded-2xl overflow-hidden hover:border-primary/40 hover:shadow-[0_10px_40px_-8px_rgba(59,130,246,0.25)] transition-all duration-300">
+                        <div className="relative aspect-square bg-muted/30 overflow-hidden">
+                          {img ? (
+                            <Image src={img} alt={rp.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width:640px) 50vw, 25vw" />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center"><Store className="w-8 h-8 text-muted-foreground/20" /></div>
+                          )}
+                          {disc && <span className="absolute top-2 left-2 bg-destructive text-white text-[10px] font-bold px-2 py-0.5 rounded-full">-{disc}%</span>}
+                          {!rpStock && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="text-white text-xs font-semibold">Rupture</span></div>}
+                        </div>
+                        <div className="p-3">
+                          <p className="text-[13px] font-semibold text-foreground line-clamp-2 leading-snug mb-1 group-hover:text-primary transition-colors">{rp.name}</p>
+                          <p className="text-[11px] text-muted-foreground mb-2 truncate">{rp.vendor?.name ?? "QuickGo"}</p>
+                          <div className="flex items-end justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-primary font-black text-[15px] leading-none">{formatPrice(rp.price)}</p>
+                              {rp.original_price && rp.original_price > rp.price && (
+                                <p className="text-muted-foreground/50 text-[10px] line-through mt-0.5">{formatPrice(rp.original_price)}</p>
+                              )}
+                            </div>
+                            {rp.rating != null && rp.rating > 0 && (
+                              <span className="flex items-center gap-0.5 text-[11px] text-yellow-500 shrink-0">
+                                <Star className="w-3 h-3 fill-current" />{rp.rating.toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Footer />
