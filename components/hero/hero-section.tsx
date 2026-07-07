@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
+// Uniquement des faits vérifiables — pas de compteurs inventés
 const stats = [
-  { value: "10 000+", label: "Clients satisfaits", icon: Users },
-  { value: "200K+", label: "Produits disponibles", icon: Package },
-  { value: "5K+", label: "Magasins verifies", icon: CheckCircle2 },
-  { value: "30 min", label: "Livraison en moyenne", icon: Clock },
-  { value: "100%", label: "Paiement securise", icon: Shield },
+  { value: "2 villes", label: "Yaoundé & Douala, quartier par quartier", icon: Users },
+  { value: "OM & MoMo", label: "Orange Money, MTN et cash à la livraison", icon: Package },
+  { value: "30-60 min", label: "Livraison express en ville", icon: Clock },
+  { value: "Vérifiées", label: "Boutiques validées avant publication", icon: CheckCircle2 },
+  { value: "100%", label: "Paiement sécurisé via CinetPay", icon: Shield },
 ]
 
 // All videos to loop in background
@@ -272,26 +273,16 @@ export function HeroSection() {
               transition={{ delay: 0.6 }}
               className="mt-8 flex items-center gap-4 justify-center lg:justify-start"
             >
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="w-10 h-10 rounded-full border-2 border-background bg-gradient-to-br from-quickgo-blue to-quickgo-cyan flex items-center justify-center text-xs font-bold text-white shadow-lg"
-                  >
-                    {String.fromCharCode(64 + i)}
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-white">
-                  10 000+ clients satisfaits
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 justify-center lg:justify-start">
+                <span className="flex items-center gap-1.5 text-sm text-white/80">
+                  <Shield className="h-4 w-4 text-quickgo-lime" /> Paiement sécurisé CinetPay
                 </span>
-                <div className="flex items-center gap-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                  <span className="text-xs text-muted-foreground ml-1">4.9/5</span>
-                </div>
+                <span className="flex items-center gap-1.5 text-sm text-white/80">
+                  <CheckCircle2 className="h-4 w-4 text-quickgo-lime" /> Cash à la livraison
+                </span>
+                <span className="flex items-center gap-1.5 text-sm text-white/80">
+                  <Star className="h-4 w-4 text-quickgo-lime" /> Avis vérifiés après livraison
+                </span>
               </div>
             </motion.div>
           </motion.div>

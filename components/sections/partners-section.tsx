@@ -1,18 +1,16 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Image from "next/image"
 
+// Uniquement des intégrations réelles : moyens de paiement et
+// infrastructure effectivement branchés dans la plateforme.
 const partners = [
-  { name: "Samsung", logo: "/partners/samsung.svg" },
-  { name: "Apple", logo: "/partners/apple.svg" },
-  { name: "Jumia", logo: "/partners/jumia.svg" },
-  { name: "MTN", logo: "/partners/mtn.svg" },
-  { name: "Orange Money", logo: "/partners/orange.svg" },
-  { name: "Visa", logo: "/partners/visa.svg" },
-  { name: "Mastercard", logo: "/partners/mastercard.svg" },
-  { name: "CinetPay", logo: "/partners/cinetpay.svg" },
-  { name: "DHL", logo: "/partners/dhl.svg" },
+  { name: "Orange Money" },
+  { name: "MTN MoMo" },
+  { name: "CinetPay" },
+  { name: "Visa" },
+  { name: "Mastercard" },
+  { name: "Africa's Talking" },
 ]
 
 export function PartnersSection() {
@@ -27,7 +25,7 @@ export function PartnersSection() {
           className="text-center mb-10"
         >
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            Ils nous font confiance
+            Paiements &amp; partenaires technologiques
           </p>
         </motion.div>
         

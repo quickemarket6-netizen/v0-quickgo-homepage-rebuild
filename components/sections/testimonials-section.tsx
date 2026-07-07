@@ -6,87 +6,26 @@ import Image from "next/image"
 import { Star, Quote, ChevronLeft, ChevronRight, Verified, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const testimonials = [
-  {
-    id: 1,
-    name: "Marie Nguemo",
-    role: "Cliente reguliere",
-    location: "Yaounde, Bastos",
-    avatar: "/avatars/marie.jpg",
-    rating: 5,
-    text: "QuickGo a revolutionne ma facon de faire mes courses. Livraison en 20 minutes, produits frais et livreurs tres professionnels. Je recommande a 100%!",
-    date: "Il y a 2 jours",
-    verified: true,
-    orderCount: 47,
-  },
-  {
-    id: 2,
-    name: "Jean-Paul Mbarga",
-    role: "Chef d'entreprise",
-    location: "Douala, Akwa",
-    avatar: "/avatars/jean.jpg",
-    rating: 5,
-    text: "En tant que professionnel, j'ai besoin de services rapides et fiables. QuickGo repond parfaitement a mes attentes. Le suivi en temps reel est un plus enorme.",
-    date: "Il y a 5 jours",
-    verified: true,
-    orderCount: 124,
-  },
-  {
-    id: 3,
-    name: "Awa Diallo",
-    role: "Etudiante",
-    location: "Yaounde, Mvan",
-    avatar: "/avatars/awa.jpg",
-    rating: 5,
-    text: "Les prix sont accessibles et la qualite est au rendez-vous. L'application est super intuitive. Mon app preferee pour commander!",
-    date: "Il y a 1 semaine",
-    verified: true,
-    orderCount: 32,
-  },
-  {
-    id: 4,
-    name: "Emmanuel Fotso",
-    role: "Restaurateur",
-    location: "Bafoussam",
-    avatar: "/avatars/emmanuel.jpg",
-    rating: 5,
-    text: "En tant que vendeur sur QuickGo, j'ai vu mes ventes augmenter de 300%. La plateforme est excellente et le support est toujours disponible.",
-    date: "Il y a 3 jours",
-    verified: true,
-    orderCount: 89,
-  },
-  {
-    id: 5,
-    name: "Christelle Atangana",
-    role: "Maman de famille",
-    location: "Yaounde, Omnisports",
-    avatar: "/avatars/christelle.jpg",
-    rating: 5,
-    text: "Avec 3 enfants, je n'ai plus le temps de faire les courses. QuickGo me sauve la vie! Tout arrive frais et bien emballe. Merci!",
-    date: "Il y a 4 jours",
-    verified: true,
-    orderCount: 156,
-  },
-  {
-    id: 6,
-    name: "Samuel Ndongo",
-    role: "Livreur QuickGo",
-    location: "Douala, Bonaberi",
-    avatar: "/avatars/samuel.jpg",
-    rating: 5,
-    text: "Travailler avec QuickGo m'a permis d'avoir un revenu stable. L'application livreur est top et le support nous accompagne vraiment bien.",
-    date: "Il y a 1 semaine",
-    verified: true,
-    orderCount: 0,
-  },
-]
+interface Testimonial {
+  id: string
+  name: string
+  role: string
+  location: string
+  rating: number
+  text: string
+  date: string
+  verified: boolean
+  orderCount: number
+}
 
-const stats = [
-  { value: "4.9", label: "Note moyenne", suffix: "/5" },
-  { value: "50K", label: "Avis clients", suffix: "+" },
-  { value: "98", label: "Satisfaction", suffix: "%" },
-  { value: "10K", label: "Clients fideles", suffix: "+" },
-]
+function timeAgo(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (days <= 0) return "Aujourd'hui"
+  if (days === 1) return "Hier"
+  if (days < 30) return `Il y a ${days} jours`
+  const months = Math.floor(days / 30)
+  return `Il y a ${months} mois`
+}
 
 export function TestimonialsSection() {
   const ref = useRef(null)
@@ -94,13 +33,47 @@ export function TestimonialsSection() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
 
+  // Vrais avis clients (dépôt conditionné à une commande livrée) —
+  // la section disparaît tant qu'il n'y en a pas, plutôt que d'inventer.
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
+  const [avg, setAvg] = useState<number | null>(null)
+  const [count, setCount] = useState(0)
+
   useEffect(() => {
-    if (!isAutoPlaying) return
+    fetch("/api/reviews?latest=1")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d?.reviews) return
+        const mapped: Testimonial[] = (d.reviews as Array<{
+          id: string; rating: number; comment: string | null; created_at: string
+          customer_name: string; vendor_name: string | null; vendor_city: string | null
+        }>)
+          .filter((r) => r.comment && r.comment.trim().length >= 10)
+          .map((r) => ({
+            id: r.id,
+            name: r.customer_name,
+            role: r.vendor_name ? `A commandé chez ${r.vendor_name}` : "Client vérifié",
+            location: r.vendor_city ?? "Cameroun",
+            rating: r.rating,
+            text: r.comment!.trim(),
+            date: timeAgo(r.created_at),
+            verified: true,
+            orderCount: 0,
+          }))
+        setTestimonials(mapped)
+        setAvg(d.stats?.average ?? null)
+        setCount(d.stats?.count ?? mapped.length)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!isAutoPlaying || testimonials.length < 2) return
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % testimonials.length)
     }, 5000)
     return () => clearInterval(interval)
-  }, [isAutoPlaying])
+  }, [isAutoPlaying, testimonials.length])
 
   const nextTestimonial = () => {
     setIsAutoPlaying(false)
@@ -111,6 +84,16 @@ export function TestimonialsSection() {
     setIsAutoPlaying(false)
     setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length)
   }
+
+  // Pas encore d'avis réels : ne rien afficher plutôt que du faux
+  if (testimonials.length === 0) return null
+
+  const stats = [
+    { value: avg != null ? avg.toLocaleString("fr-FR") : "—", label: "Note moyenne", suffix: "/5" },
+    { value: String(count), label: `Avis client${count > 1 ? "s" : ""}`, suffix: "" },
+    { value: "100", label: "Paiement sécurisé", suffix: "%" },
+    { value: "24/7", label: "Support disponible", suffix: "" },
+  ]
 
   return (
     <section ref={ref} className="relative py-24 lg:py-32 overflow-hidden bg-background">
@@ -151,7 +134,7 @@ export function TestimonialsSection() {
             </span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
-            Des milliers de clients nous font confiance chaque jour. Decouvrez leurs experiences.
+            Des avis authentiques, déposés après des commandes réellement livrées.
           </p>
         </motion.div>
 

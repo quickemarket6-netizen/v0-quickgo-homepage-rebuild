@@ -8,18 +8,22 @@ import { NextRequest, NextResponse } from "next/server"
 export async function GET(req: NextRequest) {
   const vendorId = req.nextUrl.searchParams.get("vendor_id")
   const productId = req.nextUrl.searchParams.get("product_id")
-  if (!vendorId && !productId) {
-    return NextResponse.json({ error: "vendor_id ou product_id requis" }, { status: 400 })
+  // ?latest=1 : derniers avis positifs toutes boutiques confondues —
+  // alimente les témoignages de la homepage (vrais avis, jamais inventés)
+  const latest = req.nextUrl.searchParams.get("latest") === "1"
+  if (!vendorId && !productId && !latest) {
+    return NextResponse.json({ error: "vendor_id, product_id ou latest requis" }, { status: 400 })
   }
 
   const supabase = await createClient()
   let query = supabase
     .from("reviews")
-    .select("id, rating, comment, created_at, customer_id")
+    .select("id, rating, comment, created_at, customer_id, vendor:vendors(name, city)")
     .order("created_at", { ascending: false })
-    .limit(30)
+    .limit(latest ? 9 : 30)
   if (vendorId) query = query.eq("vendor_id", vendorId)
   if (productId) query = query.eq("product_id", productId)
+  if (latest) query = query.not("comment", "is", null).gte("rating", 4)
 
   const { data: reviews, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -34,6 +38,7 @@ export async function GET(req: NextRequest) {
 
   const items = (reviews ?? []).map((r) => {
     const p = profileMap.get(r.customer_id)
+    const vendor = (Array.isArray(r.vendor) ? r.vendor[0] : r.vendor) as { name?: string; city?: string } | null
     return {
       id: r.id,
       rating: r.rating,
@@ -41,6 +46,8 @@ export async function GET(req: NextRequest) {
       created_at: r.created_at,
       customer_name: p?.full_name ?? "Client QuickGo",
       customer_avatar: p?.avatar_url ?? null,
+      vendor_name: vendor?.name ?? null,
+      vendor_city: vendor?.city ?? null,
     }
   })
 
