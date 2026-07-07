@@ -33,35 +33,49 @@ const leaderboard = [
   { rank: 7, name: "Emmanuel O.", avatar: null, earnings: 815000, trips: 328, rating: 4.85, streak: 19, city: "Douala" },
 ]
 
-const badges = [
-  { id: 1, name: "Premier Voyage", icon: MapPin, description: "Complétez votre première livraison", unlocked: true, color: "quickgo-blue" },
-  { id: 2, name: "Étoile Montante", icon: Star, description: "Atteignez une note de 4.5+", unlocked: true, color: "yellow-500" },
-  { id: 3, name: "Endurance", icon: Clock, description: "10h en ligne en une journée", unlocked: true, color: "quickgo-cyan" },
-  { id: 4, name: "Série de Feu", icon: Flame, description: "7 jours consécutifs actifs", unlocked: true, color: "orange-500" },
-  { id: 5, name: "Champion", icon: Trophy, description: "Top 10 de votre ville", unlocked: false, color: "quickgo-lime" },
-  { id: 6, name: "Légende", icon: Crown, description: "Top 3 national", unlocked: false, color: "purple-500" },
+// Driver stats a badge/tier is evaluated against.
+type DriverStats = { trips: number; rating: number; streak: number; rank: number; totalRank: number }
+
+// Each badge unlocks from real, measurable stats — no hard-coded unlocked flags.
+const badgeDefs = [
+  { id: 1, name: "Premier Voyage", icon: MapPin, description: "Complétez votre première livraison", color: "quickgo-blue", check: (d: DriverStats) => d.trips >= 1 },
+  { id: 2, name: "Étoile Montante", icon: Star, description: "Atteignez une note de 4.5+", color: "yellow-500", check: (d: DriverStats) => d.rating >= 4.5 },
+  { id: 3, name: "Centurion", icon: Clock, description: "100 courses complétées", color: "quickgo-cyan", check: (d: DriverStats) => d.trips >= 100 },
+  { id: 4, name: "Série de Feu", icon: Flame, description: "7 jours consécutifs actifs", color: "orange-500", check: (d: DriverStats) => d.streak >= 7 },
+  { id: 5, name: "Champion", icon: Trophy, description: "Top 10 de votre ville", color: "quickgo-lime", check: (d: DriverStats) => d.rank > 0 && d.rank <= 10 },
+  { id: 6, name: "Légende", icon: Crown, description: "Top 3 national", color: "purple-500", check: (d: DriverStats) => d.rank > 0 && d.rank <= 3 },
 ]
 
-const rewards = [
+const rewardTiers = [
   { level: "Bronze", minTrips: 0, benefits: ["Accès missions standard", "Support basique"] },
   { level: "Argent", minTrips: 100, benefits: ["Bonus +5%", "Missions prioritaires", "Support 24/7"] },
-  { level: "Or", minTrips: 250, benefits: ["Bonus +10%", "Accès VIP", "Assurance premium"], current: true },
+  { level: "Or", minTrips: 250, benefits: ["Bonus +10%", "Accès VIP", "Assurance premium"] },
   { level: "Platine", minTrips: 500, benefits: ["Bonus +15%", "Missions exclusives", "Programme fidélité"] },
   { level: "Diamant", minTrips: 1000, benefits: ["Bonus +20%", "Événements privés", "Cadeaux exclusifs"] },
 ]
 
+// Index of the highest tier the driver has reached, given their trip count.
+function currentTierIndex(trips: number): number {
+  let idx = 0
+  for (let i = 0; i < rewardTiers.length; i++) {
+    if (trips >= rewardTiers[i].minTrips) idx = i
+  }
+  return idx
+}
+
+// Neutral fallback used only before the API responds — no fabricated identity.
 const currentDriver = {
-  name: "Emmanuel",
-  rank: 12,
-  totalRank: 2890,
-  earnings: 487500,
-  trips: 187,
-  rating: 4.9,
-  streak: 4,
-  level: "Or",
-  xp: 680,
+  name: "Vous",
+  rank: 0,
+  totalRank: 0,
+  earnings: 0,
+  trips: 0,
+  rating: 0,
+  streak: 0,
+  level: "Bronze",
+  xp: 0,
   xpMax: 1000,
-  nextReward: "25 000 CFA",
+  nextReward: "—",
 }
 
 export default function DriverRankingPage() {
@@ -84,11 +98,14 @@ export default function DriverRankingPage() {
           })))
         }
         if (d.me) {
+          const trips = d.me.trips ?? 0
+          const tierIdx = currentTierIndex(trips)
+          const nextTier = rewardTiers[tierIdx + 1]
           setApiMe({
             name: "Vous", rank: d.my_rank, totalRank: d.total_drivers,
-            earnings: d.me.earnings, trips: d.me.trips, rating: d.me.rating,
-            streak: d.me.streak, level: d.me.level, xp: d.me.xp, xpMax: d.me.xp_max,
-            nextReward: "25 000 CFA",
+            earnings: d.me.earnings, trips, rating: d.me.rating,
+            streak: d.me.streak, level: rewardTiers[tierIdx].level, xp: d.me.xp, xpMax: d.me.xp_max,
+            nextReward: nextTier ? `Niveau ${nextTier.level}` : "Niveau max atteint",
           })
         }
       })
@@ -98,6 +115,24 @@ export default function DriverRankingPage() {
 
   const displayLeaderboard = apiLeaderboard ?? leaderboard
   const displayMe          = apiMe          ?? currentDriver
+
+  // Derive badges, tier and ranking percentile from the real driver stats.
+  const stats: DriverStats = {
+    trips: displayMe.trips,
+    rating: displayMe.rating,
+    streak: displayMe.streak,
+    rank: displayMe.rank,
+    totalRank: displayMe.totalRank,
+  }
+  const badges = badgeDefs.map((b) => ({ ...b, unlocked: b.check(stats) }))
+  const unlockedCount = badges.filter((b) => b.unlocked).length
+  const tierIdx = currentTierIndex(displayMe.trips)
+  const rewards = rewardTiers.map((r, i) => ({ ...r, current: i === tierIdx }))
+  const nextTier = rewardTiers[tierIdx + 1]
+  const tripsToNext = nextTier ? Math.max(0, nextTier.minTrips - displayMe.trips) : 0
+  const topPercent = displayMe.rank > 0 && displayMe.totalRank > 0
+    ? Math.max(1, Math.round((displayMe.rank / displayMe.totalRank) * 100))
+    : null
 
   return (
     <div className="min-h-screen bg-background">
@@ -202,7 +237,7 @@ export default function DriverRankingPage() {
               <p className="text-xs text-muted-foreground">Note moyenne</p>
             </div>
             <div className="text-center">
-              <p className="text-2xl font-bold text-quickgo-lime">Top 15%</p>
+              <p className="text-2xl font-bold text-quickgo-lime">{topPercent !== null ? `Top ${topPercent}%` : "—"}</p>
               <p className="text-xs text-muted-foreground">De votre ville</p>
             </div>
           </div>
@@ -328,7 +363,7 @@ export default function DriverRankingPage() {
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-white">Badges</h2>
-                <span className="text-sm text-muted-foreground">4/6</span>
+                <span className="text-sm text-muted-foreground">{unlockedCount}/{badges.length}</span>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -407,17 +442,23 @@ export default function DriverRankingPage() {
                   <Gift className="w-6 h-6 text-quickgo-lime" />
                 </div>
                 <div>
-                  <p className="text-white font-semibold">Bonus disponible</p>
-                  <p className="text-2xl font-bold text-quickgo-lime">25 000 CFA</p>
+                  <p className="text-white font-semibold">Prochain palier</p>
+                  <p className="text-2xl font-bold text-quickgo-lime">
+                    {nextTier ? `Niveau ${nextTier.level}` : "Niveau max"}
+                  </p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Complétez encore 3 courses pour débloquer votre bonus !
+                {nextTier
+                  ? `Complétez encore ${tripsToNext} course${tripsToNext > 1 ? "s" : ""} pour débloquer le niveau ${nextTier.level} et ses avantages.`
+                  : "Vous avez atteint le niveau le plus élevé. Bravo !"}
               </p>
-              <Button className="w-full bg-quickgo-lime text-background hover:bg-quickgo-lime/90 rounded-full">
-                Voir les missions
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
+              <Link href="/driver/missions">
+                <Button className="w-full bg-quickgo-lime text-background hover:bg-quickgo-lime/90 rounded-full">
+                  Voir les missions
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
             </motion.div>
           </div>
         </div>

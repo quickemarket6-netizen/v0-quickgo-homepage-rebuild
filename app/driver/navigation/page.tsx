@@ -17,6 +17,7 @@ import {
   User,
   Package,
   Radio,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -24,6 +25,8 @@ type ActiveDelivery = {
   type: string
   reference: string
   destination: string
+  dest_lat: number | null
+  dest_lng: number | null
   customer_name: string
   customer_phone: string | null
   earning: number
@@ -31,6 +34,20 @@ type ActiveDelivery = {
   order_type: string
   distance_km: number | null
   eta_min: number | null
+}
+
+// Build a turn-by-turn deep-link. Prefers exact coordinates; falls back to a
+// text address query so the button always does something useful.
+function mapsUrl(d: ActiveDelivery, provider: "google" | "waze"): string {
+  const hasCoords = d.dest_lat != null && d.dest_lng != null
+  if (provider === "waze") {
+    return hasCoords
+      ? `https://waze.com/ul?ll=${d.dest_lat},${d.dest_lng}&navigate=yes`
+      : `https://waze.com/ul?q=${encodeURIComponent(d.destination)}&navigate=yes`
+  }
+  return hasCoords
+    ? `https://www.google.com/maps/dir/?api=1&destination=${d.dest_lat},${d.dest_lng}&travelmode=driving`
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(d.destination)}&travelmode=driving`
 }
 
 export default function DriverNavigationPage() {
@@ -293,6 +310,27 @@ export default function DriverNavigationPage() {
                     animate={{ width: `${progress}%` }}
                   />
                 </div>
+
+                {/* Real turn-by-turn navigation — the SVG above is a decorative
+                    illustration; these buttons hand the route to a real GPS app. */}
+                {delivery && (
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <a href={mapsUrl(delivery, "google")} target="_blank" rel="noopener noreferrer">
+                      <Button className="w-full rounded-xl bg-quickgo-blue hover:bg-quickgo-blue/90 gap-2">
+                        <Navigation className="w-4 h-4" />
+                        Google Maps
+                        <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                      </Button>
+                    </a>
+                    <a href={mapsUrl(delivery, "waze")} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" className="w-full rounded-xl border-quickgo-cyan/50 text-quickgo-cyan gap-2">
+                        <Navigation className="w-4 h-4" />
+                        Waze
+                        <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                      </Button>
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Client Info & Actions */}

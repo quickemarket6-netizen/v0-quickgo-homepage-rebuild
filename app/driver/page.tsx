@@ -21,7 +21,7 @@ const benefits = [
   {
     icon: DollarSign,
     title: "Gains attractifs",
-    description: "Gagnez jusqu'à 25 000 CFA par jour avec les bonus",
+    description: "Rémunération à la course, plus pourboires et bonus de mission",
   },
   {
     icon: Clock,
@@ -47,11 +47,14 @@ const steps = [
   { number: 4, title: "Commencez", description: "Recevez vos premières missions et gagnez" },
 ]
 
+// Faits vérifiables sur le programme livreur — pas de statistiques inventées.
+// Les chiffres réels (livreurs actifs, gains moyens) s'afficheront ici une fois
+// mesurés côté back-office ; en attendant on met en avant la proposition de valeur.
 const marketingStats = [
-  { value: "2 890+", label: "Livreurs actifs" },
-  { value: "98%", label: "Taux de satisfaction" },
-  { value: "25 000 CFA", label: "Gains moyens/jour" },
-  { value: "27 min", label: "Temps moyen livraison" },
+  { value: "0 CFA", label: "Frais d'inscription" },
+  { value: "Hebdo", label: "Paiement des gains" },
+  { value: "24/7", label: "Support livreur" },
+  { value: "Libre", label: "Choix des horaires" },
 ]
 
 interface DriverProfile {
@@ -352,7 +355,7 @@ export default function DriverPage() {
                 Prêt à commencer ?
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Rejoignez des milliers de livreurs qui gagnent avec QuickGo
+                Inscription gratuite, formation offerte, paiements sécurisés — commencez dès aujourd&apos;hui.
               </p>
               <Link href="/auth/register?type=driver">
                 <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 h-14 px-8">

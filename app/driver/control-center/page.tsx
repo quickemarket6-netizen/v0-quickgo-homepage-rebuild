@@ -36,7 +36,7 @@ const statusColors: Record<string, { bg: string; text: string; label: string }> 
   pending: { bg: "bg-orange-500/20", text: "text-orange-400", label: "En attente" },
 }
 
-type DriverRow = { id: string; name: string; status: string; eta: number; earning: number }
+type DriverRow = { id: string; name: string; status: string; eta: number | null; earning: number }
 type OrderRow = { id: string; merchant: string; status: string; driver: string | null; eta: number | null }
 type CCStats = { active_drivers: number; online_drivers: number; total_drivers: number; active_orders: number; pending_orders: number; live_revenue: number }
 
@@ -429,7 +429,7 @@ export default function ControlCenterPage() {
                         <span className={`text-xs px-2 py-1 rounded-full ${status.bg} ${status.text}`}>
                           {status.label}
                         </span>
-                        {driver.eta > 0 && (
+                        {driver.eta != null && driver.eta > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">{driver.eta} min</p>
                         )}
                       </div>

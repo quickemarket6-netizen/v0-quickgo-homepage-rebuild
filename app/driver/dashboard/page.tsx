@@ -426,7 +426,8 @@ export default function DriverDashboardPage() {
                 ))}
               </div>
 
-              {/* Live map quick access (real-time data lives in Control Center) */}
+              {/* Missions quick access — the fleet-wide Control Center is a
+                  supervisor tool, so it's no longer surfaced to drivers here. */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -439,43 +440,14 @@ export default function DriverDashboardPage() {
                       <MapPin className="w-7 h-7 text-quickgo-blue" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white">Carte en direct</h3>
+                      <h3 className="text-lg font-bold text-white">Missions près de vous</h3>
                       <p className="text-sm text-muted-foreground">
-                        Zone actuelle : {driver?.city ?? "—"} · Voir l&apos;activité en temps réel
+                        Zone actuelle : {driver?.city ?? "—"} · Trouvez une course à accepter
                       </p>
                     </div>
                   </div>
-                  <Link href="/driver/control-center">
+                  <Link href="/driver/missions">
                     <Button variant="outline" className="rounded-full">
-                      Ouvrir
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </Link>
-                </div>
-              </motion.div>
-
-              {/* Control Center Quick Access */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
-                className="bg-gradient-to-br from-red-500/20 via-orange-500/20 to-yellow-500/20 rounded-3xl p-6 border border-red-500/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <div className="w-14 h-14 rounded-2xl bg-red-500/30 flex items-center justify-center">
-                        <Target className="w-7 h-7 text-red-400" />
-                      </div>
-                      <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">Centre de contrôle</h3>
-                      <p className="text-sm text-muted-foreground">Vue temps réel des opérations</p>
-                    </div>
-                  </div>
-                  <Link href="/driver/control-center">
-                    <Button className="rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30">
                       Ouvrir
                       <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>

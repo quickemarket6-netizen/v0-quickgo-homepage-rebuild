@@ -1,10 +1,17 @@
 import { createClient } from "@/lib/supabase/server"
+import { verifyAdmin } from "@/lib/payments/security"
 import { NextResponse } from "next/server"
 
 export async function GET() {
+  // Dispatch overview: exposes every driver's name/status, all live orders and
+  // platform revenue. That's supervisor-only data — a regular driver must not
+  // see the whole fleet, so gate it behind the admin/super_admin role.
+  const admin = await verifyAdmin()
+  if (!admin.valid) {
+    return NextResponse.json({ error: admin.error }, { status: admin.error === "Non authentifié" ? 401 : 403 })
+  }
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: "Non authentifie" }, { status: 401 })
 
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
@@ -45,7 +52,7 @@ export async function GET() {
     id: d.id,
     name: d.user?.full_name ?? "Livreur",
     status: d.status,
-    eta: d.status === "delivering" ? Math.floor(Math.random() * 15) + 2 : 0,
+    eta: null, // real per-driver ETA requires live routing; not fabricated here
     earning: 0, // individual earnings not exposed for privacy
   }))
 
@@ -54,7 +61,7 @@ export async function GET() {
     merchant: (o.vendor as { name?: string } | null)?.name ?? "Commerçant",
     status: o.status,
     driver: (o.driver as { user?: { full_name?: string | null } } | null)?.user?.full_name ?? null,
-    eta: o.status === "delivering" ? Math.floor(Math.random() * 20) + 5 : null,
+    eta: null, // real ETA requires live routing; not fabricated here
   }))
 
   const activeDrivers = drivers.filter((d) => d.status === "delivering").length

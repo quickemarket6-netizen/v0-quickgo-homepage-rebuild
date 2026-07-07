@@ -18,12 +18,15 @@ import {
   Inbox,
 } from "lucide-react"
 
-interface PushNotification {
+// In-app notification feed (public.notifications). This is the operational feed
+// drivers actually receive: order assigned, delivery confirmed, cash remittance,
+// plus admin broadcasts fanned out here — not the push_notifications delivery log.
+interface DriverNotification {
   id: string
   title: string
   body: string
-  read: boolean
-  sent_at: string
+  is_read: boolean
+  created_at: string
   data: { type?: string; broadcast_id?: string } | null
 }
 
@@ -45,10 +48,10 @@ function timeAgo(iso: string) {
 }
 
 export default function DriverMessagesPage() {
-  const [notifications, setNotifications] = useState<PushNotification[]>([])
+  const [notifications, setNotifications] = useState<DriverNotification[]>([])
   const [loading, setLoading]             = useState(true)
   const [search, setSearch]               = useState("")
-  const [selected, setSelected]           = useState<PushNotification | null>(null)
+  const [selected, setSelected]           = useState<DriverNotification | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -58,13 +61,13 @@ export default function DriverMessagesPage() {
       if (!user) { setLoading(false); return }
 
       const { data } = await supabase
-        .from("push_notifications")
-        .select("*")
+        .from("notifications")
+        .select("id, title, body, is_read, created_at, data")
         .eq("user_id", user.id)
-        .order("sent_at", { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(50)
 
-      setNotifications((data as PushNotification[]) ?? [])
+      setNotifications((data as DriverNotification[]) ?? [])
       setLoading(false)
     }
 
@@ -78,9 +81,9 @@ export default function DriverMessagesPage() {
         .channel("driver_notifs")
         .on(
           "postgres_changes",
-          { event: "INSERT", schema: "public", table: "push_notifications", filter: `user_id=eq.${u.id}` },
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${u.id}` },
           (payload: { new: unknown }) => {
-            setNotifications(prev => [payload.new as PushNotification, ...prev])
+            setNotifications(prev => [payload.new as DriverNotification, ...prev])
           },
         )
         .subscribe()
@@ -89,26 +92,26 @@ export default function DriverMessagesPage() {
 
   const markRead = async (id: string) => {
     const supabase = createClient()
-    await supabase.from("push_notifications").update({ read: true }).eq("id", id)
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    await supabase.from("notifications").update({ is_read: true }).eq("id", id)
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
   }
 
   const markAllRead = async () => {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    await supabase.from("push_notifications").update({ read: true }).eq("user_id", user.id)
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
+    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id)
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
   }
 
   const filtered = notifications.filter(n =>
-    !search || n.title.toLowerCase().includes(search.toLowerCase()) || n.body.toLowerCase().includes(search.toLowerCase())
+    !search || n.title.toLowerCase().includes(search.toLowerCase()) || (n.body ?? "").toLowerCase().includes(search.toLowerCase())
   )
-  const unread = notifications.filter(n => !n.read).length
+  const unread = notifications.filter(n => !n.is_read).length
 
-  const handleSelect = (n: PushNotification) => {
+  const handleSelect = (n: DriverNotification) => {
     setSelected(n)
-    if (!n.read) markRead(n.id)
+    if (!n.is_read) markRead(n.id)
   }
 
   return (
@@ -192,13 +195,13 @@ export default function DriverMessagesPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <p className={`text-sm font-semibold truncate ${!n.read ? "text-foreground" : "text-muted-foreground"}`}>
+                        <p className={`text-sm font-semibold truncate ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}>
                           {n.title}
                         </p>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                        {!n.is_read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-1">{n.body}</p>
-                      <p className="text-[10px] text-muted-foreground/60 mt-1">{timeAgo(n.sent_at)}</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-1">{timeAgo(n.created_at)}</p>
                     </div>
                   </motion.button>
                 )
@@ -228,7 +231,7 @@ export default function DriverMessagesPage() {
                             </div>
                             <div>
                               <p className="font-semibold text-foreground">{selected.title}</p>
-                              <p className="text-xs text-muted-foreground">{timeAgo(selected.sent_at)}</p>
+                              <p className="text-xs text-muted-foreground">{timeAgo(selected.created_at)}</p>
                             </div>
                           </div>
                           <p className="text-sm text-muted-foreground leading-relaxed">{selected.body}</p>
