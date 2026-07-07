@@ -82,7 +82,7 @@ interface AdminDashData {
   ai_alerts: { id: string; title: string; description: string; severity: "high" | "medium" | "low"; count: number; timestamp: string }[]
   system_status: Record<string, string>
   top_categories: { name: string; pct: number }[]
-  performance: { availability: number; response_time: number; uptime: number }
+  performance: { availability: number; response_time: number; services_up: number }
   badges: { vendors: number; drivers: number; orders: number; deliveries: number; payouts: number; crm_support: number; notifications: number }
 }
 
@@ -145,13 +145,6 @@ const SYS_ICONS: Record<string, typeof Package> = {
 }
 const SYS_LABELS: Record<string, string> = {
   api_quickgo: "API QuickGo", api_cinetpay: "API CinetPay", database: "Base de données", storage: "Stockage", notifications: "Notifications",
-}
-const SYS_DETAIL: Record<string, { uptime: number; latency: number }> = {
-  api_quickgo:   { uptime: 99.9, latency: 12 },
-  api_cinetpay:  { uptime: 99.8, latency: 48 },
-  database:      { uptime: 99.9, latency: 4  },
-  storage:       { uptime: 100,  latency: 22 },
-  notifications: { uptime: 100,  latency: 7  },
 }
 const CAT_EMOJIS: Record<string, string> = {
   "Restauration":"🍽️","Épicerie":"🛒","Pharmacie":"💊","Électronique":"📱",
@@ -388,6 +381,19 @@ export default function AdminDashboardPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Live auto-refresh: poll every 45s while the tab is visible, pause when it's
+  // hidden, and refresh immediately when the operator comes back to the tab.
+  useEffect(() => {
+    const POLL_MS = 45_000
+    let id: ReturnType<typeof setInterval> | null = null
+    const start = () => { if (!id) id = setInterval(() => { if (!document.hidden) fetchData() }, POLL_MS) }
+    const stop  = () => { if (id) { clearInterval(id); id = null } }
+    const onVisibility = () => { if (document.hidden) stop(); else { fetchData(); start() } }
+    start()
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility) }
+  }, [fetchData])
 
   // Real admin identity for the header (name, role, initials).
   useEffect(() => {
@@ -2189,32 +2195,21 @@ export default function AdminDashboardPage() {
                   Object.entries(data?.system_status ?? {}).map(([key, status]) => {
                     const Ico     = SYS_ICONS[key] ?? Zap
                     const ok      = status === "operational"
-                    const detail  = SYS_DETAIL[key]
-                    const latCls  = detail?.latency <= 10 ? "text-green-400" : detail?.latency <= 30 ? "text-[#6b6b8a]" : "text-orange-400"
                     return (
-                      <div key={key} className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors ${ok ? "bg-[#16161f] border-[#1e1e2e] hover:bg-[#1e1e2e]" : "bg-red-500/5 border-red-500/20"}`}>
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ok ? "bg-green-500/10" : "bg-red-500/15"}`}>
-                          <Ico className={`w-3.5 h-3.5 ${ok ? "text-green-400" : "text-red-400"}`} />
+                      <div key={key} className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-colors ${ok ? "bg-[#16161f] border-[#1e1e2e] hover:bg-[#1e1e2e]" : "bg-orange-500/5 border-orange-500/20"}`}>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ok ? "bg-green-500/10" : "bg-orange-500/15"}`}>
+                          <Ico className={`w-3.5 h-3.5 ${ok ? "text-green-400" : "text-orange-400"}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-[11px] font-semibold truncate leading-none">{SYS_LABELS[key] ?? key}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <p className={`text-[9px] font-medium ${ok ? "text-green-400" : "text-red-400"}`}>
-                              {ok ? "Opérationnel" : "Incident"}
+                            <p className={`text-[9px] font-medium ${ok ? "text-green-400" : "text-orange-400"}`}>
+                              {ok ? "Opérationnel" : "Non configuré"}
                             </p>
-                            {detail && (
-                              <span className={`text-[9px] font-mono ${latCls}`}>{detail.latency}ms</span>
-                            )}
                           </div>
                         </div>
-                        {detail && (
-                          <div className="text-right shrink-0">
-                            <p className="text-[#6b6b8a] text-[9px] tabular-nums">{detail.uptime}%</p>
-                            <p className="text-[#4a4a6a] text-[8px]">uptime</p>
-                          </div>
-                        )}
                         <div className="relative shrink-0">
-                          <span className={`block w-2 h-2 rounded-full ${ok ? "bg-green-400" : "bg-red-400"}`} />
+                          <span className={`block w-2 h-2 rounded-full ${ok ? "bg-green-400" : "bg-orange-400"}`} />
                           {ok && <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-40" />}
                         </div>
                       </div>
@@ -2333,8 +2328,8 @@ export default function AdminDashboardPage() {
                     />
                     <div className="h-px bg-[#1e1e2e]" />
                     <CircleGauge
-                      value={data?.performance.uptime ?? 0}
-                      label="Uptime 30j" unit="%"
+                      value={data?.performance.services_up ?? 0}
+                      label="Services opérationnels" unit="%"
                       color="#a3e635"
                     />
                   </div>

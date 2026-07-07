@@ -5,6 +5,7 @@ import { verifyAdmin } from "@/lib/payments/security"
 function oTotal(o: { total_amount?: number | null }) { return Number(o.total_amount ?? 0) }
 
 export async function GET() {
+  const startedAt = Date.now()
   const admin = await verifyAdmin()
   if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
 
@@ -234,19 +235,28 @@ export async function GET() {
     pending_payouts:  pendingPayoutsList,
     activities:       activities.slice(0, 6),
     ai_alerts:        aiAlerts.slice(0, 4),
+    // Real health signals: the app is responding, the DB was just queried
+    // successfully to build this whole payload, and each integration is
+    // "operational" only when its configuration is actually present.
     system_status: {
       api_quickgo:    "operational",
-      api_cinetpay:   "operational",
+      api_cinetpay:   (process.env.CINETPAY_API_KEY && process.env.CINETPAY_SITE_ID) ? "operational" : "degraded",
       database:       "operational",
-      storage:        "operational",
-      notifications:  "operational",
+      storage:        process.env.SUPABASE_SERVICE_ROLE_KEY ? "operational" : "degraded",
+      notifications:  (process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) ? "operational" : "degraded",
     },
     top_categories: topCategories,
-    performance: {
-      availability:  98.6,
-      response_time: 1.2,
-      uptime:        99.9,
-    },
+    // Measured, not fabricated: availability = share of services currently
+    // operational; response_time = real server processing time for this request.
+    performance: (() => {
+      const statuses = ["operational", process.env.CINETPAY_API_KEY && process.env.CINETPAY_SITE_ID ? "operational" : "degraded", "operational", process.env.SUPABASE_SERVICE_ROLE_KEY ? "operational" : "degraded", process.env.VAPID_PRIVATE_KEY && process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ? "operational" : "degraded"]
+      const upPct = Math.round((statuses.filter(s => s === "operational").length / statuses.length) * 1000) / 10
+      return {
+        availability:  upPct,
+        response_time: Math.round((Date.now() - startedAt)) / 1000, // seconds
+        services_up:   upPct,
+      }
+    })(),
     badges: {
       vendors:       activeVendorsRes.count  ?? 0,
       drivers:       onlineDriversRes.count  ?? 0,
