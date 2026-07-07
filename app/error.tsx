@@ -5,6 +5,7 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Home, RefreshCw, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import * as Sentry from "@sentry/nextjs"
 
 export default function Error({
   error,
@@ -15,6 +16,8 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error)
+    // Report to Sentry (no-op when no DSN is configured).
+    Sentry.captureException(error)
   }, [error])
 
   return (

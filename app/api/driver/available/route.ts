@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-import { CASH_ON_HAND_CAP } from "@/lib/payments/cash"
+import { CASH_ON_HAND_CAP, canAcceptCashOrder } from "@/lib/payments/cash"
 
 // GET  /api/driver/available  — orders ready for pickup with no driver assigned
 // POST /api/driver/available  — driver accepts a delivery job
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
   // dépasser le plafond, sinon le livreur doit d'abord remettre ses espèces.
   if (order.payment_method === "cash") {
     const cashOnHand = Number(driver.cash_on_hand ?? 0)
-    if (cashOnHand + Number(order.total ?? 0) > CASH_ON_HAND_CAP) {
+    if (!canAcceptCashOrder(cashOnHand, Number(order.total ?? 0))) {
       return NextResponse.json(
         {
           error: `Plafond d'espèces atteint (${new Intl.NumberFormat("fr-FR").format(cashOnHand)} / ${new Intl.NumberFormat("fr-FR").format(CASH_ON_HAND_CAP)} FCFA). Remettez votre cash à la plateforme pour accepter de nouvelles commandes cash.`,

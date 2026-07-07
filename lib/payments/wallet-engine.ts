@@ -7,6 +7,10 @@
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { calculateCommission, QUICKGO_COMMISSION_RATE, PAYMENT_FEE_RATE } from "@/lib/payments/commission"
+
+// Re-exported so existing importers (webhook, routes) keep working unchanged.
+export { calculateCommission, QUICKGO_COMMISSION_RATE, PAYMENT_FEE_RATE }
 
 // commission_logs n'est accessible qu'aux admins/vendeurs via RLS, or ces
 // fonctions sont appelées depuis des sessions client/livreur/webhook. Les
@@ -16,8 +20,6 @@ async function financialClient(db?: SupabaseClient): Promise<SupabaseClient> {
   return db ?? createAdminClient() ?? (await createClient()) as unknown as SupabaseClient
 }
 
-const QUICKGO_COMMISSION_RATE = 0.07  // 7% platform commission
-const PAYMENT_FEE_RATE = 0.02         // 2% CinetPay payment fee
 const MIN_PAYOUT_AMOUNT = 5000        // 5,000 FCFA minimum payout
 const MAX_DAILY_PAYOUT = 2_000_000    // 2M FCFA max daily payout per vendor
 
@@ -48,29 +50,6 @@ export interface PayoutRequest {
   payoutAccountId?: string
   requestedBy: string
   idempotencyKey: string
-}
-
-/**
- * Calculate commission breakdown for an order
- */
-export function calculateCommission(grossAmount: number, deliveryFee: number, customRate?: number) {
-  const commissionRate = customRate ?? QUICKGO_COMMISSION_RATE
-  const paymentFeeRate = PAYMENT_FEE_RATE
-
-  // Commission is on the order subtotal only (not delivery fee)
-  const orderSubtotal = grossAmount - deliveryFee
-  const quickgoCommission = Math.round(orderSubtotal * commissionRate)
-  const paymentFees = Math.round(grossAmount * paymentFeeRate)
-  const vendorNetAmount = grossAmount - deliveryFee - quickgoCommission - paymentFees
-
-  return {
-    grossAmount,
-    quickgoCommissionRate: commissionRate,
-    quickgoCommission,
-    paymentFees,
-    deliveryFees: deliveryFee,
-    vendorNetAmount: Math.max(0, vendorNetAmount),
-  }
 }
 
 /**
