@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft, RefreshCw, Download, Search, Wallet,
   Store, Truck, User, XCircle, ChevronRight,
-  Eye, MoreHorizontal, Lock, Plus, AlertTriangle,
+  Eye, Lock, Plus, AlertTriangle,
   Activity, Clock, DollarSign, TrendingUp,
   ArrowUpRight, ArrowDownLeft, RotateCcw } from "lucide-react"
 import {
@@ -17,10 +17,12 @@ import { toast } from "sonner"
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface WalletItem {
-  id: string; owner_name: string; owner_type: "vendor" | "driver" | "client"
+  id: string; vendor_id: string | null
+  owner_name: string; owner_type: "vendor" | "driver" | "client"
   balance: number; pending_withdrawal: number
   total_earned: number; total_withdrawn: number
   status: "active" | "idle" | "frozen" | "pending"
+  freeze_reason: string | null
   last_transaction: string; transactions_count: number
 }
 interface TxnItem {
@@ -162,6 +164,44 @@ export default function WalletsPage() {
     }
   }, [])
   useEffect(() => { load() }, [load])
+
+  // Freeze / unfreeze a vendor wallet. Freezing requires a reason (enforced by
+  // the API), so we collect it through a modal; unfreezing is a direct action.
+  const [freezeModal, setFreezeModal] = useState<WalletItem | null>(null)
+  const [freezeReason, setFreezeReason] = useState("")
+  const [freezingId, setFreezingId] = useState<string | null>(null)
+
+  const submitFreeze = useCallback(async (w: WalletItem, frozen: boolean, reason: string) => {
+    if (!w.vendor_id) { toast.error("Identifiant vendeur introuvable"); return }
+    setFreezingId(w.vendor_id)
+    try {
+      const res = await fetch(`/api/admin/wallets/${w.vendor_id}/freeze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ frozen, reason }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body?.error ?? `Erreur ${res.status}`)
+      toast.success(body?.message ?? (frozen ? "Portefeuille gelé" : "Portefeuille réactivé"))
+      setFreezeModal(null)
+      setFreezeReason("")
+      await load(true)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Action impossible")
+    } finally {
+      setFreezingId(null)
+    }
+  }, [load])
+
+  const onFreezeClick = useCallback((w: WalletItem) => {
+    if (w.status === "frozen") {
+      // Unfreeze immediately — no reason required.
+      submitFreeze(w, false, "")
+    } else {
+      setFreezeReason("")
+      setFreezeModal(w)
+    }
+  }, [submitFreeze])
 
   const allWallets = data?.wallets ?? []
   const filtered = allWallets
@@ -537,25 +577,27 @@ export default function WalletsPage() {
                                   </div>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                  <Link href={`/admin/transactions?wallet=${encodeURIComponent(w.owner_name)}`}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/15 text-blue-300 text-xs font-medium hover:bg-blue-500/25 transition-colors">
                                     <Eye className="w-3 h-3" /> Voir transactions
-                                  </motion.button>
+                                  </Link>
+                                  {isFrozen && w.freeze_reason && (
+                                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/5 text-red-300/80 text-xs font-medium max-w-[220px] truncate"
+                                      title={w.freeze_reason}>
+                                      <AlertTriangle className="w-3 h-3 shrink-0" /> {w.freeze_reason}
+                                    </span>
+                                  )}
                                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 transition-colors">
-                                    <Plus className="w-3 h-3" /> Créditer
-                                  </motion.button>
-                                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-[#6b6b8a] text-xs font-medium hover:bg-white/10 hover:text-white transition-colors">
-                                    <MoreHorizontal className="w-3 h-3" /> Actions
-                                  </motion.button>
-                                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                                    className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                    onClick={() => onFreezeClick(w)}
+                                    disabled={freezingId === w.vendor_id}
+                                    className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                                       isFrozen
                                         ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
                                         : "bg-red-500/10 text-red-400 hover:bg-red-500/20"
                                     }`}>
-                                    <Lock className="w-3 h-3" />
+                                    {freezingId === w.vendor_id
+                                      ? <RefreshCw className="w-3 h-3 animate-spin" />
+                                      : <Lock className="w-3 h-3" />}
                                     {isFrozen ? "Dégeler" : "Geler"}
                                   </motion.button>
                                 </div>
@@ -796,6 +838,64 @@ export default function WalletsPage() {
         </div>
       </div>
       </div>
+
+      {/* ── FREEZE MODAL (reason required by the API) ─────────────────────── */}
+      <AnimatePresence>
+        {freezeModal && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => { if (!freezingId) setFreezeModal(null) }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-md bg-[#111118] border border-[#2a2a3e] rounded-2xl overflow-hidden shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-[#1e1e2e]">
+                <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center shrink-0">
+                  <Lock className="w-4 h-4 text-red-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-white font-semibold text-sm">Geler le portefeuille</p>
+                  <p className="text-[#6b6b8a] text-xs truncate">{freezeModal.owner_name}</p>
+                </div>
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                <p className="text-[#9ca3af] text-xs leading-relaxed">
+                  Le vendeur ne pourra plus retirer ses fonds et sera notifié. Une raison est obligatoire et sera journalisée.
+                </p>
+                <textarea
+                  value={freezeReason}
+                  onChange={e => setFreezeReason(e.target.value)}
+                  rows={3}
+                  autoFocus
+                  placeholder="Raison du gel (ex. suspicion de fraude, litige client en cours…)"
+                  className="w-full bg-[#16161f] border border-[#2a2a3e] rounded-xl px-3 py-2.5 text-white text-sm outline-none focus:border-red-500/50 transition-colors resize-none placeholder-[#4a4a6a]"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#1e1e2e]">
+                <button
+                  onClick={() => { if (!freezingId) setFreezeModal(null) }}
+                  disabled={!!freezingId}
+                  className="px-4 py-2 rounded-xl text-sm font-medium text-[#9ca3af] hover:text-white hover:bg-white/5 transition-colors disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={() => submitFreeze(freezeModal, true, freezeReason.trim())}
+                  disabled={!freezeReason.trim() || !!freezingId}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-red-500/90 text-white hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {freezingId ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
+                  Confirmer le gel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -10,8 +10,17 @@ import {
   Navigation, Wallet, CreditCard, FileText, Activity,
   ShieldCheck, MessageCircle, Bell, MapPin, Settings,
   Layers, Globe, Users, Lock, Plug, Database, Headphones, ChevronDown,
-  Tag, Megaphone, Banknote, FolderTree, Menu, X,
+  Tag, Megaphone, Banknote, FolderTree, Menu, X, LogOut,
 } from "lucide-react"
+
+async function adminSignOut() {
+  try {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+  } finally {
+    window.location.href = "/auth/login"
+  }
+}
 
 const NAV = [
   { icon: LayoutDashboard, label: "Tableau de bord",    href: "/admin"                       },
@@ -125,6 +134,15 @@ function ProfileFooter({ profile }: { profile: AdminProfile | null }) {
           <p className="text-[10px] text-[#6b6b8a] mt-0.5 leading-none truncate">{roleLabel}</p>
           <p className="text-[10px] text-green-400 mt-0.5 leading-none font-medium">● En ligne</p>
         </div>
+        <button
+          type="button"
+          onClick={adminSignOut}
+          aria-label="Se déconnecter"
+          title="Se déconnecter"
+          className="shrink-0 p-2 rounded-lg text-[#6b6b8a] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+        </button>
       </div>
     </div>
   )

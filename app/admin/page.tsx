@@ -19,6 +19,25 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer,
   ReferenceLine, CartesianGrid } from "recharts"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
+import { createClient } from "@/lib/supabase/client"
+
+const ROLE_LABELS: Record<string, string> = {
+  super_admin: "Super Admin",
+  admin: "Administrateur",
+}
+function initialsFrom(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return "AD"
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase()
+}
+async function adminSignOut() {
+  try {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+  } finally {
+    window.location.href = "/auth/login"
+  }
+}
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 function fmtCFA(n: number) {
@@ -349,6 +368,7 @@ export default function AdminDashboardPage() {
   const [city,       setCity]       = useState("Toutes")
   const [notifOpen,  setNotifOpen]  = useState(false)
   const [userOpen,   setUserOpen]   = useState(false)
+  const [me,         setMe]         = useState<{ name: string; roleLabel: string; initials: string } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const notifRef  = useRef<HTMLDivElement>(null)
   const userRef   = useRef<HTMLDivElement>(null)
@@ -368,6 +388,27 @@ export default function AdminDashboardPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  // Real admin identity for the header (name, role, initials).
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name, role")
+          .eq("id", user.id)
+          .single()
+        if (cancelled) return
+        const name = prof?.full_name || user.email?.split("@")[0] || "Administrateur"
+        setMe({ name, roleLabel: ROLE_LABELS[prof?.role ?? ""] ?? "Compte admin", initials: initialsFrom(name) })
+      } catch { /* keep neutral fallback */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -682,11 +723,11 @@ export default function AdminDashboardPage() {
                 className="flex items-center gap-2 hover:opacity-80 transition-opacity"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shrink-0 ring-2 ring-transparent hover:ring-orange-500/40 transition-all">
-                  <span className="text-white font-bold text-xs">AD</span>
+                  <span className="text-white font-bold text-xs">{me?.initials ?? "AD"}</span>
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-white text-xs font-semibold leading-none">Admin</p>
-                  <p className="text-[10px] text-red-400 leading-none mt-0.5">Super Admin</p>
+                  <p className="text-white text-xs font-semibold leading-none truncate max-w-[120px]">{me?.name ?? "Administrateur"}</p>
+                  <p className="text-[10px] text-red-400 leading-none mt-0.5">{me?.roleLabel ?? "Compte admin"}</p>
                 </div>
                 <ChevronDown className={`w-3.5 h-3.5 text-[#6b6b8a] transition-transform ${userOpen ? "rotate-180" : ""}`} />
               </button>
@@ -704,11 +745,11 @@ export default function AdminDashboardPage() {
                     <div className="px-4 py-3 border-b border-[#1e1e2e]">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shrink-0">
-                          <span className="text-white font-bold text-sm">AD</span>
+                          <span className="text-white font-bold text-sm">{me?.initials ?? "AD"}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-white text-sm font-semibold truncate">Administrateur</p>
-                          <p className="text-red-400 text-[10px]">Super Admin</p>
+                          <p className="text-white text-sm font-semibold truncate">{me?.name ?? "Administrateur"}</p>
+                          <p className="text-red-400 text-[10px]">{me?.roleLabel ?? "Compte admin"}</p>
                         </div>
                       </div>
                     </div>
@@ -733,7 +774,7 @@ export default function AdminDashboardPage() {
                     <div className="border-t border-[#1e1e2e] py-1.5">
                       <button
                         className="flex items-center gap-3 px-4 py-2.5 w-full hover:bg-red-500/10 transition-colors text-left"
-                        onClick={() => setUserOpen(false)}
+                        onClick={() => { setUserOpen(false); adminSignOut() }}
                       >
                         <LogOut className="w-4 h-4 text-red-400" />
                         <span className="text-red-400 text-sm font-medium">Se déconnecter</span>

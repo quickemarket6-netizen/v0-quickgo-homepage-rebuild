@@ -42,6 +42,8 @@ export async function GET() {
     const pending = Number(w.pending_balance ?? 0)
     return {
       id: w.vendor_id ? `WAL-${String(w.vendor_id).slice(0, 8)}` : "WAL-?",
+      // Real vendor id — required to target the freeze/unfreeze endpoint.
+      vendor_id: w.vendor_id,
       owner_name: vendorName(w.vendors),
       owner_type: "vendor" as const,
       balance,
@@ -49,6 +51,7 @@ export async function GET() {
       total_earned: Number(w.total_earned ?? 0),
       total_withdrawn: Number(w.total_withdrawn ?? 0),
       status: w.frozen ? "frozen" : balance > 0 ? "active" : "idle",
+      freeze_reason: w.freeze_reason ?? null,
       last_transaction: w.updated_at ?? new Date().toISOString(),
       // No per-wallet transaction counter column exists in the migration.
       transactions_count: 0,
