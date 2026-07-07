@@ -1,6 +1,7 @@
 "use client"
 
 import { motion, useInView } from "framer-motion"
+import { useT } from "@/lib/i18n/context"
 import { useRef, useState, useEffect } from "react"
 import Image from "next/image"
 import { Star, Quote, ChevronLeft, ChevronRight, Verified, MapPin } from "lucide-react"
@@ -28,6 +29,7 @@ function timeAgo(iso: string) {
 }
 
 export function TestimonialsSection() {
+  const { t } = useT()
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: "-100px" })
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -124,17 +126,17 @@ export function TestimonialsSection() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-quickgo-lime/10 border border-quickgo-lime/20 mb-6"
           >
             <Star className="h-4 w-4 text-quickgo-lime fill-quickgo-lime" />
-            <span className="text-sm font-medium text-quickgo-lime">AVIS CLIENTS</span>
+            <span className="text-sm font-medium text-quickgo-lime">{t("testi.badge")}</span>
           </motion.div>
           
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 text-balance">
-            Ce que nos clients{" "}
+            {t("testi.title.pre")}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-quickgo-lime to-quickgo-cyan">
-              disent de nous
+              {t("testi.title.post")}
             </span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
-            Des avis authentiques, déposés après des commandes réellement livrées.
+            {t("testi.subtitle")}
           </p>
         </motion.div>
 

@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { InstallAppButton } from "@/components/pwa/InstallAppButton"
 import { NewsletterForm } from "@/components/footer/NewsletterForm"
+import { useT } from "@/lib/i18n/context"
 
 const footerLinks = {
   company: {
@@ -79,6 +80,7 @@ const trustBadges = [
 ]
 
 export function Footer() {
+  const { t } = useT()
   return (
     <footer className="bg-card border-t border-border">
       {/* Trust Badges */}
@@ -126,7 +128,7 @@ export function Footer() {
               />
             </Link>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              La super application de livraison au Cameroun. Courses, restaurants, pharmacies, et bien plus encore.
+              {t("footer.tagline")}
             </p>
             
             {/* Contact Info */}
@@ -189,10 +191,10 @@ export function Footer() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-foreground mb-1">
-                Restez informé
+                {t("footer.newsletter.title")}
               </p>
               <p className="text-sm text-muted-foreground">
-                Offres, nouveautés et bons plans — directement dans votre boîte mail.
+                {t("footer.newsletter.desc")}
               </p>
             </div>
             <NewsletterForm />
@@ -205,10 +207,10 @@ export function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
               <p className="text-sm font-semibold text-foreground mb-2">
-                QuickGo sur votre écran d&apos;accueil
+                {t("footer.app.title")}
               </p>
               <p className="text-sm text-muted-foreground">
-                Installez l&apos;application web — légère, rapide, avec notifications.
+                {t("footer.app.desc")}
               </p>
             </div>
             <InstallAppButton />
@@ -221,7 +223,7 @@ export function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              © 2025 QuickGo. Tous droits réservés.
+              © 2025 QuickGo. {t("footer.rights")}
             </p>
             <div className="flex items-center gap-6">
               <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">

@@ -28,17 +28,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
+import { useT } from "@/lib/i18n/context"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
 import type { User as SupabaseUser, AuthChangeEvent, Session, AuthResponse } from "@supabase/supabase-js"
 
 const navLinks = [
-  { href: "/", label: "Accueil", active: true },
-  { href: "/marketplace", label: "Explorer" },
-  { href: "/marketplace/shops", label: "Magasins" },
-  { href: "/marketplace/offers", label: "Offres", badge: "🔥" },
-  { href: "/delivery", label: "Livraison Express" },
-  { href: "/wallet", label: "QuickGo Pay" },
-  { href: "/vendors", label: "Devenir Vendeur" },
-  { href: "/ai", label: "AI Assistant", badge: "Nouveau" },
+  { href: "/", key: "nav.home", active: true },
+  { href: "/marketplace", key: "nav.explore" },
+  { href: "/marketplace/shops", key: "nav.shops" },
+  { href: "/marketplace/offers", key: "nav.offers", badge: "🔥" },
+  { href: "/delivery", key: "nav.delivery" },
+  { href: "/wallet", key: "nav.pay" },
+  { href: "/vendors", key: "nav.vendor" },
+  { href: "/ai", key: "nav.ai", badgeKey: "nav.badge.new" },
 ]
 
 const cities = [
@@ -51,6 +53,7 @@ const cities = [
 ]
 
 export function Navbar() {
+  const { t } = useT()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [selectedCity, setSelectedCity] = useState("Yaoundé")
@@ -174,7 +177,7 @@ export function Navbar() {
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Rechercher un produit, magasin, restaurant..."
+                  placeholder={t("nav.search")}
                   className="w-full h-11 pl-11 pr-4 rounded-full bg-muted/50 border border-border/50 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                 />
               </div>
@@ -192,10 +195,10 @@ export function Navbar() {
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {link.label}
-                  {link.badge && (
+                  {t(link.key)}
+                  {(link.badge || link.badgeKey) && (
                     <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-secondary text-secondary-foreground rounded-full">
-                      {link.badge}
+                      {link.badge ?? t(link.badgeKey!)}
                     </span>
                   )}
                 </Link>
@@ -238,8 +241,11 @@ export function Navbar() {
                 href="/support"
                 className="hidden lg:block px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Aide & Support
+                {t("nav.help")}
               </Link>
+
+              {/* Language switcher */}
+              <LanguageSwitcher className="hidden sm:inline-flex" />
 
               {/* Theme Toggle */}
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
@@ -267,31 +273,31 @@ export function Navbar() {
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuItem asChild>
                       <Link href={dashboardHref} className="flex items-center gap-2">
-                        <LayoutDashboard className="h-4 w-4" /> Mon tableau de bord
+                        <LayoutDashboard className="h-4 w-4" /> {t("nav.dashboard")}
                       </Link>
                     </DropdownMenuItem>
                     {profile?.role === "vendor" && (
                       <DropdownMenuItem asChild>
                         <Link href="/vendor/dashboard" className="flex items-center gap-2">
-                          <Store className="h-4 w-4" /> Espace vendeur
+                          <Store className="h-4 w-4" /> {t("nav.vendorSpace")}
                         </Link>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard/settings" className="flex items-center gap-2">
-                        <User className="h-4 w-4" /> Mon profil
+                        <User className="h-4 w-4" /> {t("nav.profile")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive flex items-center gap-2">
-                      <LogOut className="h-4 w-4" /> Se déconnecter
+                      <LogOut className="h-4 w-4" /> {t("nav.signout")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
                 <Link href="/auth/login">
                   <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold px-4 lg:px-6">
-                    Se connecter
+                    {t("nav.signin")}
                   </Button>
                 </Link>
               )}
@@ -352,7 +358,7 @@ export function Navbar() {
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Rechercher..."
+                    placeholder={t("nav.search")}
                     className="w-full h-12 pl-11 pr-4 rounded-xl bg-muted border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                   />
                 </div>
@@ -373,6 +379,11 @@ export function Navbar() {
                   </select>
                 </div>
 
+                {/* Language switcher (mobile) */}
+                <div className="mb-6">
+                  <LanguageSwitcher className="w-full justify-center py-1" />
+                </div>
+
                 {/* Mobile Navigation Links */}
                 <nav className="space-y-1 mb-8">
                   {navLinks.map((link) => (
@@ -386,10 +397,10 @@ export function Navbar() {
                           : "text-foreground hover:bg-muted"
                       }`}
                     >
-                      {link.label}
-                      {link.badge && (
+                      {t(link.key)}
+                      {(link.badge || link.badgeKey) && (
                         <span className="px-2 py-0.5 text-xs font-semibold bg-secondary text-secondary-foreground rounded-full">
-                          {link.badge}
+                          {link.badge ?? t(link.badgeKey!)}
                         </span>
                       )}
                     </Link>
@@ -414,7 +425,7 @@ export function Navbar() {
                     </div>
                     <Link href={dashboardHref} onClick={() => setIsMobileMenuOpen(false)}>
                       <Button variant="outline" className="w-full h-12 font-semibold justify-start gap-2">
-                        <LayoutDashboard className="h-4 w-4" /> Tableau de bord
+                        <LayoutDashboard className="h-4 w-4" /> {t("nav.dashboard")}
                       </Button>
                     </Link>
                     <Button
@@ -422,19 +433,19 @@ export function Navbar() {
                       className="w-full h-12 font-semibold justify-start gap-2 text-destructive hover:text-destructive"
                       onClick={handleSignOut}
                     >
-                      <LogOut className="h-4 w-4" /> Se déconnecter
+                      <LogOut className="h-4 w-4" /> {t("nav.signout")}
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <Link href="/auth/login" className="block">
                       <Button className="w-full h-12 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold">
-                        Se connecter
+                        {t("nav.signin")}
                       </Button>
                     </Link>
                     <Link href="/auth/register" className="block">
                       <Button variant="outline" className="w-full h-12 font-semibold">
-                        Créer un compte
+                        {t("nav.signup")}
                       </Button>
                     </Link>
                   </div>

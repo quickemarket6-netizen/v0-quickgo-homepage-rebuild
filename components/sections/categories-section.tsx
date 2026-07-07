@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
+import { useT } from "@/lib/i18n/context"
 import Image from "next/image"
 import { ArrowRight } from "lucide-react"
 
@@ -75,6 +76,7 @@ const serviceCards = [
 ]
 
 export function CategoriesSection() {
+  const { t } = useT()
   return (
     <section className="py-16 lg:py-24 bg-background relative overflow-hidden">
       {/* Background Glow */}
@@ -91,10 +93,10 @@ export function CategoriesSection() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-            Explorez nos <span className="text-quickgo-blue">categories</span>
+{t("cat.title")}
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Tout ce dont vous avez besoin, livre chez vous en un temps record
+{t("cat.subtitle")}
           </p>
         </motion.div>
 

@@ -7,6 +7,7 @@ import { ArrowRight, Zap, Shield, Clock, Star, Users, CheckCircle2, Package, Vol
 import { Button } from "@/components/ui/button"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useT } from "@/lib/i18n/context"
 
 // Uniquement des faits vérifiables — pas de compteurs inventés
 const stats = [
@@ -27,6 +28,7 @@ const backgroundVideos = [
 
 export function HeroSection() {
   const router = useRouter()
+  const { t } = useT()
   const [heroQuery, setHeroQuery] = useState("")
   const [isMuted, setIsMuted] = useState(true)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
@@ -174,7 +176,7 @@ export function HeroSection() {
             >
               <Zap className="h-4 w-4 text-quickgo-lime" />
               <span className="text-sm font-medium text-quickgo-lime">
-                LIVRAISON RAPIDE & SECURISEE
+                {t("hero.badge")}
               </span>
             </motion.div>
 
@@ -185,12 +187,12 @@ export function HeroSection() {
               transition={{ delay: 0.3 }}
               className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-balance"
             >
-              <span className="text-white">Tout ce dont</span>
+              <span className="text-white">{t("hero.title1")}</span>
               <br />
-              <span className="text-white">vous avez besoin.</span>
+              <span className="text-white">{t("hero.title2")}</span>
               <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-quickgo-lime via-quickgo-cyan to-quickgo-blue">
-                Livre intelligemment.
+                {t("hero.title3")}
               </span>
             </motion.h1>
 
@@ -201,8 +203,7 @@ export function HeroSection() {
               transition={{ delay: 0.4 }}
               className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 text-pretty"
             >
-              Marketplace locale, livraison express, paiements securises, 
-              et bien plus encore dans une seule super app.
+              {t("hero.subtitle")}
             </motion.p>
 
             {/* Search Bar — recherche globale */}
@@ -221,8 +222,8 @@ export function HeroSection() {
               <input
                 value={heroQuery}
                 onChange={(e) => setHeroQuery(e.target.value)}
-                placeholder="Rechercher un produit, un restaurant, une pharmacie…"
-                aria-label="Rechercher sur QuickGo"
+                placeholder={t("hero.searchPlaceholder")}
+                aria-label={t("hero.searchBtn")}
                 className="w-full h-14 pl-13 pr-36 rounded-full bg-white/10 backdrop-blur-xl border border-white/15
                   text-white text-sm sm:text-base placeholder:text-white/35
                   focus:outline-none focus:border-quickgo-lime/60 focus:bg-white/15 transition-all"
@@ -234,7 +235,7 @@ export function HeroSection() {
                   font-semibold text-sm flex items-center gap-2 hover:bg-quickgo-lime/90 transition-all
                   shadow-[0_0_20px_rgba(191,255,0,0.25)]"
               >
-                Rechercher
+                {t("hero.searchBtn")}
                 <ArrowRight className="w-4 h-4 hidden sm:block" />
               </button>
             </motion.form>
@@ -251,7 +252,7 @@ export function HeroSection() {
                   size="lg"
                   className="w-full sm:w-auto h-14 px-8 bg-quickgo-lime text-background hover:bg-quickgo-lime/90 font-semibold text-base shadow-[0_0_30px_rgba(191,255,0,0.3)] transition-all hover:shadow-[0_0_50px_rgba(191,255,0,0.5)]"
                 >
-                  Commander maintenant
+                  {t("hero.cta1")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
@@ -261,7 +262,7 @@ export function HeroSection() {
                   variant="outline"
                   className="w-full sm:w-auto h-14 px-8 border-white/20 bg-white/5 hover:bg-white/10 font-semibold text-base text-white backdrop-blur-sm"
                 >
-                  Explorer les services
+                  {t("hero.cta2")}
                 </Button>
               </Link>
             </motion.div>
@@ -275,13 +276,13 @@ export function HeroSection() {
             >
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2 justify-center lg:justify-start">
                 <span className="flex items-center gap-1.5 text-sm text-white/80">
-                  <Shield className="h-4 w-4 text-quickgo-lime" /> Paiement sécurisé CinetPay
+                  <Shield className="h-4 w-4 text-quickgo-lime" /> {t("hero.trust1")}
                 </span>
                 <span className="flex items-center gap-1.5 text-sm text-white/80">
-                  <CheckCircle2 className="h-4 w-4 text-quickgo-lime" /> Cash à la livraison
+                  <CheckCircle2 className="h-4 w-4 text-quickgo-lime" /> {t("hero.trust2")}
                 </span>
                 <span className="flex items-center gap-1.5 text-sm text-white/80">
-                  <Star className="h-4 w-4 text-quickgo-lime" /> Avis vérifiés après livraison
+                  <Star className="h-4 w-4 text-quickgo-lime" /> {t("hero.trust3")}
                 </span>
               </div>
             </motion.div>

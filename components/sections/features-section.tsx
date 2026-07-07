@@ -1,5 +1,6 @@
 "use client"
 
+import { useT } from "@/lib/i18n/context"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -10,37 +11,14 @@ import {
 } from "lucide-react"
 
 const features = [
-  {
-    image: "/images/premium/livraison-express.jpg",
-    title: "Livraison ultra rapide",
-    description: "En moins de 30 minutes dans toute la ville",
-    cta: "Commander maintenant",
-    href: "/marketplace",
-  },
-  {
-    image: "/images/premium/securise.jpg",
-    title: "Paiement 100% securise",
-    description: "Vos transactions sont protegees et cryptees",
-    cta: "En savoir plus",
-    href: "/wallet",
-  },
-  {
-    image: "/images/premium/support-dedie.jpg",
-    title: "Support 24/7",
-    description: "Notre equipe est disponible a tout moment",
-    cta: "Contacter le support",
-    href: "/support",
-  },
-  {
-    image: "/images/premium/developpez-business.jpg",
-    title: "Devenez vendeur",
-    description: "Developpez votre business avec QuickGo",
-    cta: "Commencer maintenant",
-    href: "/vendors",
-  },
+  { image: "/images/premium/livraison-express.jpg",    k: "feat.fast",    href: "/marketplace" },
+  { image: "/images/premium/securise.jpg",             k: "feat.secure",  href: "/wallet" },
+  { image: "/images/premium/support-dedie.jpg",        k: "feat.support", href: "/support" },
+  { image: "/images/premium/developpez-business.jpg",  k: "feat.vendor",  href: "/vendors" },
 ]
 
 export function FeaturesSection() {
+  const { t } = useT()
   return (
     <section className="py-16 lg:py-24 bg-black relative overflow-hidden">
       {/* Background pattern */}
@@ -58,7 +36,7 @@ export function FeaturesSection() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
-            Pourquoi choisir <span className="text-lime-500">QuickGo</span> ?
+{t("feat.title.pre")} <span className="text-lime-500">QuickGo</span> {t("feat.title.post")}
           </h2>
           <p className="text-zinc-400 max-w-2xl mx-auto">
             Des services premium pour une experience exceptionnelle
@@ -69,7 +47,7 @@ export function FeaturesSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-16">
           {features.map((feature, index) => (
             <motion.div
-              key={feature.title}
+              key={feature.k}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -80,7 +58,7 @@ export function FeaturesSection() {
                   {/* Image */}
                   <Image
                     src={feature.image}
-                    alt={feature.title}
+                    alt={t(feature.k + ".title")}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
@@ -97,15 +75,15 @@ export function FeaturesSection() {
                   {/* Content */}
                   <div className="absolute bottom-0 left-0 right-0 p-5">
                     <h3 className="text-lg font-bold text-white mb-1 group-hover:text-lime-400 transition-colors duration-300">
-                      {feature.title}
+                      {t(feature.k + ".title")}
                     </h3>
                     <p className="text-sm text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300 mb-3">
-                      {feature.description}
+                      {t(feature.k + ".desc")}
                     </p>
                     
                     {/* CTA */}
                     <span className="inline-flex items-center gap-2 text-sm font-medium text-lime-500 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      {feature.cta}
+                      {t(feature.k + ".cta")}
                       <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </div>

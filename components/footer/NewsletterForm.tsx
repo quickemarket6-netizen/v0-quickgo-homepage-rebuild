@@ -3,10 +3,12 @@
 import { useState } from "react"
 import { Mail, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useT } from "@/lib/i18n/context"
 import { Input } from "@/components/ui/input"
 
 // Capture d'email newsletter — visiteurs non connectés inclus.
 export function NewsletterForm() {
+  const { t } = useT()
   const [email, setEmail] = useState("")
   const [state, setState] = useState<"idle" | "loading" | "done">("idle")
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +41,7 @@ export function NewsletterForm() {
   if (state === "done") {
     return (
       <div className="flex items-center gap-2 text-sm text-quickgo-lime">
-        <Check className="w-4 h-4" /> Merci ! Vous recevrez nos offres et nouveautés.
+        <Check className="w-4 h-4" /> {t("footer.newsletter.done")}
       </div>
     )
   }
@@ -53,13 +55,13 @@ export function NewsletterForm() {
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setError(null) }}
-            placeholder="Votre email"
+            placeholder={t("footer.newsletter.placeholder")}
             className="pl-9 h-11 rounded-xl"
             aria-label="Adresse email"
           />
         </div>
         <Button type="submit" disabled={state === "loading" || !email.trim()} className="h-11 rounded-xl px-5">
-          {state === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : "S'inscrire"}
+          {state === "loading" ? <Loader2 className="w-4 h-4 animate-spin" /> : t("footer.newsletter.btn")}
         </Button>
       </div>
       {error && <p className="text-xs text-destructive mt-2">{error}</p>}

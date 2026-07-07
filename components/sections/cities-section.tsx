@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useT } from "@/lib/i18n/context"
 import Link from "next/link"
 import Image from "next/image"
 import { MapPin, ArrowRight, ChevronRight } from "lucide-react"
@@ -45,6 +46,7 @@ const cities = [
 ]
 
 export function CitiesSection() {
+  const { t } = useT()
   return (
     <section className="py-16 lg:py-24 bg-muted/30 relative overflow-hidden">
       {/* Background Pattern */}
@@ -60,14 +62,14 @@ export function CitiesSection() {
         >
           <div>
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">
-              Choisissez votre ville
+              {t("cities.title")}
             </h2>
             <p className="text-lg text-muted-foreground">
-              QuickGo est disponible dans les principales villes du Cameroun
+              {t("cities.subtitle")}
             </p>
           </div>
           <Button variant="ghost" className="hidden sm:flex items-center gap-2 text-primary mt-4 sm:mt-0">
-            Voir toutes les villes
+            {t("cities.seeAll")}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </motion.div>
