@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-import { verifyAdmin } from "@/lib/payments/security"
+import { verifyAdmin, getClientIP } from "@/lib/payments/security"
+import { logAdminAction } from "@/lib/security/log-admin-action"
 
 export async function GET(req: NextRequest) {
   const admin = await verifyAdmin()
@@ -55,6 +56,12 @@ export async function PATCH(req: NextRequest) {
   const { id, status } = await req.json()
   if (!id || !status) return NextResponse.json({ error: "id et status requis" }, { status: 400 })
 
+  const { data: prev } = await supabase
+    .from("orders")
+    .select("status")
+    .eq("id", id)
+    .single()
+
   const { data, error } = await supabase
     .from("orders")
     .update({ status, updated_at: new Date().toISOString() })
@@ -63,5 +70,18 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Audit — an admin forcing an order status (esp. cancelled/refunded) is a
+  // privileged override worth tracing.
+  await logAdminAction({
+    adminId: admin.adminId!,
+    action: status === "cancelled" ? "reject" : "update",
+    resource: "order",
+    resourceId: id,
+    before: prev ?? undefined,
+    after: { status },
+    ip: getClientIP(req),
+  })
+
   return NextResponse.json(data)
 }

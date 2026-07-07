@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
-import { verifyAdmin } from "@/lib/payments/security"
+import { verifyAdmin, getClientIP } from "@/lib/payments/security"
+import { logAdminAction } from "@/lib/security/log-admin-action"
 
 const VALID_STATUSES = ["online", "delivering", "offline", "suspended"]
 
@@ -72,6 +73,12 @@ export async function PATCH(req: NextRequest) {
   if (!id || !status)                  return NextResponse.json({ error: "id et status requis" }, { status: 400 })
   if (!VALID_STATUSES.includes(status)) return NextResponse.json({ error: "status invalide"    }, { status: 400 })
 
+  const { data: prev } = await supabase
+    .from("drivers")
+    .select("status")
+    .eq("id", id)
+    .single()
+
   const { data, error } = await supabase
     .from("drivers")
     .update({ status })
@@ -80,6 +87,18 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Audit — suspending or reactivating a driver is a privileged action.
+  await logAdminAction({
+    adminId: admin.adminId!,
+    action: status === "suspended" ? "block" : "update",
+    resource: "driver",
+    resourceId: id,
+    before: prev ?? undefined,
+    after: { status },
+    ip: getClientIP(req),
+  })
+
   return NextResponse.json(data)
 }
 
@@ -138,6 +157,16 @@ export async function POST(req: NextRequest) {
     .update({ role: "driver" })
     .eq("id", profile.id)
   if (roleErr) console.error("[admin/drivers] profile role update failed:", roleErr.message)
+
+  // Audit — enrolling a user as a driver.
+  await logAdminAction({
+    adminId: admin.adminId!,
+    action: "create",
+    resource: "driver",
+    resourceId: driver.id,
+    after: { user_id: profile.id, email: email.trim(), vehicle_type: vehicle_type ?? "moto" },
+    ip: getClientIP(req),
+  })
 
   return NextResponse.json({ success: true, driver_id: driver.id }, { status: 201 })
 }

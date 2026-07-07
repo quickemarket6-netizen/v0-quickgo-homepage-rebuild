@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
-import { verifyAdmin } from "@/lib/payments/security"
+import { verifyAdmin, getClientIP } from "@/lib/payments/security"
+import { logAdminAction } from "@/lib/security/log-admin-action"
 
 export async function GET(req: NextRequest) {
   const admin = await verifyAdmin()
@@ -66,6 +67,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Rôle non autorisé via cette action" }, { status: 400 })
   }
 
+  const { data: prevProfile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", id)
+    .single()
+
   const { data, error } = await supabase
     .from("profiles")
     .update({ role })
@@ -74,6 +81,18 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Audit — changing a user's role (incl. suspension) is a privileged action.
+  await logAdminAction({
+    adminId: admin.adminId!,
+    action: role === "suspended" ? "block" : "update",
+    resource: "user",
+    resourceId: id,
+    before: prevProfile ?? undefined,
+    after: { role },
+    ip: getClientIP(req),
+  })
+
   return NextResponse.json(data)
 }
 
@@ -120,6 +139,16 @@ export async function POST(req: NextRequest) {
     phone: phone?.trim() || null,
     role: userRole,
   }, { onConflict: "id" })
+
+  // Audit — account creation by an admin.
+  await logAdminAction({
+    adminId: admin.adminId!,
+    action: "create",
+    resource: "user",
+    resourceId: created.user.id,
+    after: { email: email.trim(), role: userRole },
+    ip: getClientIP(req),
+  })
 
   return NextResponse.json({ success: true, user_id: created.user.id }, { status: 201 })
 }

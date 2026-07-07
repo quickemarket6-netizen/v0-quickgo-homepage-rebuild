@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-import { verifyAdmin } from "@/lib/payments/security"
+import { verifyAdmin, getClientIP } from "@/lib/payments/security"
+import { logAdminAction } from "@/lib/security/log-admin-action"
 
 export async function GET(req: NextRequest) {
   const admin = await verifyAdmin()
@@ -73,6 +74,13 @@ export async function PATCH(req: NextRequest) {
   if (is_verified !== undefined) updates.is_verified = is_verified
   if (commission_rate !== undefined) updates.commission_rate = commission_rate
 
+  // Snapshot the fields we're about to change, for the audit trail.
+  const { data: before } = await supabase
+    .from("vendors")
+    .select("status, is_verified, commission_rate")
+    .eq("id", id)
+    .single()
+
   const { data, error } = await supabase
     .from("vendors")
     .update(updates)
@@ -81,5 +89,19 @@ export async function PATCH(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Audit — approving/suspending/verifying a vendor or changing its commission
+  // is a privileged action and must leave a trace.
+  const action = status === "active" ? "approve" : status === "suspended" ? "block" : "update"
+  await logAdminAction({
+    adminId: admin.adminId!,
+    action,
+    resource: "vendor",
+    resourceId: id,
+    before: before ?? undefined,
+    after: updates,
+    ip: getClientIP(req),
+  })
+
   return NextResponse.json(data)
 }
