@@ -105,7 +105,8 @@ function monthsSince(iso: string) {
 }
 
 export default function DriverDashboardPage() {
-  const [isOnline, setIsOnline] = useState(true)
+  const [isOnline, setIsOnline] = useState(false)
+  const [togglingOnline, setTogglingOnline] = useState(false)
   const [driver, setDriver] = useState<DriverData | null>(null)
   const [activeDelivery, setActiveDelivery] = useState<ActiveDelivery | null>(null)
   const [ranking, setRanking] = useState<RankingData | null>(null)
@@ -120,7 +121,12 @@ export default function DriverDashboardPage() {
           fetch("/api/driver/active-delivery"),
           fetch("/api/driver/ranking"),
         ])
-        if (!cancelled && driverRes.ok) setDriver(await driverRes.json())
+        if (!cancelled && driverRes.ok) {
+          const d: DriverData = await driverRes.json()
+          setDriver(d)
+          // Sync the toggle from the real DB status (source of truth).
+          setIsOnline(d.status === "online" || d.status === "delivering")
+        }
         if (!cancelled && deliveryRes.ok) setActiveDelivery(await deliveryRes.json())
         if (!cancelled && rankingRes.ok) setRanking(await rankingRes.json())
       } catch {
@@ -132,6 +138,30 @@ export default function DriverDashboardPage() {
     load()
     return () => { cancelled = true }
   }, [])
+
+  async function toggleOnline() {
+    if (togglingOnline) return
+    // A courier mid-delivery can't go offline from here.
+    if (driver?.status === "delivering") return
+    const next = !isOnline
+    setIsOnline(next) // optimistic
+    setTogglingOnline(true)
+    try {
+      const res = await fetch("/api/driver", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_online: next }),
+      })
+      if (!res.ok) throw new Error("update failed")
+      const updated = await res.json()
+      setDriver((prev) => (prev ? { ...prev, status: updated.status ?? prev.status } : prev))
+      setIsOnline(updated.status === "online" || updated.status === "delivering")
+    } catch {
+      setIsOnline(!next) // revert on failure
+    } finally {
+      setTogglingOnline(false)
+    }
+  }
 
   const firstName = driver?.user?.full_name?.split(" ")[0] ?? "Chauffeur"
   const rating = driver?.rating ?? 0
@@ -238,8 +268,10 @@ export default function DriverDashboardPage() {
                   {isOnline ? "En ligne" : "Hors ligne"}
                 </span>
                 <button
-                  onClick={() => setIsOnline(!isOnline)}
-                  className={`w-12 h-6 rounded-full transition-all relative ${
+                  onClick={toggleOnline}
+                  disabled={togglingOnline || driver?.status === "delivering"}
+                  title={driver?.status === "delivering" ? "Livraison en cours — indisponible" : undefined}
+                  className={`w-12 h-6 rounded-full transition-all relative disabled:opacity-60 disabled:cursor-not-allowed ${
                     isOnline ? "bg-quickgo-lime" : "bg-gray-600"
                   }`}
                 >

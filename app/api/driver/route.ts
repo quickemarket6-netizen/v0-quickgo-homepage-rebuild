@@ -144,28 +144,43 @@ export async function PUT(request: Request) {
   
   const body = await request.json()
   const { is_online, current_latitude, current_longitude } = body
-  
+
   const updateData: any = { updated_at: new Date().toISOString() }
-  
+
+  // Online/offline toggle. `drivers.status` is the single source of truth read
+  // by dispatch (/api/delivery, /api/driver/available, control-center); we keep
+  // the legacy `is_online` boolean in sync for backward compatibility.
   if (typeof is_online === "boolean") {
+    // Never clobber an active or suspended driver: a courier mid-delivery stays
+    // "delivering", and a suspended account can't bring itself back online.
+    const { data: current } = await supabase
+      .from("drivers")
+      .select("status")
+      .eq("user_id", user.id)
+      .single()
+
+    const locked = current?.status === "delivering" || current?.status === "suspended"
+    if (!locked) {
+      updateData.status = is_online ? "online" : "offline"
+    }
     updateData.is_online = is_online
   }
-  
+
   if (current_latitude && current_longitude) {
     updateData.current_latitude = current_latitude
     updateData.current_longitude = current_longitude
   }
-  
+
   const { data, error } = await supabase
     .from("drivers")
     .update(updateData)
     .eq("user_id", user.id)
     .select()
     .single()
-  
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
-  
+
   return NextResponse.json(data)
 }
