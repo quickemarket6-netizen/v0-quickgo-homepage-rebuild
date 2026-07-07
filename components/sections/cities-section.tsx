@@ -25,14 +25,14 @@ const cities = [
     id: "bafoussam",
     name: "Bafoussam",
     subtitle: "Livraison rapide",
-    available: true,
+    available: false,
     image: "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&h=400&fit=crop",
   },
   {
     id: "bamenda",
     name: "Bamenda",
     subtitle: "Livraison rapide",
-    available: true,
+    available: false,
     image: "https://images.unsplash.com/photo-1514924013411-cbf25faa35bb?w=600&h=400&fit=crop",
   },
   {
@@ -82,7 +82,7 @@ export function CitiesSection() {
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
             >
-              <Link href={city.available ? `/marketplace?city=${city.id}` : "#"}>
+              <Link href={city.available ? `/livraison/${city.id}` : "#"}>
                 <div className={`group relative h-[200px] lg:h-[240px] rounded-2xl overflow-hidden cursor-pointer ${!city.available && "opacity-70"}`}>
                   {/* Background */}
                   {city.isComingSoon ? (

@@ -124,13 +124,36 @@ export default function MarketplacePage() {
   const [data, setData] = useState<HomeData | null>(null)
   const [offers, setOffers] = useState<OfferRow[]>([])
   const [loading, setLoading] = useState(true)
+  // Visiteur non connecté : le catalogue public remplace les données perso
+  const [guest, setGuest] = useState(false)
+  const [guestProducts, setGuestProducts] = useState<ProductRow[]>([])
   const [heroIdx, setHeroIdx] = useState(0)
   const [orderTab, setOrderTab] = useState<"active" | "done" | "cancelled">("active")
   const heroTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     fetch("/api/marketplace/home")
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => {
+        if (r.status === 401) {
+          // Invité : montrer le catalogue au lieu d'une coquille vide —
+          // le funnel homepage → marketplace ne doit jamais mourir ici
+          setGuest(true)
+          fetch("/api/products?limit=12")
+            .then((pr) => (pr.ok ? pr.json() : null))
+            .then((pd) => {
+              const rows = (pd?.data ?? []) as Array<{
+                id: string; name: string; price: number; original_price: number | null
+                image_url: string | null; rating: number | null
+                vendor: { name: string; slug: string } | null
+                category: { name: string } | null
+              }>
+              setGuestProducts(rows)
+            })
+            .catch(() => {})
+          return null
+        }
+        return r.ok ? r.json() : null
+      })
       .then((d) => { if (d) setData(d) })
       .finally(() => setLoading(false))
     fetch("/api/marketplace/offers")
@@ -169,6 +192,7 @@ export default function MarketplacePage() {
   const xpPercent = Math.min(100, lvl.max > 0 ? (lvl.current / lvl.max) * 100 : 0)
 
   const tabOrders = orderTab === "active" ? activeOrders : orderTab === "done" ? doneOrders : cancelledOrders
+  const displayProducts = guest ? guestProducts : (data?.products ?? [])
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
@@ -227,6 +251,19 @@ export default function MarketplacePage() {
         {/* User Profile + XP */}
         {loading ? (
           <div className="mx-3 mb-3 p-3 rounded-2xl bg-[#16161f] h-24 animate-pulse" />
+        ) : guest ? (
+          <div className="mx-3 mb-3 p-4 rounded-2xl bg-[#16161f] border border-[#1e1e2e] space-y-2">
+            <p className="text-white font-semibold text-sm">Bienvenue sur QuickGo 👋</p>
+            <p className="text-xs text-white/40">Connectez-vous pour commander et suivre vos livraisons.</p>
+            <Link href="/auth/login?next=/marketplace"
+              className="block text-center py-2 rounded-xl bg-[#3b82f6] text-white text-xs font-bold hover:bg-[#3b82f6]/90 transition-colors">
+              Se connecter
+            </Link>
+            <Link href="/auth/register"
+              className="block text-center py-2 rounded-xl bg-white/5 text-white/70 text-xs font-semibold hover:bg-white/10 transition-colors">
+              Créer un compte
+            </Link>
+          </div>
         ) : profile ? (
           <div className="mx-3 mb-3 p-3 rounded-2xl bg-[#16161f] border border-[#1e1e2e]">
             <div className="flex items-center gap-2 mb-2">
@@ -348,17 +385,17 @@ export default function MarketplacePage() {
           {/* Recommended Products */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-semibold text-sm">Recommandé pour vous</h3>
-              <Link href="/marketplace/shops" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Tout voir</Link>
+              <h3 className="text-white font-semibold text-sm">{guest ? "Produits populaires" : "Recommandé pour vous"}</h3>
+              <Link href="/marketplace/products" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Tout voir</Link>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="w-36 shrink-0 rounded-2xl h-52 bg-[#16161f] animate-pulse" />
                 ))
-              ) : data?.products.length === 0 ? (
+              ) : displayProducts.length === 0 ? (
                 <p className="text-white/30 text-sm">Aucun produit pour le moment</p>
-              ) : (data?.products ?? []).map((product) => (
+              ) : displayProducts.map((product) => (
                 <motion.div key={product.id} whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
                   <Link href={`/marketplace/product/${product.id}`}
                     className="block w-36 rounded-2xl bg-[#16161f]/80 backdrop-blur-xl border border-[#1e1e2e] overflow-hidden
@@ -433,6 +470,27 @@ export default function MarketplacePage() {
       {/* ── Right Sidebar ── */}
       <aside className="hidden xl:flex w-[300px] flex-col bg-[#111118] border-l border-[#1e1e2e] sticky top-0 h-screen overflow-y-auto">
         <div className="p-4 space-y-4">
+          {/* Invité : CTA compte au lieu des widgets personnels */}
+          {guest && (
+            <div className="bg-gradient-to-br from-[#3b82f6]/15 to-[#a3e635]/10 rounded-2xl border border-[#3b82f6]/25 p-5 space-y-3">
+              <p className="text-white font-bold">Tout le Cameroun, livré chez vous</p>
+              <ul className="space-y-1.5 text-xs text-white/50">
+                <li>🛵 Livraison express à Yaoundé & Douala</li>
+                <li>💳 Orange Money, MTN MoMo, cash à la livraison</li>
+                <li>🎁 1 000 F offerts par filleul parrainé</li>
+              </ul>
+              <Link href="/auth/register"
+                className="block text-center py-2.5 rounded-xl bg-[#a3e635] text-black text-sm font-bold hover:bg-[#a3e635]/90 transition-colors">
+                Créer mon compte gratuitement
+              </Link>
+              <Link href="/marketplace/products"
+                className="block text-center py-2.5 rounded-xl bg-white/5 text-white/70 text-sm font-semibold hover:bg-white/10 transition-colors">
+                Explorer le catalogue
+              </Link>
+            </div>
+          )}
+
+          {!guest && (<>
           {/* Wallet */}
           <div className="bg-[#16161f]/80 backdrop-blur-xl rounded-2xl border border-[#1e1e2e] p-4
             hover:border-[#3b82f6]/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.06)] transition-all duration-300">
@@ -524,6 +582,8 @@ export default function MarketplacePage() {
               )
             })}
           </div>
+
+          </>)}
 
           {/* Live Tracking */}
           {liveOrder && (
