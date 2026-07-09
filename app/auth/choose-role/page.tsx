@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowRight, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 
 const DASHBOARD: Record<string, string> = {
@@ -42,15 +43,9 @@ const roles = [
     glowColor: "rgba(249,115,22,0.35)",
     borderColor: "rgba(249,115,22,0.5)",
   },
-  {
-    id: "admin",
-    emoji: "🛡️",
-    title: "Administrateur",
-    description: "Gérez la plateforme, les utilisateurs et les opérations.",
-    color: "#8b5cf6",
-    glowColor: "rgba(139,92,246,0.35)",
-    borderColor: "rgba(139,92,246,0.5)",
-  },
+  // "Administrateur" is intentionally NOT selectable here — the set-role API
+  // only accepts client/vendor/driver, and admin access is granted from the
+  // admin panel. Offering it would just fail silently.
 ]
 
 export default function ChooseRolePage() {
@@ -62,18 +57,25 @@ export default function ChooseRolePage() {
     if (!selectedRole) return
     setLoading(true)
 
-    const res = await fetch("/api/auth/set-role", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ role: selectedRole }),
-    })
+    try {
+      const res = await fetch("/api/auth/set-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: selectedRole }),
+      })
 
-    if (!res.ok) {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        toast.error(body?.error ?? "Impossible de définir le rôle. Réessayez.")
+        setLoading(false)
+        return
+      }
+
+      router.push(DASHBOARD[selectedRole] ?? "/dashboard")
+    } catch {
+      toast.error("Erreur réseau. Vérifiez votre connexion et réessayez.")
       setLoading(false)
-      return
     }
-
-    router.push(DASHBOARD[selectedRole] ?? "/dashboard")
   }
 
   return (
