@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { MarketplaceBottomNav } from "@/components/marketplace/BottomNav"
 
 export const metadata: Metadata = {
   title: "Marketplace QuickGo | Shopping en ligne au Cameroun",
@@ -17,5 +18,10 @@ export default function MarketplaceLayout({
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <>
+      {children}
+      <MarketplaceBottomNav />
+    </>
+  )
 }
