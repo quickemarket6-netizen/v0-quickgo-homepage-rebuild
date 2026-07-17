@@ -24,7 +24,10 @@ const AUTH_REQUIRED_PREFIXES = [
   "/marketplace/orders",
   "/marketplace/checkout",
   "/wallet",
-  "/delivery",
+  // /delivery (vitrine) et /delivery/create (formulaire) sont publics — la
+  // connexion n'est exigée qu'à la confirmation (l'API répond 401 et la page
+  // renvoie vers le login). Seul l'historique, personnel, reste protégé.
+  "/delivery/history",
   "/notifications",
   "/ai",
   "/ai-assistant",

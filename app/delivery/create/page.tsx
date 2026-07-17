@@ -123,6 +123,12 @@ export default function CreateDeliveryPage() {
 
       const data = await res.json()
       if (!res.ok) {
+        // Guest reaching the final step: send them to login and bring them
+        // straight back to the booking form afterwards.
+        if (res.status === 401) {
+          router.push(`/auth/login?next=${encodeURIComponent("/delivery/create")}`)
+          return
+        }
         setSubmitError(data.error ?? "Une erreur est survenue")
         return
       }
