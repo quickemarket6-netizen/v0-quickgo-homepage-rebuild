@@ -17,7 +17,7 @@ export default function SignUpSuccessPage() {
         {/* Logo */}
         <Link href="/" className="inline-block mb-8">
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0007-ezKXkl63WOFNwwQlwNLqPoMzyaOKo5.jpg"
+            src="/quickgo-logo.jpg"
             alt="QuickGo"
             width={140}
             height={40}

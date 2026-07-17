@@ -120,7 +120,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-3 lg:col-span-2">
             <Link href="/" className="inline-block mb-6">
               <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG-20260524-WA0007-ezKXkl63WOFNwwQlwNLqPoMzyaOKo5.jpg"
+                src="/quickgo-logo.jpg"
                 alt="QuickGo"
                 width={140}
                 height={40}
