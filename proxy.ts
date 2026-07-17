@@ -4,11 +4,19 @@ import { NextRequest, NextResponse } from "next/server"
 
 // ── Route groups ─────────────────────────────────────────────────────────────
 
+// publicRoot: the bare prefix path is a public landing page (recruitment
+// pitch), only its sub-routes are the role-gated app.
 const ROLE_ROUTES = [
-  { prefix: "/admin",  allowed: ["admin", "super_admin"] },
-  { prefix: "/vendor", allowed: ["vendor"]               },
-  { prefix: "/driver", allowed: ["driver"]               },
+  { prefix: "/admin",  allowed: ["admin", "super_admin"], publicRoot: false },
+  { prefix: "/vendor", allowed: ["vendor"],               publicRoot: false },
+  { prefix: "/driver", allowed: ["driver"],               publicRoot: true  },
 ] as const
+
+// Segment-aware prefix match: "/vendor" must guard "/vendor" and "/vendor/…"
+// but NOT "/vendors" (the public «Devenir vendeur» landing page).
+function matchesPrefix(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(prefix + "/")
+}
 
 const AUTH_REQUIRED_PREFIXES = [
   "/dashboard",
@@ -72,11 +80,16 @@ function applySecurityHeaders(res: NextResponse, pathname: string): NextResponse
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=()")
 
-  if (
-    pathname.startsWith("/admin")   || pathname.startsWith("/dashboard") ||
-    pathname.startsWith("/api")     || pathname.startsWith("/vendor")    ||
-    pathname.startsWith("/driver")
-  ) {
+  // Segment-aware so the public landings stay indexable: "/vendors"
+  // («Devenir vendeur») must not be caught by "/vendor", and the bare
+  // "/driver" recruitment page is public — only the driver app is noindexed.
+  const noindex =
+    matchesPrefix(pathname, "/admin")     ||
+    matchesPrefix(pathname, "/dashboard") ||
+    matchesPrefix(pathname, "/api")       ||
+    matchesPrefix(pathname, "/vendor")    ||
+    (matchesPrefix(pathname, "/driver") && pathname !== "/driver")
+  if (noindex) {
     res.headers.set("X-Robots-Tag", "noindex, nofollow")
   }
 
@@ -95,13 +108,16 @@ export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request)
 
   // Auth-only pages (any logged-in user)
-  if (AUTH_REQUIRED_PREFIXES.some(p => pathname.startsWith(p))) {
+  if (AUTH_REQUIRED_PREFIXES.some(p => matchesPrefix(pathname, p))) {
     if (!user) return toLogin(request)
     return applySecurityHeaders(response, pathname)
   }
 
-  // Role-protected pages
-  const match = ROLE_ROUTES.find(r => pathname.startsWith(r.prefix))
+  // Role-protected pages. A publicRoot prefix leaves its bare landing page
+  // (e.g. /driver — recruitment pitch) open to everyone.
+  const match = ROLE_ROUTES.find(r =>
+    matchesPrefix(pathname, r.prefix) && !(r.publicRoot && pathname === r.prefix)
+  )
   if (match) {
     if (!user) return toLogin(request)
     const role = await getRole(request, user.id)
