@@ -10,16 +10,17 @@ import {
   Package, Clock, CheckCircle, XCircle, Truck, ChevronRight,
   Phone, Star, RotateCcw, ArrowLeft, RefreshCw, MapPin,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof Clock; step?: number }> = {
-  pending:    { label: "En attente",      color: "text-yellow-400",  bg: "bg-yellow-500/20",  icon: Clock,         step: 1 },
-  confirmed:  { label: "Confirmé",        color: "text-blue-400",    bg: "bg-blue-500/20",    icon: CheckCircle,   step: 2 },
-  preparing:  { label: "En préparation",  color: "text-purple-400",  bg: "bg-purple-500/20",  icon: Package,       step: 3 },
-  ready:      { label: "Prêt",            color: "text-cyan-400",    bg: "bg-cyan-500/20",    icon: CheckCircle,   step: 4 },
-  delivering: { label: "En livraison",    color: "text-quickgo-blue", bg: "bg-quickgo-blue/20", icon: Truck,        step: 5 },
-  delivered:  { label: "Livré",           color: "text-green-400",   bg: "bg-green-500/20",   icon: CheckCircle,   step: 6 },
-  cancelled:  { label: "Annulé",          color: "text-red-400",     bg: "bg-red-500/20",     icon: XCircle },
+  pending:    { label: "app.status.pending",      color: "text-yellow-400",  bg: "bg-yellow-500/20",  icon: Clock,         step: 1 },
+  confirmed:  { label: "app.status.confirmed",        color: "text-blue-400",    bg: "bg-blue-500/20",    icon: CheckCircle,   step: 2 },
+  preparing:  { label: "app.status.preparing",  color: "text-purple-400",  bg: "bg-purple-500/20",  icon: Package,       step: 3 },
+  ready:      { label: "app.status.ready",            color: "text-cyan-400",    bg: "bg-cyan-500/20",    icon: CheckCircle,   step: 4 },
+  delivering: { label: "app.status.delivering",    color: "text-quickgo-blue", bg: "bg-quickgo-blue/20", icon: Truck,        step: 5 },
+  delivered:  { label: "app.status.delivered",           color: "text-green-400",   bg: "bg-green-500/20",   icon: CheckCircle,   step: 6 },
+  cancelled:  { label: "app.status.cancelled",          color: "text-red-400",     bg: "bg-red-500/20",     icon: XCircle },
 }
 const STEPS = ["En attente", "Confirmé", "Préparation", "Prêt", "En livraison", "Livré"]
 
@@ -47,6 +48,7 @@ function deliveryAddr(addr: Order["delivery_address"]) {
 }
 
 export default function MarketplaceOrdersPage() {
+  const { t } = useT()
   const router = useRouter()
   const cart = useCart()
   const [orders, setOrders] = useState<Order[]>([])
@@ -178,7 +180,7 @@ export default function MarketplaceOrdersPage() {
           <ArrowLeft className="w-5 h-5 text-muted-foreground" />
         </Link>
         <div className="flex-1">
-          <h1 className="text-white font-bold">Mes Commandes</h1>
+          <h1 className="text-white font-bold">{t("app.orders.title")}</h1>
           <p className="text-xs text-muted-foreground">{orders.length} commandes au total</p>
         </div>
         <Button variant="ghost" size="icon" onClick={fetchOrders}>
@@ -190,20 +192,20 @@ export default function MarketplaceOrdersPage() {
         {/* Tabs */}
         <div className="flex gap-1 mb-5 bg-card/50 rounded-xl p-1">
           {[
-            { key: "active",    label: "En cours",   count: active.length },
-            { key: "done",      label: "Terminées",  count: done.length },
-            { key: "cancelled", label: "Annulées",   count: cancelled.length },
-          ].map((t) => (
-            <button key={t.key}
-              onClick={() => setTab(t.key as typeof tab)}
+            { key: "active",    label: t("app.orders.tab.active"),    count: active.length },
+            { key: "done",      label: t("app.orders.tab.done"),      count: done.length },
+            { key: "cancelled", label: t("app.orders.tab.cancelled"), count: cancelled.length },
+          ].map((tb) => (
+            <button key={tb.key}
+              onClick={() => setTab(tb.key as typeof tab)}
               className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                tab === t.key ? "bg-quickgo-blue text-white" : "text-muted-foreground hover:text-white"
+                tab === tb.key ? "bg-quickgo-blue text-white" : "text-muted-foreground hover:text-white"
               }`}
             >
-              {t.label}
-              {t.count > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-white/20" : "bg-white/10"}`}>
-                  {t.count}
+              {tb.label}
+              {tb.count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${tab === tb.key ? "bg-white/20" : "bg-white/10"}`}>
+                  {tb.count}
                 </span>
               )}
             </button>
@@ -218,7 +220,7 @@ export default function MarketplaceOrdersPage() {
         ) : tabOrders.length === 0 ? (
           <div className="text-center py-16">
             <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground">Aucune commande dans cet onglet</p>
+            <p className="text-muted-foreground">{t("app.orders.empty")}</p>
             <Link href="/marketplace">
               <Button className="mt-4 rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">Faire une commande</Button>
             </Link>
@@ -244,7 +246,7 @@ export default function MarketplaceOrdersPage() {
                   <div className="text-right">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${cfg?.bg ?? ""} ${cfg?.color ?? ""}`}>
                       <StatusIcon className="w-3 h-3" />
-                      {cfg?.label ?? order.status}
+                      {cfg ? t(cfg.label) : order.status}
                     </span>
                     <p className="text-white font-bold mt-1">{formatCFA(order.total_amount)}</p>
                   </div>
@@ -415,7 +417,7 @@ export default function MarketplaceOrdersPage() {
                     {!["delivered", "cancelled"].includes(order.status) && (
                       <Link href={`/tracking?order=${order.id}`} className="flex-1">
                         <Button size="sm" className="w-full rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90 gap-1">
-                          <MapPin className="w-3.5 h-3.5" /> Suivre en direct
+                          <MapPin className="w-3.5 h-3.5" /> {t("app.orders.track")}
                         </Button>
                       </Link>
                     )}

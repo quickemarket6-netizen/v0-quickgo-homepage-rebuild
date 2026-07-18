@@ -15,6 +15,7 @@ import {
   ChevronLeft, ChevronRight, MapPin, Truck, Shield,
   Clock, Check, Zap, CheckCircle, Package, ArrowRight,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 
 const formatPrice = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA"
 
@@ -44,6 +45,7 @@ const SUBSTITUTION_OPTIONS = [
 ]
 
 export default function CheckoutPage() {
+  const { t } = useT()
   const router = useRouter()
   const { items, getTotalPrice, clearCart } = useCart()
 
@@ -275,9 +277,9 @@ export default function CheckoutPage() {
   }
 
   const STEPS = [
-    { n: 1, label: "Livraison" },
-    { n: 2, label: "Paiement" },
-    { n: 3, label: "Confirmation" },
+    { n: 1, label: t("app.checkout.step1") },
+    { n: 2, label: t("app.checkout.step2") },
+    { n: 3, label: t("app.checkout.step3") },
   ]
 
   if (items.length === 0 && step !== 3) {
@@ -339,7 +341,7 @@ export default function CheckoutPage() {
                   >
                     <div className="p-6 rounded-2xl bg-card border border-border/50">
                       <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-primary" /> Adresse de livraison
+                        <MapPin className="w-5 h-5 text-primary" /> {t("app.checkout.address")}
                       </h2>
                       <div className="space-y-4">
                         {savedAddresses.length > 0 && (
@@ -466,7 +468,7 @@ export default function CheckoutPage() {
 
                     {error && <p className="text-sm text-destructive bg-destructive/10 px-4 py-2 rounded-xl">{error}</p>}
                     <Button className="w-full h-14 rounded-xl text-base gap-2" onClick={() => { if (!address.trim()) { setError("Adresse requise."); return }; setError(null); setStep(2) }}>
-                      Continuer vers le paiement <ChevronRight className="w-5 h-5" />
+                      {t("app.checkout.continue")} <ChevronRight className="w-5 h-5" />
                     </Button>
                   </motion.div>
                 )}
@@ -518,7 +520,7 @@ export default function CheckoutPage() {
                           <ChevronLeft className="w-5 h-5" />
                         </Button>
                         <Button className="flex-1 h-14 rounded-xl text-base gap-2" onClick={submitOrder} disabled={submitting}>
-                          {submitting ? "Commande en cours…" : <><Shield className="w-5 h-5" /> Confirmer la commande</>}
+                          {submitting ? t("app.checkout.submitting") : <><Shield className="w-5 h-5" /> {t("app.checkout.confirm")}</>}
                         </Button>
                       </div>
                     )}
@@ -533,7 +535,7 @@ export default function CheckoutPage() {
                     <div className="w-20 h-20 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center mx-auto mb-6">
                       <CheckCircle className="w-10 h-10 text-green-500" />
                     </div>
-                    <h2 className="text-2xl font-bold text-foreground mb-2">Commande confirmée !</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-2">{t("app.checkout.done")}</h2>
                     {orderNumber && <p className="text-muted-foreground mb-1">Commande <span className="font-bold text-foreground">#{orderNumber}</span></p>}
                     <p className="text-sm text-muted-foreground mb-8">Vous allez recevoir une notification dès que le vendeur accepte votre commande.</p>
                     <div className="flex gap-3 justify-center">
@@ -544,7 +546,7 @@ export default function CheckoutPage() {
                       </Link>
                       <Link href="/marketplace">
                         <Button variant="outline" className="rounded-xl gap-2">
-                          <ArrowRight className="w-4 h-4" /> Continuer mes achats
+                          <ArrowRight className="w-4 h-4" /> {t("app.cart.empty.cta")}
                         </Button>
                       </Link>
                     </div>
@@ -557,7 +559,7 @@ export default function CheckoutPage() {
             {step !== 3 && (
               <div>
                 <div className="sticky top-24 p-6 rounded-2xl bg-card border border-border/50">
-                  <h2 className="text-lg font-bold text-foreground mb-4">Récapitulatif</h2>
+                  <h2 className="text-lg font-bold text-foreground mb-4">{t("app.checkout.summary")}</h2>
                   <div className="space-y-3 mb-4 max-h-64 overflow-y-auto pr-1">
                     {items.map((item) => (
                       <div key={item.id} className="flex items-center gap-3">
@@ -576,7 +578,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="border-t border-border pt-4 space-y-2 text-sm">
                     <div className="flex justify-between text-muted-foreground">
-                      <span>Sous-total</span><span>{formatPrice(subtotal)}</span>
+                      <span>{t("app.cart.subtotal")}</span><span>{formatPrice(subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-muted-foreground">
                       <span>Livraison{vendorCount > 1 ? ` (${vendorCount} boutiques)` : ""}</span>
@@ -598,7 +600,7 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   <div className="border-t border-border mt-4 pt-4 flex justify-between font-bold text-lg">
-                    <span>Total</span><span>{formatPrice(total)}</span>
+                    <span>{t("app.checkout.total")}</span><span>{formatPrice(total)}</span>
                   </div>
                   <div className="mt-4 flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/20">
                     <Shield className="w-4 h-4 text-primary shrink-0" />

@@ -11,6 +11,7 @@ import {
   Heart, ShoppingCart, Trash2, Star, Grid3X3, List,
   ArrowLeft, Bike, Search,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 import { useCart } from "@/lib/store/cart"
 
 interface FavoriteItem {
@@ -28,6 +29,7 @@ interface FavoriteItem {
 const formatPrice = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA"
 
 export default function FavoritesPage() {
+  const { t } = useT()
   const [favorites, setFavorites] = useState<FavoriteItem[]>([])
   const [loading, setLoading] = useState(true)
   const [removing, setRemoving] = useState<Set<string>>(new Set())
@@ -90,7 +92,7 @@ export default function FavoritesPage() {
             </Link>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Heart className="w-6 h-6 text-destructive fill-current" /> Mes Favoris
+                <Heart className="w-6 h-6 text-destructive fill-current" /> {t("app.favs.title")}
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {loading ? "Chargement…" : `${favorites.length} article${favorites.length > 1 ? "s" : ""} sauvegardé${favorites.length > 1 ? "s" : ""}`}
@@ -123,7 +125,7 @@ export default function FavoritesPage() {
             <div className="text-center py-20">
               <Heart className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
               <h2 className="text-xl font-semibold text-foreground mb-2">
-                {search ? "Aucun résultat" : "Votre liste de favoris est vide"}
+                {search ? t("app.favs.noresult") : t("app.favs.empty")}
               </h2>
               <p className="text-muted-foreground mb-8">
                 {search ? "Essayez d'autres termes." : "Explorez notre marketplace et ajoutez des produits à vos favoris."}

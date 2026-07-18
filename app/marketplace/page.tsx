@@ -61,29 +61,29 @@ const NAV_ITEMS = [
 ]
 
 const QUICK_ACTIONS = [
-  { label: "Courses",     icon: ShoppingBag,    href: "/marketplace/shops?cat=supermarche", color: "text-[#22c55e]",  bg: "bg-[#22c55e]/15" },
-  { label: "Restaurants", icon: UtensilsCrossed, href: "/marketplace/shops?cat=restaurant",  color: "text-[#f97316]",  bg: "bg-[#f97316]/15" },
-  { label: "Pharmacie",   icon: Plus,            href: "/marketplace/shops?cat=pharmacie",   color: "text-[#3b82f6]",  bg: "bg-[#3b82f6]/15" },
-  { label: "Livraison",   icon: Bike,            href: "/delivery",                           color: "text-[#8b5cf6]",  bg: "bg-[#8b5cf6]/15" },
-  { label: "Chauffeur",   icon: Car,             href: "/delivery",                           color: "text-[#eab308]",  bg: "bg-[#eab308]/15" },
-  { label: "Recharger",   icon: Zap,             href: "/wallet",                             color: "text-[#06b6d4]",  bg: "bg-[#06b6d4]/15" },
-  { label: "Plus",        icon: ShoppingCart,    href: "/marketplace/shops",                  color: "text-white/40",   bg: "bg-white/5" },
+  { labelKey: "app.qa.groceries",     icon: ShoppingBag,    href: "/marketplace/shops?cat=supermarche", color: "text-[#22c55e]",  bg: "bg-[#22c55e]/15" },
+  { labelKey: "app.qa.restaurants", icon: UtensilsCrossed, href: "/marketplace/shops?cat=restaurant",  color: "text-[#f97316]",  bg: "bg-[#f97316]/15" },
+  { labelKey: "app.qa.pharmacy",   icon: Plus,            href: "/marketplace/shops?cat=pharmacie",   color: "text-[#3b82f6]",  bg: "bg-[#3b82f6]/15" },
+  { labelKey: "app.qa.delivery",   icon: Bike,            href: "/delivery",                           color: "text-[#8b5cf6]",  bg: "bg-[#8b5cf6]/15" },
+  { labelKey: "app.qa.driver",   icon: Car,             href: "/delivery",                           color: "text-[#eab308]",  bg: "bg-[#eab308]/15" },
+  { labelKey: "app.qa.topup",   icon: Zap,             href: "/wallet",                             color: "text-[#06b6d4]",  bg: "bg-[#06b6d4]/15" },
+  { labelKey: "app.qa.more",        icon: ShoppingCart,    href: "/marketplace/shops",                  color: "text-white/40",   bg: "bg-white/5" },
 ]
 
 const HERO_SLIDES = [
-  { title: "Everything Local.", accent: "Delivered Fast.", desc: "Produits, repas, courses, pharmacie et plus…\nLivrés chez vous en un clic.", cta: "Commandez maintenant", href: "/marketplace/products", from: "#3b82f6", to: "#06b6d4" },
-  { title: "Livraison Express", accent: "en 30 min.", desc: "Nos livreurs partenaires sont prêts à vous servir\n24h/24, 7j/7.", cta: "Voir les boutiques", href: "/marketplace/shops", from: "#8b5cf6", to: "#3b82f6" },
-  { title: "Parrainez vos proches", accent: "— 1 000 F offerts.", desc: "Votre filleul commande, vous êtes crédité\nsur votre portefeuille QuickGo Pay.", cta: "Obtenir mon code", href: "/wallet/rewards", from: "#a3e635", to: "#22c55e" },
+  { k: "app.hero1", href: "/marketplace/products", from: "#3b82f6", to: "#06b6d4" },
+  { k: "app.hero2", href: "/marketplace/shops",    from: "#8b5cf6", to: "#3b82f6" },
+  { k: "app.hero3", href: "/wallet/rewards",       from: "#a3e635", to: "#22c55e" },
 ]
 
 const ORDER_STATUS: Record<string, { label: string; color: string; step: number }> = {
-  pending:    { label: "En attente",      color: "text-[#eab308]",  step: 0 },
-  confirmed:  { label: "Confirmé",        color: "text-[#3b82f6]",  step: 1 },
-  preparing:  { label: "En préparation",  color: "text-[#8b5cf6]",  step: 2 },
-  ready:      { label: "Prêt",            color: "text-[#06b6d4]",  step: 3 },
-  delivering: { label: "En livraison",    color: "text-[#3b82f6]",  step: 4 },
-  delivered:  { label: "Livré",           color: "text-[#22c55e]",  step: 5 },
-  cancelled:  { label: "Annulé",          color: "text-[#ef4444]",  step: -1 },
+  pending:    { label: "app.status.pending",      color: "text-[#eab308]",  step: 0 },
+  confirmed:  { label: "app.status.confirmed",        color: "text-[#3b82f6]",  step: 1 },
+  preparing:  { label: "app.status.preparing",  color: "text-[#8b5cf6]",  step: 2 },
+  ready:      { label: "app.status.ready",            color: "text-[#06b6d4]",  step: 3 },
+  delivering: { label: "app.status.delivering",    color: "text-[#3b82f6]",  step: 4 },
+  delivered:  { label: "app.status.delivered",           color: "text-[#22c55e]",  step: 5 },
+  cancelled:  { label: "app.status.cancelled",          color: "text-[#ef4444]",  step: -1 },
 }
 
 const LEVEL_XP = [0, 200, 500, 1000, 2000, 4000, 8000]
@@ -349,13 +349,13 @@ export default function MarketplacePage() {
               >
                 <div className="max-w-xs">
                   <h2 className="text-2xl font-bold text-white leading-tight">
-                    {HERO_SLIDES[heroIdx].title}
-                    <br /><span className="text-[#a3e635]">{HERO_SLIDES[heroIdx].accent}</span>
+                    {t(`${HERO_SLIDES[heroIdx].k}.title`)}
+                    <br /><span className="text-[#a3e635]">{t(`${HERO_SLIDES[heroIdx].k}.accent`)}</span>
                   </h2>
-                  <p className="text-sm text-white/70 mt-2 whitespace-pre-line">{HERO_SLIDES[heroIdx].desc}</p>
+                  <p className="text-sm text-white/70 mt-2 whitespace-pre-line">{t(`${HERO_SLIDES[heroIdx].k}.desc`)}</p>
                   <Link href={HERO_SLIDES[heroIdx].href}
                     className="mt-4 inline-flex px-5 py-2 rounded-full bg-white text-black font-semibold text-sm items-center gap-2 hover:bg-white/90 transition-colors">
-                    {HERO_SLIDES[heroIdx].cta} <ArrowRight className="w-4 h-4" />
+                    {t(`${HERO_SLIDES[heroIdx].k}.cta`)} <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               </motion.div>
@@ -376,12 +376,12 @@ export default function MarketplacePage() {
             </div>
             <div className="grid grid-cols-7 gap-2">
               {QUICK_ACTIONS.map((a) => (
-                <Link key={a.label} href={a.href} className="flex flex-col items-center gap-2 group">
+                <Link key={a.href} href={a.href} className="flex flex-col items-center gap-2 group">
                   <motion.div whileHover={{ y: -2, scale: 1.05 }} transition={{ duration: 0.15 }}
                     className={`w-12 h-12 rounded-2xl ${a.bg} flex items-center justify-center`}>
                     <a.icon className={`w-5 h-5 ${a.color}`} />
                   </motion.div>
-                  <span className="text-[10px] text-white/40 text-center leading-none">{a.label}</span>
+                  <span className="text-[10px] text-white/40 text-center leading-none">{t(a.labelKey)}</span>
                 </Link>
               ))}
             </div>
@@ -547,17 +547,17 @@ export default function MarketplacePage() {
             </div>
             <div className="flex gap-1 mb-3 bg-white/5 rounded-xl p-1">
               {[
-                { key: "active",    label: "En cours",  count: activeOrders.length },
-                { key: "done",      label: "Terminées", count: doneOrders.length },
-                { key: "cancelled", label: "Annulées",  count: cancelledOrders.length },
-              ].map((t) => (
-                <button key={t.key}
-                  onClick={() => setOrderTab(t.key as typeof orderTab)}
+                { key: "active",    label: t("app.orders.tab.active"),    count: activeOrders.length },
+                { key: "done",      label: t("app.orders.tab.done"),      count: doneOrders.length },
+                { key: "cancelled", label: t("app.orders.tab.cancelled"), count: cancelledOrders.length },
+              ].map((tb) => (
+                <button key={tb.key}
+                  onClick={() => setOrderTab(tb.key as typeof orderTab)}
                   className={`flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
-                    orderTab === t.key ? "bg-[#3b82f6] text-white" : "text-white/40 hover:text-white"
+                    orderTab === tb.key ? "bg-[#3b82f6] text-white" : "text-white/40 hover:text-white"
                   }`}
                 >
-                  {t.label}
+                  {tb.label}
                 </button>
               ))}
             </div>
@@ -589,7 +589,7 @@ export default function MarketplacePage() {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className={`text-[10px] font-medium ${cfg?.color ?? "text-white/30"}`}>{cfg?.label ?? order.status}</p>
+                      <p className={`text-[10px] font-medium ${cfg?.color ?? "text-white/30"}`}>{cfg ? t(cfg.label) : order.status}</p>
                       <p className="text-xs text-white font-bold mt-1">{formatCFA(order.total_amount)}</p>
                     </div>
                   </div>
