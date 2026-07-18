@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { Navbar } from "@/components/navbar"
@@ -553,7 +554,7 @@ export default function TrackingPage() {
                       <p className="text-sm text-muted-foreground mb-2">Besoin d&apos;aide ?</p>
                       <motion.div whileHover={{ x: 4 }} transition={{ type: "spring", stiffness: 300 }}>
                         <Button variant="link" className="text-primary" asChild>
-                          <a href="/support">Contacter le support →</a>
+                          <Link href="/support">Contacter le support →</Link>
                         </Button>
                       </motion.div>
                     </div>

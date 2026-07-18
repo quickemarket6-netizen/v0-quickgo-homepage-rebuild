@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let result
     let subject: string
     let html: string
     let to: string
@@ -239,7 +238,7 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    result = await sendEmail({ to, subject, html })
+    const result = await sendEmail({ to, subject, html })
 
     if (result.success) {
       return NextResponse.json({

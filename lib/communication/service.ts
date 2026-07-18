@@ -46,7 +46,7 @@ export interface NotificationPayload {
 // ── Phone normaliser ─────────────────────────────────────────
 // Converts any Cameroonian format to E.164 (+237XXXXXXXXX)
 function normalisePhone(raw: string): string {
-  let p = raw.replace(/[\s\-\(\)\.]/g, '')
+  const p = raw.replace(/[\s\-\(\)\.]/g, '')
   if (p.startsWith('+'))  return p
   if (p.startsWith('00')) return '+' + p.slice(2)
   if (p.startsWith('237')) return '+' + p

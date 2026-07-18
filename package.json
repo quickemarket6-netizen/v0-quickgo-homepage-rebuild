@@ -83,17 +83,21 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@next/eslint-plugin-next": "^16.2.10",
     "@tailwindcss/postcss": "^4.2.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/web-push": "^3.6.4",
     "dotenv": "^17.4.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
     "tsx": "^4.22.4",
     "tw-animate-css": "1.3.3",
     "typescript": "5.7.3",
+    "typescript-eslint": "^8.64.0",
     "vitest": "^4.1.10"
   },
   "packageManager": "pnpm@10.33.0"

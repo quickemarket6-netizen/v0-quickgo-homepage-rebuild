@@ -59,6 +59,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -77,8 +80,8 @@ jobs:
 
 ## Note sur le lint
 
-Le script `pnpm lint` du projet est cassé en amont (ESLint sans configuration
-« flat », `eslint-config-next` incompatible avec la version d'ESLint résolue).
-Il est volontairement **hors des gates CI** pour ne pas rendre le pipeline
-rouge. À réparer séparément (créer un `eslint.config.mjs` fonctionnel), puis
-ajouter une étape `- name: Lint / run: pnpm lint` au workflow.
+`pnpm lint` fonctionne (config flat dans `eslint.config.mjs` : règles Next
+core-web-vitals + react-hooks + TypeScript recommandé) et passe à 0 erreur.
+Les règles react-hooks v7 les plus récentes (`set-state-in-effect`, `purity`,
+`refs`, `immutability`) sont volontairement en *warning* — elles condamnent
+des patterns légitimes du codebase existant — à durcir progressivement.

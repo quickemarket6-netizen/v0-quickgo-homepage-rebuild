@@ -47,7 +47,7 @@ export async function POST(
 
   // Transition atomique : le filtre sur le statut évite la course avec le
   // vendeur qui passerait la commande en préparation au même moment.
-  let { data: cancelled, error: cancelErr } = await supabase
+  const { data: firstAttempt, error: cancelErr } = await supabase
     .from("orders")
     .update({
       status: "cancelled",
@@ -57,6 +57,7 @@ export async function POST(
     .eq("customer_id", user.id)
     .in("status", CANCELLABLE_STATUSES)
     .select("id")
+  let cancelled = firstAttempt
 
   // Si la colonne cancellation_reason n'existe pas dans cette base, on
   // retente sans elle : l'annulation prime sur la traçabilité du motif.

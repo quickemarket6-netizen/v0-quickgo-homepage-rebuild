@@ -3,6 +3,7 @@
  * Rate limiting (Upstash Redis / in-memory fallback), fraud detection, duplicate prevention
  */
 
+import { createHash } from "node:crypto"
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest } from "next/server"
 import { Redis } from "@upstash/redis"
@@ -257,7 +258,6 @@ export async function verifyVendorOwnership(vendorId: string): Promise<{
  * Generate a secure idempotency key
  */
 export function generateIdempotencyKey(prefix: string, ...parts: string[]): string {
-  const crypto = require("crypto") as typeof import("crypto")
   const data = [prefix, ...parts].join(":")
-  return crypto.createHash("sha256").update(data).digest("hex").slice(0, 32)
+  return createHash("sha256").update(data).digest("hex").slice(0, 32)
 }

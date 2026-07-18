@@ -4,6 +4,8 @@
  * Covers: Orange Money Cameroun, MTN Mobile Money Cameroun
  */
 
+import { createHash } from "node:crypto"
+
 const CINETPAY_API_URL = "https://api-checkout.cinetpay.com/v2"
 const CINETPAY_TRANSFER_URL = "https://client.cinetpay.com/v1"
 
@@ -161,9 +163,8 @@ export async function verifyPayment(transaction_id: string): Promise<PaymentStat
  */
 export function validateWebhookSignature(payload: Record<string, string>, receivedSig: string): boolean {
   // CinetPay uses cpm_site_id + cpm_trans_id + cpm_amount concatenated + secret
-  const crypto = require("crypto") as typeof import("crypto")
   const dataStr = `${payload.cpm_site_id}${payload.cpm_trans_id}${payload.cpm_amount}${CINETPAY_SECRET}`
-  const expected = crypto.createHash("sha256").update(dataStr).digest("hex")
+  const expected = createHash("sha256").update(dataStr).digest("hex")
   return expected === receivedSig
 }
 

@@ -27,7 +27,7 @@ export async function GET(
   }
 
   // Authenticated: fetch full data then verify ownership
-  let query = supabase
+  const query = supabase
     .from("delivery_requests")
     .select(`
       *,
