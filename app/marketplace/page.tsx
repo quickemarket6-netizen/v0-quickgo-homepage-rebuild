@@ -12,6 +12,7 @@ import {
   History, TicketPercent, ArrowRight, X,
 } from "lucide-react"
 import { GlobalSearch } from "@/components/marketplace/GlobalSearch"
+import { EmptyState } from "@/components/marketplace/EmptyState"
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -394,7 +395,13 @@ export default function MarketplacePage() {
                   <div key={i} className="w-36 shrink-0 rounded-2xl h-52 bg-[#16161f] animate-pulse" />
                 ))
               ) : displayProducts.length === 0 ? (
-                <p className="text-white/30 text-sm">Aucun produit pour le moment</p>
+                <EmptyState
+                  icon={ShoppingBag}
+                  title="Le catalogue se remplit"
+                  description="Les boutiques partenaires ajoutent leurs produits. Explorez ce qui est déjà disponible ou revenez bientôt."
+                  ctaLabel="Explorer le catalogue"
+                  ctaHref="/marketplace/products"
+                />
               ) : displayProducts.map((product) => (
                 <motion.div key={product.id} whileHover={{ y: -2 }} transition={{ duration: 0.15 }}>
                   <Link href={`/marketplace/product/${product.id}`}
@@ -557,7 +564,11 @@ export default function MarketplacePage() {
             ) : tabOrders.length === 0 ? (
               <div className="text-center py-6">
                 <Package className="w-8 h-8 mx-auto text-white/10 mb-2" />
-                <p className="text-xs text-white/30">Aucune commande</p>
+                <p className="text-xs text-white/30 mb-3">Aucune commande pour l&apos;instant</p>
+                <Link href="/marketplace/products"
+                  className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 transition-colors font-medium">
+                  Passer ma première commande →
+                </Link>
               </div>
             ) : tabOrders.map((order) => {
               const cfg = ORDER_STATUS[order.status]

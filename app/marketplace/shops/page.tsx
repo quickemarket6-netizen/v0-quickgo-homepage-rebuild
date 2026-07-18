@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { FeaturedHero } from "@/components/marketplace/FeaturedHero"
+import { EmptyState } from "@/components/marketplace/EmptyState"
 
 const CATEGORY_ICONS: Record<string, typeof ShoppingBag> = {
   restaurant: UtensilsCrossed, supermarche: ShoppingBag, pharmacie: Pill,
@@ -156,10 +157,13 @@ export default function MarketplaceShopsPage() {
             ))}
           </div>
         ) : vendors.length === 0 ? (
-          <div className="text-center py-16">
-            <ShoppingBag className="w-12 h-12 text-white/10 mx-auto mb-4" />
-            <p className="text-white/40">Aucune boutique trouvée</p>
-          </div>
+          <EmptyState
+            icon={ShoppingBag}
+            title="Aucune boutique trouvée"
+            description="Essayez une autre catégorie, ou parcourez tous les produits déjà disponibles sur le marché."
+            ctaLabel="Voir tous les produits"
+            ctaHref="/marketplace/products"
+          />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {vendors.map((vendor, i) => {
