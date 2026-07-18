@@ -13,6 +13,8 @@ import {
 } from "lucide-react"
 import { GlobalSearch } from "@/components/marketplace/GlobalSearch"
 import { EmptyState } from "@/components/marketplace/EmptyState"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
+import { useT } from "@/lib/i18n/context"
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -122,6 +124,7 @@ function formatETA(iso: string | null) {
 // ─── component ────────────────────────────────────────────────────────────────
 
 export default function MarketplacePage() {
+  const { t } = useT()
   const [data, setData] = useState<HomeData | null>(null)
   const [offers, setOffers] = useState<OfferRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -254,7 +257,7 @@ export default function MarketplacePage() {
           <div className="mx-3 mb-3 p-3 rounded-2xl bg-[#16161f] h-24 animate-pulse" />
         ) : guest ? (
           <div className="mx-3 mb-3 p-4 rounded-2xl bg-[#16161f] border border-[#1e1e2e] space-y-2">
-            <p className="text-white font-semibold text-sm">Bienvenue sur QuickGo 👋</p>
+            <p className="text-white font-semibold text-sm">{t("app.mkt.welcome")}</p>
             <p className="text-xs text-white/40">Connectez-vous pour commander et suivre vos livraisons.</p>
             <Link href="/auth/login?next=/marketplace"
               className="block text-center py-2 rounded-xl bg-[#3b82f6] text-white text-xs font-bold hover:bg-[#3b82f6]/90 transition-colors">
@@ -308,6 +311,7 @@ export default function MarketplacePage() {
             </button>
             <GlobalSearch className="flex-1" />
             <div className="flex items-center gap-1 shrink-0">
+              <LanguageSwitcher className="hidden sm:inline-flex" />
               <Link href="/notifications" className="relative p-2 hover:bg-white/5 rounded-full transition-colors">
                 <Bell className="w-5 h-5 text-white/40" />
                 {(data?.unreadCount ?? 0) > 0 && (
@@ -367,8 +371,8 @@ export default function MarketplacePage() {
           {/* Quick Actions */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-semibold text-sm">Actions rapides</h3>
-              <Link href="/marketplace/shops" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Tout voir</Link>
+              <h3 className="text-white font-semibold text-sm">{t("app.mkt.quickActions")}</h3>
+              <Link href="/marketplace/shops" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">{t("app.mkt.seeAll")}</Link>
             </div>
             <div className="grid grid-cols-7 gap-2">
               {QUICK_ACTIONS.map((a) => (
@@ -386,8 +390,8 @@ export default function MarketplacePage() {
           {/* Recommended Products */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-semibold text-sm">{guest ? "Produits populaires" : "Recommandé pour vous"}</h3>
-              <Link href="/marketplace/products" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Tout voir</Link>
+              <h3 className="text-white font-semibold text-sm">{guest ? t("app.mkt.popular") : t("app.mkt.recommended")}</h3>
+              <Link href="/marketplace/products" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">{t("app.mkt.seeAll")}</Link>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {loading ? (
@@ -397,9 +401,9 @@ export default function MarketplacePage() {
               ) : displayProducts.length === 0 ? (
                 <EmptyState
                   icon={ShoppingBag}
-                  title="Le catalogue se remplit"
-                  description="Les boutiques partenaires ajoutent leurs produits. Explorez ce qui est déjà disponible ou revenez bientôt."
-                  ctaLabel="Explorer le catalogue"
+                  title={t("app.mkt.empty.title")}
+                  description={t("app.mkt.empty.desc")}
+                  ctaLabel={t("app.mkt.empty.cta")}
                   ctaHref="/marketplace/products"
                 />
               ) : displayProducts.map((product) => (
@@ -450,8 +454,8 @@ export default function MarketplacePage() {
           {offers.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-semibold text-sm">Offres spéciales</h3>
-                <Link href="/marketplace/offers" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Tout voir</Link>
+                <h3 className="text-white font-semibold text-sm">{t("app.mkt.specialOffers")}</h3>
+                <Link href="/marketplace/offers" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">{t("app.mkt.seeAll")}</Link>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {offers.slice(0, 3).map((offer, i) => {
@@ -538,7 +542,7 @@ export default function MarketplacePage() {
           <div className="bg-[#16161f]/80 backdrop-blur-xl rounded-2xl border border-[#1e1e2e] p-4
             hover:border-[#3b82f6]/30 transition-all duration-300">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-white font-semibold text-sm">Mes commandes</span>
+              <span className="text-white font-semibold text-sm">{t("app.mkt.myOrders")}</span>
               <Link href="/marketplace/orders" className="text-[#3b82f6] text-xs hover:text-[#3b82f6]/80 transition-colors">Voir tout</Link>
             </div>
             <div className="flex gap-1 mb-3 bg-white/5 rounded-xl p-1">
@@ -564,10 +568,10 @@ export default function MarketplacePage() {
             ) : tabOrders.length === 0 ? (
               <div className="text-center py-6">
                 <Package className="w-8 h-8 mx-auto text-white/10 mb-2" />
-                <p className="text-xs text-white/30 mb-3">Aucune commande pour l&apos;instant</p>
+                <p className="text-xs text-white/30 mb-3">{t("app.mkt.orders.none")}</p>
                 <Link href="/marketplace/products"
                   className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 transition-colors font-medium">
-                  Passer ma première commande →
+                  {t("app.mkt.orders.first")}
                 </Link>
               </div>
             ) : tabOrders.map((order) => {
@@ -646,7 +650,7 @@ export default function MarketplacePage() {
 
           {/* Help */}
           <div className="bg-[#16161f]/80 backdrop-blur-xl rounded-2xl border border-[#1e1e2e] p-4 hover:border-[#3b82f6]/20 transition-all duration-300">
-            <p className="text-white font-semibold text-sm mb-1">Besoin d&apos;aide ?</p>
+            <p className="text-white font-semibold text-sm mb-1">{t("app.mkt.needHelp")}</p>
             <p className="text-xs text-white/30 mb-3">Notre équipe est là pour vous.</p>
             <div className="grid grid-cols-2 gap-2">
               <Link href="/support" className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">

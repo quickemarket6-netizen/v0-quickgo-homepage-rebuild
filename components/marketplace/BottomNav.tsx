@@ -3,16 +3,17 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Compass, Package, Heart, User } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 
 // Mobile bottom tab bar for the marketplace (Jumia/Glovo pattern). The desktop
 // sidebar is hidden below lg and left no navigation at all on mobile — this
 // restores access to the core destinations.
 const TABS = [
-  { icon: Home,    label: "Accueil",   href: "/marketplace",           exact: true  },
-  { icon: Compass, label: "Explorer",  href: "/marketplace/products",  exact: false },
-  { icon: Package, label: "Commandes", href: "/marketplace/orders",    exact: false },
-  { icon: Heart,   label: "Favoris",   href: "/marketplace/favorites", exact: false },
-  { icon: User,    label: "Compte",    href: "/dashboard",             exact: false },
+  { icon: Home,    labelKey: "app.tabs.home",      href: "/marketplace",           exact: true  },
+  { icon: Compass, labelKey: "app.tabs.explore",   href: "/marketplace/products",  exact: false },
+  { icon: Package, labelKey: "app.tabs.orders",    href: "/marketplace/orders",    exact: false },
+  { icon: Heart,   labelKey: "app.tabs.favorites", href: "/marketplace/favorites", exact: false },
+  { icon: User,    labelKey: "app.tabs.account",   href: "/dashboard",             exact: false },
 ]
 
 // Routes with their own fixed bottom CTA (sticky checkout bar) — the tab bar
@@ -22,6 +23,7 @@ const HIDDEN_ON = ["/marketplace/cart", "/marketplace/checkout"]
 
 export function MarketplaceBottomNav() {
   const pathname = usePathname()
+  const { t } = useT()
 
   if (HIDDEN_ON.some(p => pathname === p || pathname.startsWith(p + "/"))) {
     return null
@@ -59,7 +61,7 @@ export function MarketplaceBottomNav() {
                     active ? "text-quickgo-lime font-semibold" : "text-[#6b6b8a]"
                   }`}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </span>
               </Link>
             )

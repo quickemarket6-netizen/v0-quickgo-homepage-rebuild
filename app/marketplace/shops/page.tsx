@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { FeaturedHero } from "@/components/marketplace/FeaturedHero"
 import { EmptyState } from "@/components/marketplace/EmptyState"
+import { useT } from "@/lib/i18n/context"
 
 const CATEGORY_ICONS: Record<string, typeof ShoppingBag> = {
   restaurant: UtensilsCrossed, supermarche: ShoppingBag, pharmacie: Pill,
@@ -32,6 +33,7 @@ function formatCFA(n: number) {
 }
 
 export default function MarketplaceShopsPage() {
+  const { t } = useT()
   const searchParams = useSearchParams()
   const initialCat = searchParams.get("cat") ?? "all"
 
@@ -159,9 +161,9 @@ export default function MarketplaceShopsPage() {
         ) : vendors.length === 0 ? (
           <EmptyState
             icon={ShoppingBag}
-            title="Aucune boutique trouvée"
-            description="Essayez une autre catégorie, ou parcourez tous les produits déjà disponibles sur le marché."
-            ctaLabel="Voir tous les produits"
+            title={t("app.shops.empty.title")}
+            description={t("app.shops.empty.desc")}
+            ctaLabel={t("app.shops.empty.cta")}
             ctaHref="/marketplace/products"
           />
         ) : (

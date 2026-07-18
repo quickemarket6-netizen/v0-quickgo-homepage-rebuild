@@ -25,6 +25,7 @@ import {
   PackageOpen,
   Loader2,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("fr-FR").format(price) + " FCFA"
@@ -49,6 +50,7 @@ const localKey = (productId: string, variantId?: string | null) =>
   variantId ? `${productId}::${variantId}` : productId
 
 export default function CartPage() {
+  const { t } = useT()
   const { items, removeItem, updateQuantity, clearCart, setItems, getTotalPrice } = useCart()
   const [promoCode, setPromoCode]           = useState("")
   const [promoApplied, setPromoApplied]     = useState(false)
@@ -173,7 +175,7 @@ export default function CartPage() {
         {/* Header */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">Mon Panier</h1>
+            <h1 className="text-3xl lg:text-4xl font-bold text-foreground mb-2">{t("app.cart.title")}</h1>
             <p className="text-muted-foreground">
               {items.length} article{items.length !== 1 && "s"} dans votre panier
             </p>
@@ -340,7 +342,7 @@ export default function CartPage() {
                     {/* Summary Lines */}
                     <div className="space-y-3 pb-6 border-b border-border/50">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Sous-total</span>
+                        <span className="text-muted-foreground">{t("app.cart.subtotal")}</span>
                         <span className="text-foreground">{formatPrice(subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
@@ -348,7 +350,7 @@ export default function CartPage() {
                         <span className="text-foreground">{formatPrice(serviceFee)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Livraison</span>
+                        <span className="text-muted-foreground">{t("app.cart.delivery")}</span>
                         <span className="text-muted-foreground text-xs">Calculée à l&apos;étape suivante</span>
                       </div>
                       {promoDiscount > 0 && (
@@ -362,7 +364,7 @@ export default function CartPage() {
                     {/* Total */}
                     <div className="py-6">
                       <div className="flex justify-between">
-                        <span className="text-lg font-bold text-foreground">Total (hors livraison)</span>
+                        <span className="text-lg font-bold text-foreground">{t("app.cart.total")}</span>
                         <span className="text-2xl font-bold text-foreground">{formatPrice(total)}</span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -373,7 +375,7 @@ export default function CartPage() {
                     {/* Checkout Button */}
                     <Link href="/marketplace/checkout">
                       <Button className="w-full h-14 rounded-xl text-base" size="lg">
-                        Passer la commande
+                        {t("app.cart.checkout")}
                         <ChevronRight className="w-5 h-5 ml-2" />
                       </Button>
                     </Link>
@@ -405,13 +407,13 @@ export default function CartPage() {
                 <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted/30 flex items-center justify-center">
                   <PackageOpen className="w-12 h-12 text-muted-foreground" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">Votre panier est vide</h2>
+                <h2 className="text-2xl font-bold text-foreground mb-2">{t("app.cart.empty.title")}</h2>
                 <p className="text-muted-foreground mb-8">
-                  Découvrez nos produits et ajoutez-les à votre panier
+                  {t("app.cart.empty.desc")}
                 </p>
                 <Link href="/marketplace">
                   <Button size="lg" className="rounded-xl">
-                    Continuer mes achats
+                    {t("app.cart.empty.cta")}
                   </Button>
                 </Link>
               </motion.div>
@@ -428,7 +430,7 @@ export default function CartPage() {
             <span className="text-xl font-bold text-foreground">{formatPrice(total)}</span>
           </div>
           <Link href="/marketplace/checkout">
-            <Button className="w-full h-12 rounded-xl">Passer la commande</Button>
+            <Button className="w-full h-12 rounded-xl">{t("app.cart.checkout")}</Button>
           </Link>
         </div>
       )}
