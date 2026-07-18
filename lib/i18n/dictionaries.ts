@@ -186,6 +186,43 @@ export const dictionaries: Record<Lang, Record<string, string>> = {
     "app.hero3.desc": "Votre filleul commande, vous êtes crédité\nsur votre portefeuille QuickGo Pay.",
     "app.hero3.cta": "Obtenir mon code",
 
+    // Navigation partagée (sidebars dashboard client)
+    "nav2.home": "Accueil",
+    "nav2.explore": "Explorer",
+    "nav2.products": "Produits",
+    "nav2.orders": "Commandes",
+    "nav2.tracking": "Live Tracking",
+    "nav2.favorites": "Favoris",
+    "nav2.wallet": "Wallet",
+    "nav2.messages": "Messages",
+    "nav2.promotions": "Promotions",
+    "nav2.support": "Support",
+    "nav2.settings": "Paramètres",
+    "nav2.seeAll": "Voir tout",
+
+    // Dashboard client
+    "dash.greeting": "Bonjour",
+    "dash.quickActions": "Actions rapides",
+    "dash.balance": "Solde disponible",
+    "dash.myOrders": "Mes commandes",
+    "dash.noOrders": "Aucune commande",
+    "dash.points": "Points",
+    "dash.topup": "Recharger",
+
+    // Wallet
+    "wallet.title": "Portefeuille",
+    "wallet.balance": "Solde disponible",
+    "wallet.currentBalance": "Solde actuel",
+    "wallet.recharge": "Recharger",
+    "wallet.rechargeWallet": "Recharger le wallet",
+    "wallet.rechargeNow": "Recharger maintenant",
+    "wallet.send": "Envoyer",
+    "wallet.rewards": "Récompenses",
+    "wallet.fullHistory": "Historique complet",
+    "wallet.transactions": "Transactions",
+    "wallet.noTransactions": "Aucune transaction pour l'instant",
+    "wallet.security": "Sécurité",
+
     // Language switcher
     "lang.fr": "Français",
     "lang.en": "English",
@@ -371,6 +408,43 @@ export const dictionaries: Record<Lang, Record<string, string>> = {
     "app.hero3.accent": "— 1,000 F reward.",
     "app.hero3.desc": "Your referral orders, you get credited\nto your QuickGo Pay wallet.",
     "app.hero3.cta": "Get my code",
+
+    // Shared navigation (client dashboard sidebars)
+    "nav2.home": "Home",
+    "nav2.explore": "Explore",
+    "nav2.products": "Products",
+    "nav2.orders": "Orders",
+    "nav2.tracking": "Live Tracking",
+    "nav2.favorites": "Favorites",
+    "nav2.wallet": "Wallet",
+    "nav2.messages": "Messages",
+    "nav2.promotions": "Promotions",
+    "nav2.support": "Support",
+    "nav2.settings": "Settings",
+    "nav2.seeAll": "See all",
+
+    // Client dashboard
+    "dash.greeting": "Hello",
+    "dash.quickActions": "Quick actions",
+    "dash.balance": "Available balance",
+    "dash.myOrders": "My orders",
+    "dash.noOrders": "No orders",
+    "dash.points": "Points",
+    "dash.topup": "Top up",
+
+    // Wallet
+    "wallet.title": "Wallet",
+    "wallet.balance": "Available balance",
+    "wallet.currentBalance": "Current balance",
+    "wallet.recharge": "Top up",
+    "wallet.rechargeWallet": "Top up wallet",
+    "wallet.rechargeNow": "Top up now",
+    "wallet.send": "Send",
+    "wallet.rewards": "Rewards",
+    "wallet.fullHistory": "Full history",
+    "wallet.transactions": "Transactions",
+    "wallet.noTransactions": "No transactions yet",
+    "wallet.security": "Security",
 
     // Language switcher
     "lang.fr": "Français",

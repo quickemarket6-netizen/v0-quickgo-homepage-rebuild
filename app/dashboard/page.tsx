@@ -22,6 +22,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/lib/supabase/client"
+import { useT } from "@/lib/i18n/context"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Profile {
@@ -52,27 +54,27 @@ interface HomeData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SIDEBAR_ITEMS = [
-  { icon: LayoutDashboard, label: "Accueil",         href: "/dashboard",               active: true },
-  { icon: ShoppingBag,     label: "Explorer",         href: "/marketplace" },
-  { icon: Smartphone,      label: "Produits",         href: "/marketplace/products" },
-  { icon: Package,         label: "Commandes",        href: "/marketplace/orders",      badge: "orders" },
-  { icon: Clock,           label: "Live Tracking",    href: "/tracking" },
-  { icon: Heart,           label: "Favoris",          href: "/marketplace/favorites" },
-  { icon: Wallet,          label: "Wallet",           href: "/wallet" },
-  { icon: MessageSquare,   label: "Messages",         href: "/dashboard/messages",      badge: "unread" },
-  { icon: Tag,             label: "Promotions",       href: "/marketplace/offers" },
-  { icon: HelpCircle,      label: "Support",          href: "/support" },
-  { icon: Settings,        label: "Paramètres",       href: "/dashboard/settings" },
+  { icon: LayoutDashboard, label: "nav2.home",         href: "/dashboard",               active: true },
+  { icon: ShoppingBag,     label: "nav2.explore",         href: "/marketplace" },
+  { icon: Smartphone,      label: "nav2.products",         href: "/marketplace/products" },
+  { icon: Package,         label: "nav2.orders",        href: "/marketplace/orders",      badge: "orders" },
+  { icon: Clock,           label: "nav2.tracking",    href: "/tracking" },
+  { icon: Heart,           label: "nav2.favorites",          href: "/marketplace/favorites" },
+  { icon: Wallet,          label: "nav2.wallet",           href: "/wallet" },
+  { icon: MessageSquare,   label: "nav2.messages",         href: "/dashboard/messages",      badge: "unread" },
+  { icon: Tag,             label: "nav2.promotions",       href: "/marketplace/offers" },
+  { icon: HelpCircle,      label: "nav2.support",          href: "/support" },
+  { icon: Settings,        label: "nav2.settings",       href: "/dashboard/settings" },
 ]
 
 const QUICK_ACTIONS = [
-  { label: "Courses",      icon: ShoppingCart,   href: "/marketplace/shops?cat=supermarche", color: "#22c55e" },
-  { label: "Restaurants",  icon: UtensilsCrossed,href: "/marketplace/shops?cat=restaurant",  color: "#f97316" },
-  { label: "Pharmacie",    icon: Pill,           href: "/marketplace/shops?cat=pharmacie",   color: "#ec4899" },
-  { label: "Livraison",    icon: Bike,           href: "/delivery/create",                   color: "#3b82f6" },
-  { label: "Chauffeur",    icon: Car,            href: "/delivery",                           color: "#8b5cf6" },
-  { label: "Recharger",    icon: CreditCard,     href: "/wallet",                            color: "#eab308" },
-  { label: "Plus",         icon: MoreHorizontal, href: "/marketplace",                       color: "#06b6d4" },
+  { label: "app.qa.groceries",      icon: ShoppingCart,   href: "/marketplace/shops?cat=supermarche", color: "#22c55e" },
+  { label: "app.qa.restaurants",  icon: UtensilsCrossed,href: "/marketplace/shops?cat=restaurant",  color: "#f97316" },
+  { label: "app.qa.pharmacy",    icon: Pill,           href: "/marketplace/shops?cat=pharmacie",   color: "#ec4899" },
+  { label: "app.qa.delivery",    icon: Bike,           href: "/delivery/create",                   color: "#3b82f6" },
+  { label: "app.qa.driver",    icon: Car,            href: "/delivery",                           color: "#8b5cf6" },
+  { label: "app.qa.topup",    icon: CreditCard,     href: "/wallet",                            color: "#eab308" },
+  { label: "app.qa.more",         icon: MoreHorizontal, href: "/marketplace",                       color: "#06b6d4" },
 ]
 
 const HERO_SLIDES = [
@@ -82,13 +84,13 @@ const HERO_SLIDES = [
 ]
 
 const ORDER_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  pending:    { label: "En attente",  color: "text-[#eab308]", bg: "bg-[#eab308]/20" },
-  confirmed:  { label: "Confirmé",    color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/20" },
-  preparing:  { label: "Préparation", color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/20" },
-  ready:      { label: "Prêt",        color: "text-[#06b6d4]", bg: "bg-[#06b6d4]/20" },
-  delivering: { label: "En route",    color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/20" },
-  delivered:  { label: "Livré",       color: "text-[#22c55e]", bg: "bg-[#22c55e]/20" },
-  cancelled:  { label: "Annulé",      color: "text-[#ef4444]", bg: "bg-[#ef4444]/20" },
+  pending:    { label: "app.status.pending",  color: "text-[#eab308]", bg: "bg-[#eab308]/20" },
+  confirmed:  { label: "app.status.confirmed",    color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/20" },
+  preparing:  { label: "app.status.preparing", color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/20" },
+  ready:      { label: "app.status.ready",        color: "text-[#06b6d4]", bg: "bg-[#06b6d4]/20" },
+  delivering: { label: "app.status.delivering",    color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/20" },
+  delivered:  { label: "app.status.delivered",       color: "text-[#22c55e]", bg: "bg-[#22c55e]/20" },
+  cancelled:  { label: "app.status.cancelled",      color: "text-[#ef4444]", bg: "bg-[#ef4444]/20" },
 }
 
 const LEVEL_NAMES = ["Bronze","Argent","Or","Platine","Diamant","Légende","Maître"]
@@ -131,6 +133,7 @@ function useCountdown(until: string | null) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ClientDashboardPage() {
+  const { t } = useT()
   const [data, setData] = useState<HomeData | null>(null)
   const [promos, setPromos] = useState<PromoRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -210,7 +213,7 @@ export default function ClientDashboardPage() {
                   }`}
                 >
                   <item.icon className="w-4 h-4 shrink-0" />
-                  <span className="flex-1">{item.label}</span>
+                  <span className="flex-1">{t(item.label)}</span>
                   {badge > 0 && (
                     <span className="bg-[#3b82f6] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold min-w-5 text-center">{badge}</span>
                   )}
@@ -302,6 +305,7 @@ export default function ClientDashboardPage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <LanguageSwitcher className="hidden sm:inline-flex" />
               <Link href="/notifications" className="relative p-2 hover:bg-white/5 rounded-full transition-colors">
                 <Bell className="w-5 h-5 text-white/40" />
                 {unreadBadge > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-[#ef4444] rounded-full animate-pulse" />}
@@ -412,14 +416,14 @@ export default function ClientDashboardPage() {
               {/* Actions rapides */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-white font-semibold">Actions rapides</h3>
+                  <h3 className="text-white font-semibold">{t("dash.quickActions")}</h3>
                   <Link href="/marketplace" className="text-[#3b82f6] text-xs flex items-center gap-1 hover:opacity-80 transition-opacity">
                     Tout voir <ArrowUpRight className="w-3 h-3" />
                   </Link>
                 </div>
                 <div className="grid grid-cols-7 gap-2">
                   {QUICK_ACTIONS.map((action, i) => (
-                    <Link key={action.label} href={action.href}>
+                    <Link key={action.href} href={action.href}>
                       <motion.div whileHover={{ y: -3, scale: 1.05 }} transition={{ duration: 0.15 }}
                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0, transition: { delay: i * 0.05 } }}
                         className="flex flex-col items-center gap-2 cursor-pointer"
@@ -428,7 +432,7 @@ export default function ClientDashboardPage() {
                           style={{ background: `${action.color}20` }}>
                           <action.icon className="w-5 h-5" style={{ color: action.color }} />
                         </div>
-                        <span className="text-[10px] text-white/50 font-medium text-center leading-tight">{action.label}</span>
+                        <span className="text-[10px] text-white/50 font-medium text-center leading-tight">{t(action.label)}</span>
                       </motion.div>
                     </Link>
                   ))}
@@ -465,7 +469,7 @@ export default function ClientDashboardPage() {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-white font-semibold">Offres spéciales</h3>
                   <Link href="/marketplace/offers" className="text-[#3b82f6] text-xs flex items-center gap-1 hover:opacity-80 transition-opacity">
-                    Voir tout <ArrowUpRight className="w-3 h-3" />
+                    {t("nav2.seeAll")} <ArrowUpRight className="w-3 h-3" />
                   </Link>
                 </div>
                 {loading ? (
@@ -496,9 +500,9 @@ export default function ClientDashboardPage() {
               >
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-white font-semibold text-sm">Mon Wallet</span>
-                  <Link href="/wallet" className="text-[#3b82f6] text-xs hover:opacity-80 transition-opacity">Voir tout</Link>
+                  <Link href="/wallet" className="text-[#3b82f6] text-xs hover:opacity-80 transition-opacity">{t("nav2.seeAll")}</Link>
                 </div>
-                <p className="text-xs text-white/40 mb-1">Solde disponible</p>
+                <p className="text-xs text-white/40 mb-1">{t("dash.balance")}</p>
                 {loading ? (
                   <div className="h-8 w-36 bg-white/10 rounded animate-pulse mb-1" />
                 ) : (
@@ -531,8 +535,8 @@ export default function ClientDashboardPage() {
                 className="bg-[#16161f]/80 backdrop-blur-xl rounded-3xl p-5 border border-[#1e1e2e]"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-white font-semibold text-sm">Mes commandes</h3>
-                  <Link href="/marketplace/orders" className="text-[#3b82f6] text-xs hover:opacity-80 transition-opacity">Voir tout</Link>
+                  <h3 className="text-white font-semibold text-sm">{t("dash.myOrders")}</h3>
+                  <Link href="/marketplace/orders" className="text-[#3b82f6] text-xs hover:opacity-80 transition-opacity">{t("nav2.seeAll")}</Link>
                 </div>
                 {/* Tabs */}
                 <div className="flex gap-1 mb-4 bg-[#0a0a0f] rounded-xl p-1">
@@ -551,7 +555,7 @@ export default function ClientDashboardPage() {
                 ) : tabOrders.length === 0 ? (
                   <div className="text-center py-6">
                     <Package className="w-7 h-7 text-white/10 mx-auto mb-2" />
-                    <p className="text-white/30 text-xs">Aucune commande</p>
+                    <p className="text-white/30 text-xs">{t("dash.noOrders")}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -567,7 +571,7 @@ export default function ClientDashboardPage() {
                             <p className="text-[10px] text-white/30">#{order.order_number} · {formatDate(order.created_at)}</p>
                           </div>
                           <div className="text-right shrink-0">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.color}`}>{t(cfg.label)}</span>
                             <p className="text-[10px] text-white/30 mt-0.5">{formatCFA(order.total_amount)}</p>
                           </div>
                         </div>

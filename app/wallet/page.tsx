@@ -18,6 +18,7 @@ import {
   X,
   Loader2,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 
 type Tx = {
   id: string
@@ -47,10 +48,10 @@ const PAYMENT_METHODS = [
 // Chaque action mène à un flux réel : recharge CinetPay, transfert entre
 // utilisateurs, récompenses/parrainage, code PIN.
 const QUICK_ACTIONS = [
-  { icon: Plus,   label: "Recharger",   action: "recharge" as const },
-  { icon: Send,   label: "Envoyer",     href: "/wallet/transfer" },
-  { icon: Gift,   label: "Récompenses", href: "/wallet/rewards" },
-  { icon: QrCode, label: "Sécurité",    href: "/wallet/security" },
+  { icon: Plus,   label: "wallet.recharge",   action: "recharge" as const },
+  { icon: Send,   label: "wallet.send",     href: "/wallet/transfer" },
+  { icon: Gift,   label: "wallet.rewards", href: "/wallet/rewards" },
+  { icon: QrCode, label: "wallet.security",    href: "/wallet/security" },
 ]
 
 function fmt(n: number) {
@@ -67,6 +68,7 @@ function timeAgo(d: string) {
 }
 
 export default function WalletPage() {
+  const { t } = useT()
   const [balance, setBalance]         = useState<number | null>(null)
   const [points, setPoints]           = useState(0)
   const [transactions, setTransactions] = useState<Tx[]>([])
@@ -202,7 +204,7 @@ export default function WalletPage() {
                       className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold w-full"
                       onClick={() => setShowRecharge(true)}
                     >
-                      Recharger le wallet
+                      {t("wallet.rechargeWallet")}
                       <Plus className="ml-2 h-5 w-5" />
                     </Button>
                   </motion.div>
@@ -212,7 +214,7 @@ export default function WalletPage() {
                       variant="outline"
                       className="h-14 px-8 border-lime-500/30 text-lime-500 hover:bg-lime-500/10 w-full"
                     >
-                      Historique complet
+                      {t("wallet.fullHistory")}
                     </Button>
                   </motion.div>
                 </motion.div>
@@ -294,7 +296,7 @@ export default function WalletPage() {
                       </div>
 
                       <div className="mb-8">
-                        <p className="text-sm text-black/70 mb-1">Solde disponible</p>
+                        <p className="text-sm text-black/70 mb-1">{t("wallet.balance")}</p>
                         {loading ? (
                           <div className="h-10 w-44 rounded-lg bg-black/20 animate-pulse" />
                         ) : (
@@ -313,7 +315,7 @@ export default function WalletPage() {
                       <div className="grid grid-cols-4 gap-4">
                         {QUICK_ACTIONS.map((a, i) => (
                           <motion.button
-                            key={a.label}
+                            key={a.href ?? a.action}
                             initial={{ opacity: 0, y: 15 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6 + i * 0.05, type: "spring", stiffness: 200 }}
@@ -325,7 +327,7 @@ export default function WalletPage() {
                             className="flex flex-col items-center gap-2 p-3 rounded-xl bg-black/10 hover:bg-black/20 transition-colors"
                           >
                             <a.icon className="h-5 w-5 text-black" />
-                            <span className="text-xs text-black font-medium">{a.label}</span>
+                            <span className="text-xs text-black font-medium">{t(a.label)}</span>
                           </motion.button>
                         ))}
                       </div>
@@ -351,7 +353,7 @@ export default function WalletPage() {
                         ))}
                       </div>
                     ) : transactions.length === 0 ? (
-                      <p className="text-sm text-zinc-500 text-center py-6">Aucune transaction pour l&apos;instant</p>
+                      <p className="text-sm text-zinc-500 text-center py-6">{t("wallet.noTransactions")}</p>
                     ) : (
                       <div className="space-y-3">
                         {transactions.slice(0, 5).map((tx, i) => {
@@ -412,7 +414,7 @@ export default function WalletPage() {
                   className="bg-lime-500 text-black hover:bg-lime-400 h-14 px-8 font-bold"
                   onClick={() => setShowRecharge(true)}
                 >
-                  Recharger maintenant
+                  {t("wallet.rechargeNow")}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </motion.div>
@@ -448,7 +450,7 @@ export default function WalletPage() {
               >
                 <X className="h-5 w-5" />
               </button>
-              <h2 className="text-xl font-bold text-white mb-1">Recharger le wallet</h2>
+              <h2 className="text-xl font-bold text-white mb-1">{t("wallet.rechargeWallet")}</h2>
               <p className="text-sm text-zinc-400 mb-6">
                 Solde actuel :{" "}
                 <span className="text-lime-400 font-semibold">{fmt(balance ?? 0)}</span>
