@@ -46,11 +46,14 @@ const steps = [
   { number: 4, title: "Termine", description: "Commencez a vendre sur QuickGo" },
 ]
 
+// Faits vérifiables sur le programme vendeur — pas de compteurs inventés.
+// Les chiffres réels (vendeurs actifs, produits listés) s'afficheront une fois
+// mesurés côté back-office.
 const stats = [
-  { value: "5 000+", label: "Vendeurs actifs" },
-  { value: "200K+", label: "Produits listes" },
-  { value: "98%", label: "Satisfaction vendeurs" },
-  { value: "24h", label: "Delai verification" },
+  { value: "0 FCFA", label: "Frais d'inscription" },
+  { value: "7%", label: "Commission simple" },
+  { value: "24h", label: "Délai de vérification" },
+  { value: "OM & MoMo", label: "Paiements sécurisés" },
 ]
 
 const features = [
