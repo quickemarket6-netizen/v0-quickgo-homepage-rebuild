@@ -125,24 +125,18 @@ export default function LoginPage() {
     <main className="min-h-screen flex" style={{ backgroundColor: "#0a0a0f" }}>
       {/* Global background orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-[500px] h-[500px] rounded-full blur-[130px]"
-          style={{ background: "#3b82f6", opacity: 0.18, top: "-150px", left: "-150px" }}
-        />
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-          className="absolute w-[400px] h-[400px] rounded-full blur-[100px]"
-          style={{ background: "#06b6d4", opacity: 0.15, bottom: "100px", left: "30%" }}
-        />
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-          className="absolute w-[350px] h-[350px] rounded-full blur-[90px]"
-          style={{ background: "#a3e635", opacity: 0.12, top: "200px", right: "5%" }}
-        />
+        <div
+          className="absolute w-[500px] h-[500px] rounded-full blur-[130px] animate-orb"
+          style={{ background: "#3b82f6", opacity: 0.18, top: "-150px", left: "-150px", "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "8s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute w-[400px] h-[400px] rounded-full blur-[100px] animate-orb"
+          style={{ background: "#06b6d4", opacity: 0.15, bottom: "100px", left: "30%", "--orb-s": "1.15", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "6s", "--orb-delay": "1.5s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute w-[350px] h-[350px] rounded-full blur-[90px] animate-orb"
+          style={{ background: "#a3e635", opacity: 0.12, top: "200px", right: "5%", "--orb-s": "1.1", "--orb-o-min": "0.1", "--orb-o-max": "0.2", "--orb-dur": "7s", "--orb-delay": "3s" } as React.CSSProperties}
+          />
         {/* Scan-line overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -356,24 +350,18 @@ export default function LoginPage() {
 
         {/* Glow orbs behind cards */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.25, 0.45, 0.25] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute w-[400px] h-[400px] rounded-full blur-[120px]"
-            style={{ background: "#3b82f6", top: "5%", right: "-10%" }}
-          />
-          <motion.div
-            animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.35, 0.2] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute w-[350px] h-[350px] rounded-full blur-[100px]"
-            style={{ background: "#06b6d4", bottom: "10%", left: "5%" }}
-          />
-          <motion.div
-            animate={{ scale: [1, 1.1, 1], opacity: [0.15, 0.3, 0.15] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute w-[280px] h-[280px] rounded-full blur-[80px]"
-            style={{ background: "#a3e635", top: "45%", right: "20%" }}
-          />
+          <div
+            className="absolute w-[400px] h-[400px] rounded-full blur-[120px] animate-orb"
+            style={{ background: "#3b82f6", top: "5%", right: "-10%", "--orb-s": "1.2", "--orb-o-min": "0.25", "--orb-o-max": "0.45", "--orb-dur": "7s" } as React.CSSProperties}
+            />
+          <div
+            className="absolute w-[350px] h-[350px] rounded-full blur-[100px] animate-orb"
+            style={{ background: "#06b6d4", bottom: "10%", left: "5%", "--orb-s": "1.15", "--orb-o-min": "0.2", "--orb-o-max": "0.35", "--orb-dur": "8s", "--orb-delay": "1s" } as React.CSSProperties}
+            />
+          <div
+            className="absolute w-[280px] h-[280px] rounded-full blur-[80px] animate-orb"
+            style={{ background: "#a3e635", top: "45%", right: "20%", "--orb-s": "1.1", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "6s", "--orb-delay": "2s" } as React.CSSProperties}
+            />
         </div>
 
         {/* Content */}

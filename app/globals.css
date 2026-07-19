@@ -274,3 +274,15 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Orbes d'ambiance — animation CSS compositor (propriétés `scale`/`opacity`
+   individuelles : elles composent avec les utilitaires translate-* et tournent
+   hors du main-thread, contrairement aux boucles Framer en rAF). Paramétrée
+   par variables CSS ; désactivée par la règle prefers-reduced-motion ci-dessus. */
+@keyframes qg-orb {
+  0%, 100% { scale: 1; opacity: var(--orb-o-min, 0.15); }
+  50%      { scale: var(--orb-s, 1.15); opacity: var(--orb-o-max, 0.3); }
+}
+.animate-orb {
+  animation: qg-orb var(--orb-dur, 8s) ease-in-out var(--orb-delay, 0s) infinite;
+}

@@ -214,21 +214,18 @@ export default function VendorRevenuePage() {
 
       {/* ── Background orbs ────────────────────────────────────────────────── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.12, 0.28, 0.12] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 left-1/3 w-[420px] h-[420px] rounded-full bg-[#a3e635] blur-[130px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.22, 0.1] }}
-          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
-          className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-[#eab308] blur-[120px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.08, 0.2, 0.08] }}
-          transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-          className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full bg-[#22c55e] blur-[120px]"
-        />
+        <div
+          className="absolute top-1/4 left-1/3 w-[420px] h-[420px] rounded-full bg-[#a3e635] blur-[130px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.12", "--orb-o-max": "0.28", "--orb-dur": "8s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-[#eab308] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.1", "--orb-o-max": "0.22", "--orb-dur": "11s", "--orb-delay": "2.5s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full bg-[#22c55e] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.08", "--orb-o-max": "0.2", "--orb-dur": "13s", "--orb-delay": "5s" } as React.CSSProperties}
+          />
       </div>
 
       {/* ── Sidebar ────────────────────────────────────────────────────────── */}

@@ -518,16 +518,14 @@ export default function VendorProductsPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0f] to-[#0a0a0f]/60" />
 
           {/* Animated glow orbs */}
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -left-20 top-1/2 -translate-y-1/2 w-48 h-48 bg-[#a3e635] rounded-full blur-[120px] pointer-events-none"
-          />
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-            className="absolute right-10 top-1/2 -translate-y-1/2 w-40 h-40 bg-[#3b82f6] rounded-full blur-[120px] pointer-events-none"
-          />
+          <div
+            className="absolute -left-20 top-1/2 -translate-y-1/2 w-48 h-48 bg-[#a3e635] rounded-full blur-[120px] pointer-events-none animate-orb"
+            style={{ "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "4s" } as React.CSSProperties}
+            />
+          <div
+            className="absolute right-10 top-1/2 -translate-y-1/2 w-40 h-40 bg-[#3b82f6] rounded-full blur-[120px] pointer-events-none animate-orb"
+            style={{ "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "4s", "--orb-delay": "1.5s" } as React.CSSProperties}
+            />
 
           {/* Header content */}
           <div className="relative z-10 px-6 py-4 flex items-center justify-between gap-4">

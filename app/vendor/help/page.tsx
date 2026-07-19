@@ -204,12 +204,10 @@ export default function HelpPage() {
     <div className="min-h-screen bg-[#0a0a0f] flex">
       {/* Background orbs */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.12, 0.28, 0.12] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-[#10b981] blur-[120px]" />
-        <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.1, 0.22, 0.1] }}
-          transition={{ duration: 10, repeat: Infinity, delay: 3 }}
-          className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-[#06b6d4] blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-[#10b981] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.12", "--orb-o-max": "0.28", "--orb-dur": "8s" } as React.CSSProperties} />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-[#06b6d4] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.15", "--orb-o-min": "0.1", "--orb-o-max": "0.22", "--orb-dur": "10s", "--orb-delay": "3s" } as React.CSSProperties} />
       </div>
 
       {/* ── Sidebar ── */}

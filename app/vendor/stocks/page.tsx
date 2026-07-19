@@ -316,21 +316,18 @@ export default function VendorStocksPage() {
 
       {/* ── Background orbs ─────────────────────────────────────────────────── */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.35, 0.15] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#f97316] blur-[130px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 11, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-[#a3e635] blur-[120px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 13, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-          className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full bg-[#ef4444] blur-[120px]"
-        />
+        <div
+          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-[#f97316] blur-[130px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.15", "--orb-o-max": "0.35", "--orb-dur": "9s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full bg-[#a3e635] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "11s", "--orb-delay": "3s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute top-2/3 left-1/2 w-72 h-72 rounded-full bg-[#ef4444] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "13s", "--orb-delay": "6s" } as React.CSSProperties}
+          />
       </div>
 
       {/* ── Sidebar ──────────────────────────────────────────────────────────── */}
@@ -424,16 +421,14 @@ export default function VendorStocksPage() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#111118] via-transparent to-[#111118]" />
 
           {/* Glow orbs in header */}
-          <motion.div
-            animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 6, repeat: Infinity }}
-            className="absolute top-0 left-1/4 w-40 h-20 rounded-full bg-[#f97316] blur-3xl opacity-30"
-          />
-          <motion.div
-            animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.5, 0.2] }}
-            transition={{ duration: 8, repeat: Infinity, delay: 2 }}
-            className="absolute top-0 right-1/3 w-32 h-16 rounded-full bg-[#a3e635] blur-3xl opacity-20"
-          />
+          <div
+            className="absolute top-0 left-1/4 w-40 h-20 rounded-full bg-[#f97316] blur-3xl opacity-30 animate-orb"
+            style={{ "--orb-s": "1.3", "--orb-o-min": "0.3", "--orb-o-max": "0.6", "--orb-dur": "6s" } as React.CSSProperties}
+            />
+          <div
+            className="absolute top-0 right-1/3 w-32 h-16 rounded-full bg-[#a3e635] blur-3xl opacity-20 animate-orb"
+            style={{ "--orb-s": "1.3", "--orb-o-min": "0.2", "--orb-o-max": "0.5", "--orb-dur": "8s", "--orb-delay": "2s" } as React.CSSProperties}
+            />
 
           {/* Header content */}
           <div className="relative z-10 px-6 py-5 flex items-center justify-between gap-4">

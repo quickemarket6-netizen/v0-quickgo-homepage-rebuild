@@ -139,21 +139,18 @@ export function HeroSection() {
 
       {/* Layer 2: Animated Glow Effects */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-[600px] h-[600px] rounded-full bg-quickgo-blue/20 blur-[150px] -left-[200px] top-[100px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute w-[400px] h-[400px] rounded-full bg-quickgo-cyan/15 blur-[100px] left-1/2 -translate-x-1/2 top-[200px]"
-        />
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute w-[350px] h-[350px] rounded-full bg-quickgo-lime/10 blur-[80px] right-[100px] top-[300px]"
-        />
+        <div
+          className="absolute w-[600px] h-[600px] rounded-full bg-quickgo-blue/20 blur-[150px] -left-[200px] top-[100px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "8s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute w-[400px] h-[400px] rounded-full bg-quickgo-cyan/15 blur-[100px] left-1/2 -translate-x-1/2 top-[200px] animate-orb"
+          style={{ "--orb-s": "1.1", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "6s", "--orb-delay": "1s" } as React.CSSProperties}
+          />
+        <div
+          className="absolute w-[350px] h-[350px] rounded-full bg-quickgo-lime/10 blur-[80px] right-[100px] top-[300px] animate-orb"
+          style={{ "--orb-s": "1.15", "--orb-o-min": "0.1", "--orb-o-max": "0.2", "--orb-dur": "7s", "--orb-delay": "2s" } as React.CSSProperties}
+          />
       </div>
 
       {/* Main Content */}
@@ -390,11 +387,10 @@ export function HeroSection() {
                   <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-card/95 border-r border-b border-quickgo-cyan/30 rotate-45" />
                 </motion.div>
                 {/* Pulsing glow */}
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 bg-quickgo-cyan/20 rounded-full blur-xl -z-10"
-                />
+                <div
+                  className="absolute inset-0 bg-quickgo-cyan/20 rounded-full blur-xl -z-10 animate-orb"
+                  style={{ "--orb-s": "1.2", "--orb-o-min": "0.3", "--orb-o-max": "0.5", "--orb-dur": "2s" } as React.CSSProperties}
+                  />
               </div>
             </motion.div>
 

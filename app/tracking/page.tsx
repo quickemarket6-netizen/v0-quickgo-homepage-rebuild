@@ -149,16 +149,14 @@ export default function TrackingPage() {
         {/* ── Search / header ──────────────────────────────────────────────── */}
         <section className="py-12 lg:py-16 bg-gradient-to-b from-primary/10 to-background relative overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
-            <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute w-[400px] h-[400px] rounded-full bg-blue-500/15 blur-[100px] -left-[100px] top-0"
-            />
-            <motion.div
-              animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.3, 0.15] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-              className="absolute w-[300px] h-[300px] rounded-full bg-purple-500/10 blur-[80px] right-0 bottom-0"
-            />
+            <div
+              className="absolute w-[400px] h-[400px] rounded-full bg-blue-500/15 blur-[100px] -left-[100px] top-0 animate-orb"
+              style={{ "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "7s" } as React.CSSProperties}
+              />
+            <div
+              className="absolute w-[300px] h-[300px] rounded-full bg-purple-500/10 blur-[80px] right-0 bottom-0 animate-orb"
+              style={{ "--orb-s": "1.15", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "8s", "--orb-delay": "2s" } as React.CSSProperties}
+              />
           </div>
 
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">

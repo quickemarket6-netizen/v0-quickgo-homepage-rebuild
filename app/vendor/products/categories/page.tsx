@@ -160,12 +160,10 @@ export default function VendorCategoriesPage() {
 
       {/* Background orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute top-1/3 left-1/4 w-80 h-80 rounded-full bg-[#06b6d4] blur-[130px]" />
-        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.3, 0.15] }}
-          transition={{ duration: 12, repeat: Infinity, delay: 4 }}
-          className="absolute bottom-1/4 right-1/3 w-72 h-72 rounded-full bg-[#a3e635] blur-[120px]" />
+        <div className="absolute top-1/3 left-1/4 w-80 h-80 rounded-full bg-[#06b6d4] blur-[130px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "10s" } as React.CSSProperties} />
+        <div className="absolute bottom-1/4 right-1/3 w-72 h-72 rounded-full bg-[#a3e635] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.15", "--orb-o-max": "0.3", "--orb-dur": "12s", "--orb-delay": "4s" } as React.CSSProperties} />
       </div>
 
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
@@ -245,9 +243,8 @@ export default function VendorCategoriesPage() {
             className="absolute inset-0 w-full h-full object-cover opacity-20" />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0f]/60 via-transparent to-[#0a0a0f]" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#111118] via-transparent to-[#111118]" />
-          <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.25, 0.5, 0.25] }}
-            transition={{ duration: 7, repeat: Infinity }}
-            className="absolute top-0 right-1/3 w-32 h-16 rounded-full bg-[#06b6d4] blur-3xl opacity-25" />
+          <div className="absolute top-0 right-1/3 w-32 h-16 rounded-full bg-[#06b6d4] blur-3xl opacity-25 animate-orb"
+            style={{ "--orb-s": "1.3", "--orb-o-min": "0.25", "--orb-o-max": "0.5", "--orb-dur": "7s" } as React.CSSProperties} />
 
           <div className="relative z-10 px-6 py-5 flex items-center justify-between gap-4">
             <div>

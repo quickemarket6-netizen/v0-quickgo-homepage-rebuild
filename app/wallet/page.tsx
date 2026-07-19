@@ -129,21 +129,18 @@ export default function WalletPage() {
         <section className="relative py-16 lg:py-24 overflow-hidden">
           {/* Background orbs */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute w-[500px] h-[500px] rounded-full bg-lime-500/20 blur-[120px] -left-[150px] top-[50px]"
-            />
-            <motion.div
-              animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.35, 0.15] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-              className="absolute w-[400px] h-[400px] rounded-full bg-blue-500/20 blur-[100px] right-0 bottom-0"
-            />
-            <motion.div
-              animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.25, 0.1] }}
-              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-              className="absolute w-[300px] h-[300px] rounded-full bg-cyan-500/15 blur-[80px] right-[30%] top-[10%]"
-            />
+            <div
+              className="absolute w-[500px] h-[500px] rounded-full bg-lime-500/20 blur-[120px] -left-[150px] top-[50px] animate-orb"
+              style={{ "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "8s" } as React.CSSProperties}
+              />
+            <div
+              className="absolute w-[400px] h-[400px] rounded-full bg-blue-500/20 blur-[100px] right-0 bottom-0 animate-orb"
+              style={{ "--orb-s": "1.15", "--orb-o-min": "0.15", "--orb-o-max": "0.35", "--orb-dur": "6s", "--orb-delay": "1.5s" } as React.CSSProperties}
+              />
+            <div
+              className="absolute w-[300px] h-[300px] rounded-full bg-cyan-500/15 blur-[80px] right-[30%] top-[10%] animate-orb"
+              style={{ "--orb-s": "1.1", "--orb-o-min": "0.1", "--orb-o-max": "0.25", "--orb-dur": "7s", "--orb-delay": "3s" } as React.CSSProperties}
+              />
           </div>
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -275,16 +272,14 @@ export default function WalletPage() {
                     whileHover={{ y: -3, scale: 1.02 }}
                     className="relative p-6 rounded-3xl bg-gradient-to-br from-lime-500 via-lime-600 to-lime-700 overflow-hidden border border-lime-400/30"
                   >
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-                      transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-blue-400/40 blur-3xl pointer-events-none"
-                    />
-                    <motion.div
-                      animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.5, 0.2] }}
-                      transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                      className="absolute -bottom-5 -left-5 w-36 h-36 rounded-full bg-cyan-400/30 blur-2xl pointer-events-none"
-                    />
+                    <div
+                      className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-blue-400/40 blur-3xl pointer-events-none animate-orb"
+                      style={{ "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "6s" } as React.CSSProperties}
+                      />
+                    <div
+                      className="absolute -bottom-5 -left-5 w-36 h-36 rounded-full bg-cyan-400/30 blur-2xl pointer-events-none animate-orb"
+                      style={{ "--orb-s": "1.15", "--orb-o-min": "0.2", "--orb-o-max": "0.5", "--orb-dur": "7s", "--orb-delay": "1s" } as React.CSSProperties}
+                      />
 
                     <div className="relative z-10">
                       <div className="flex items-center justify-between mb-8">

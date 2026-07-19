@@ -111,26 +111,20 @@ export default function ChooseRolePage() {
       {/* Large pulsing glow orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Blue — top-left */}
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-[600px] h-[600px] rounded-full blur-[160px]"
-          style={{ background: "#3b82f6", top: "-200px", left: "-200px" }}
-        />
+        <div
+          className="absolute w-[600px] h-[600px] rounded-full blur-[160px] animate-orb"
+          style={{ background: "#3b82f6", top: "-200px", left: "-200px", "--orb-s": "1.2", "--orb-o-min": "0.2", "--orb-o-max": "0.4", "--orb-dur": "8s" } as React.CSSProperties}
+          />
         {/* Purple — top-right */}
-        <motion.div
-          animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.35, 0.15] }}
-          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute w-[500px] h-[500px] rounded-full blur-[140px]"
-          style={{ background: "#8b5cf6", top: "-100px", right: "-150px" }}
-        />
+        <div
+          className="absolute w-[500px] h-[500px] rounded-full blur-[140px] animate-orb"
+          style={{ background: "#8b5cf6", top: "-100px", right: "-150px", "--orb-s": "1.15", "--orb-o-min": "0.15", "--orb-o-max": "0.35", "--orb-dur": "7s", "--orb-delay": "1s" } as React.CSSProperties}
+          />
         {/* Cyan — bottom-center */}
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.25, 0.1] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute w-[450px] h-[450px] rounded-full blur-[120px]"
-          style={{ background: "#06b6d4", bottom: "-150px", left: "50%", transform: "translateX(-50%)" }}
-        />
+        <div
+          className="absolute w-[450px] h-[450px] rounded-full blur-[120px] animate-orb"
+          style={{ background: "#06b6d4", bottom: "-150px", left: "50%", transform: "translateX(-50%)", "--orb-s": "1.1", "--orb-o-min": "0.1", "--orb-o-max": "0.25", "--orb-dur": "6s", "--orb-delay": "2s" } as React.CSSProperties}
+          />
       </div>
 
       {/* ── Content ────────────────────────────────────────────── */}

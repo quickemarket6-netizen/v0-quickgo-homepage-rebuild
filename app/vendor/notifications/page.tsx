@@ -329,15 +329,12 @@ export default function NotificationsPage() {
     <div className="min-h-screen bg-[#0a0a0f] flex">
       {/* Background orbs */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.15, 0.35, 0.15] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-[#f59e0b] blur-[120px]" />
-        <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.15, 0.30, 0.15] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-          className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-[#eab308] blur-[120px]" />
-        <motion.div animate={{ scale: [1, 1.25, 1], opacity: [0.1, 0.22, 0.1] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 6 }}
-          className="absolute top-[40%] left-[40%] w-[400px] h-[400px] rounded-full bg-[#f97316] blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] rounded-full bg-[#f59e0b] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.2", "--orb-o-min": "0.15", "--orb-o-max": "0.35", "--orb-dur": "8s" } as React.CSSProperties} />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-[#eab308] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.15", "--orb-o-min": "0.15", "--orb-o-max": "0.30", "--orb-dur": "10s", "--orb-delay": "3s" } as React.CSSProperties} />
+        <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] rounded-full bg-[#f97316] blur-[120px] animate-orb"
+          style={{ "--orb-s": "1.25", "--orb-o-min": "0.1", "--orb-o-max": "0.22", "--orb-dur": "12s", "--orb-delay": "6s" } as React.CSSProperties} />
       </div>
 
       {/* ── Sidebar ── */}
