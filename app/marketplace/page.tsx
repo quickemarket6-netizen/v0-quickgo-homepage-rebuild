@@ -15,6 +15,8 @@ import { GlobalSearch } from "@/components/marketplace/GlobalSearch"
 import { EmptyState } from "@/components/marketplace/EmptyState"
 import { LanguageSwitcher } from "@/components/ui/language-switcher"
 import { useT } from "@/lib/i18n/context"
+import { useCart } from "@/lib/store/cart"
+import { toast } from "sonner"
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -125,6 +127,12 @@ function formatETA(iso: string | null) {
 
 export default function MarketplacePage() {
   const { t } = useT()
+  const { addItem, items: cartItems } = useCart()
+  // Compteur local (source de vérité des ajouts) — rendu après montage pour
+  // éviter le mismatch d'hydratation du store persisté.
+  const [cartMounted, setCartMounted] = useState(false)
+  useEffect(() => { setCartMounted(true) }, [])
+  const localCartCount = cartItems.reduce((s, i) => s + i.quantity, 0)
   const [data, setData] = useState<HomeData | null>(null)
   const [offers, setOffers] = useState<OfferRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -320,10 +328,15 @@ export default function MarketplacePage() {
               </Link>
               <Link href="/marketplace/cart" className="relative p-2 hover:bg-white/5 rounded-full transition-colors">
                 <ShoppingCart className="w-5 h-5 text-white/40" />
-                {(data?.cartCount ?? 0) > 0 && (
-                  <span className="absolute top-1 right-1 min-w-4 h-4 rounded-full bg-[#3b82f6] text-white text-[9px] flex items-center justify-center px-0.5">
-                    {data!.cartCount}
-                  </span>
+                {(cartMounted ? localCartCount : data?.cartCount ?? 0) > 0 && (
+                  <motion.span
+                    key={cartMounted ? localCartCount : data?.cartCount ?? 0}
+                    initial={{ scale: 0.4 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    className="absolute top-1 right-1 min-w-4 h-4 rounded-full bg-[#3b82f6] text-white text-[9px] flex items-center justify-center px-0.5">
+                    {cartMounted ? localCartCount : data!.cartCount}
+                  </motion.span>
                 )}
               </Link>
               <Link href="/dashboard/settings" className="p-2 hover:bg-white/5 rounded-full transition-colors">
@@ -439,7 +452,14 @@ export default function MarketplacePage() {
                             <p className="text-[10px] text-white/30 line-through">{formatCFA(product.original_price)}</p>
                           )}
                         </div>
-                        <button className="p-1 rounded-lg bg-[#3b82f6]/20 text-[#3b82f6] hover:bg-[#3b82f6]/30 transition-colors">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            addItem({ id: product.id, name: product.name, price: product.price, image: product.image_url ?? undefined, vendorName: product.vendor?.name })
+                            toast.success(`${product.name} — ${t("toast.addedToCart")}`)
+                          }}
+                          aria-label={t("toast.addedToCart")}
+                          className="p-1 rounded-lg bg-[#3b82f6]/20 text-[#3b82f6] hover:bg-[#3b82f6]/30 active:scale-90 transition-all">
                           <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>

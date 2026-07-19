@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCart } from "@/lib/store/cart"
 import { toast } from "sonner"
+import { useT } from "@/lib/i18n/context"
 import { FeaturedHero } from "@/components/marketplace/FeaturedHero"
 
 interface Product {
@@ -34,6 +35,7 @@ const SORT_OPTIONS = [
 const formatPrice = (n: number) => new Intl.NumberFormat("fr-FR").format(n) + " FCFA"
 
 export default function ProductsPage() {
+  const { t } = useT()
   const searchParams = useSearchParams()
   const initialCat = searchParams.get("cat") ?? ""
   const initialQ   = searchParams.get("q") ?? ""
@@ -278,8 +280,9 @@ export default function ProductsPage() {
                             onClick={(e) => {
                               e.preventDefault()
                               addItem({ id: p.id, name: p.name, price: p.price, image: img ?? undefined, vendorId: p.vendor?.id ?? undefined, vendorName: p.vendor?.name ?? undefined })
+                              toast.success(`${p.name} — ${t("toast.addedToCart")}`)
                             }}
-                            className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-white flex items-center justify-center shadow-lg translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300"
+                            className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-[#3b82f6] hover:bg-[#3b82f6]/90 active:scale-90 text-white flex items-center justify-center shadow-lg transition-all duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100"
                             aria-label="Ajouter au panier">
                             <Plus className="w-4 h-4" />
                           </button>

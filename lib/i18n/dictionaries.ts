@@ -377,6 +377,7 @@ export const dictionaries: Record<Lang, Record<string, string>> = {
     "toast.error": "Une erreur est survenue",
     "toast.network": "Erreur réseau. Vérifiez votre connexion et réessayez.",
     "toast.roleFail": "Impossible de définir le rôle. Réessayez.",
+    "toast.addedToCart": "ajouté au panier",
 
     // Language switcher
     "lang.fr": "Français",
@@ -755,6 +756,7 @@ export const dictionaries: Record<Lang, Record<string, string>> = {
     "toast.error": "Something went wrong",
     "toast.network": "Network error. Check your connection and try again.",
     "toast.roleFail": "Could not set your role. Please try again.",
+    "toast.addedToCart": "added to cart",
 
     // Language switcher
     "lang.fr": "Français",
