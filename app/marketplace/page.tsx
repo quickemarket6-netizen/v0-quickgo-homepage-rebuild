@@ -140,6 +140,7 @@ export default function MarketplacePage() {
   const [guest, setGuest] = useState(false)
   const [guestProducts, setGuestProducts] = useState<ProductRow[]>([])
   const [heroIdx, setHeroIdx] = useState(0)
+  const [heroPaused, setHeroPaused] = useState(false)
   const [orderTab, setOrderTab] = useState<"active" | "done" | "cancelled">("active")
   const heroTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -191,9 +192,11 @@ export default function MarketplacePage() {
   }, [])
 
   useEffect(() => {
+    // En pause au survol/toucher pour laisser le temps de lire une offre.
+    if (heroPaused) return
     heroTimer.current = setInterval(() => setHeroIdx((i) => (i + 1) % HERO_SLIDES.length), 5000)
     return () => { if (heroTimer.current) clearInterval(heroTimer.current) }
-  }, [])
+  }, [heroPaused])
 
   const profile = data?.profile
   const activeOrders = (data?.recentOrders ?? []).filter((o) => !["delivered", "cancelled"].includes(o.status))
@@ -352,7 +355,13 @@ export default function MarketplacePage() {
 
         <div className="p-5 space-y-6">
           {/* Hero Carousel */}
-          <div className="relative rounded-2xl overflow-hidden h-48 bg-[#16161f]">
+          <div
+            className="relative rounded-2xl overflow-hidden h-48 bg-[#16161f]"
+            onMouseEnter={() => setHeroPaused(true)}
+            onMouseLeave={() => setHeroPaused(false)}
+            onTouchStart={() => setHeroPaused(true)}
+            onTouchEnd={() => setHeroPaused(false)}
+          >
             <AnimatePresence mode="wait">
               <motion.div key={heroIdx}
                 initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
