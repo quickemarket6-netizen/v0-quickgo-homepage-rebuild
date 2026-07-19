@@ -20,6 +20,7 @@ import {
 } from "recharts"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
+import { useT } from "@/lib/i18n/context"
 import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -51,47 +52,47 @@ interface DashboardData {
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const SIDEBAR_ITEMS = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard", active: true },
-  { icon: ShoppingBag,     label: "Commandes",        href: "/vendor/orders",       badgeKey: "orders" as const },
-  { icon: Boxes,           label: "Stocks",            href: "/vendor/stocks" },
-  { icon: Truck,           label: "Livraisons",        href: "/vendor/deliveries",   badgeKey: "deliveries" as const },
+  { icon: LayoutDashboard, labelKey: "snav.dashboard", href: "/vendor/dashboard", active: true },
+  { icon: ShoppingBag,     labelKey: "snav.orders",        href: "/vendor/orders",       badgeKey: "orders" as const },
+  { icon: Boxes,           labelKey: "snav.stocks",            href: "/vendor/stocks" },
+  { icon: Truck,           labelKey: "snav.deliveries",        href: "/vendor/deliveries",   badgeKey: "deliveries" as const },
   {
-    icon: Package, label: "Produits", href: "/vendor/products", expandable: true,
+    icon: Package, labelKey: "snav.products", href: "/vendor/products", expandable: true,
     children: [
-      { label: "Tous les produits", href: "/vendor/products" },
-      { label: "Ajouter un produit", href: "/vendor/products/new" },
-      { label: "Catégories",         href: "/vendor/products/categories" },
+      { labelKey: "vnav.allProducts", href: "/vendor/products" },
+      { labelKey: "vnav.addProduct", href: "/vendor/products/new" },
+      { labelKey: "snav.categories",         href: "/vendor/products/categories" },
     ],
   },
-  { icon: TrendingUp,    label: "Revenus",        href: "/vendor/analytics" },
+  { icon: TrendingUp,    labelKey: "snav.revenue",        href: "/vendor/analytics" },
   {
-    icon: Wallet, label: "Portefeuille", href: "/vendor/wallet", expandable: true,
+    icon: Wallet, labelKey: "snav.wallet", href: "/vendor/wallet", expandable: true,
     children: [
-      { label: "Solde & Retrait", href: "/vendor/wallet" },
-      { label: "Retraits",        href: "/vendor/payouts" },
-      { label: "Historique",      href: "/vendor/wallet/history" },
+      { labelKey: "vnav.balanceWithdraw", href: "/vendor/wallet" },
+      { labelKey: "vnav.withdrawals",        href: "/vendor/payouts" },
+      { labelKey: "vnav.history",      href: "/vendor/wallet/history" },
     ],
   },
-  { icon: Users,         label: "Clients CRM",    href: "/vendor/crm" },
-  { icon: UserCog,       label: "Employés",        href: "/vendor/employees" },
-  { icon: BarChart3,     label: "Analyses",        href: "/vendor/analytics" },
-  { icon: Tag,           label: "Promotions",      href: "/vendor/promotions" },
-  { icon: Ticket,        label: "Coupons",         href: "/vendor/coupons" },
-  { icon: Star,          label: "Avis",            href: "/vendor/reviews",      badgeKey: "rating" as const },
-  { icon: MessageSquare, label: "Messages",        href: "/vendor/messages",     badgeKey: "messages" as const },
-  { icon: Bell,          label: "Notifications",   href: "/vendor/notifications",badgeKey: "notifications" as const },
-  { icon: Settings,      label: "Paramètres",      href: "/vendor/settings" },
-  { icon: HelpCircle,    label: "Aide",            href: "/vendor/help" },
+  { icon: Users,         labelKey: "snav.crm",    href: "/vendor/crm" },
+  { icon: UserCog,       labelKey: "snav.employees",        href: "/vendor/employees" },
+  { icon: BarChart3,     labelKey: "vnav.analytics",        href: "/vendor/analytics" },
+  { icon: Tag,           labelKey: "snav.promotions",      href: "/vendor/promotions" },
+  { icon: Ticket,        labelKey: "snav.coupons",         href: "/vendor/coupons" },
+  { icon: Star,          labelKey: "snav.reviews",            href: "/vendor/reviews",      badgeKey: "rating" as const },
+  { icon: MessageSquare, labelKey: "snav.messages",        href: "/vendor/messages",     badgeKey: "messages" as const },
+  { icon: Bell,          labelKey: "snav.notifications",   href: "/vendor/notifications",badgeKey: "notifications" as const },
+  { icon: Settings,      labelKey: "snav.settings",      href: "/vendor/settings" },
+  { icon: HelpCircle,    labelKey: "snav.help",            href: "/vendor/help" },
 ]
 
 const ORDER_STATUS: Record<string, { label: string; color: string; bg: string; icon: typeof Clock }> = {
-  pending:    { label: "En attente",   color: "text-[#eab308]", bg: "bg-[#eab308]/15", icon: Clock },
-  confirmed:  { label: "Confirmé",     color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: CheckCircle },
-  preparing:  { label: "En prép.",     color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/15", icon: Package },
-  ready:      { label: "Prêt",         color: "text-[#06b6d4]", bg: "bg-[#06b6d4]/15", icon: CheckCircle },
-  delivering: { label: "En route",     color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: Truck },
-  delivered:  { label: "Livré",        color: "text-[#22c55e]", bg: "bg-[#22c55e]/15", icon: CheckCircle },
-  cancelled:  { label: "Annulée",      color: "text-[#ef4444]", bg: "bg-[#ef4444]/15", icon: XCircle },
+  pending:    { label: "app.status.pending",   color: "text-[#eab308]", bg: "bg-[#eab308]/15", icon: Clock },
+  confirmed:  { label: "app.status.confirmed",     color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: CheckCircle },
+  preparing:  { label: "app.status.preparing",     color: "text-[#8b5cf6]", bg: "bg-[#8b5cf6]/15", icon: Package },
+  ready:      { label: "app.status.ready",         color: "text-[#06b6d4]", bg: "bg-[#06b6d4]/15", icon: CheckCircle },
+  delivering: { label: "app.status.delivering",     color: "text-[#3b82f6]", bg: "bg-[#3b82f6]/15", icon: Truck },
+  delivered:  { label: "app.status.delivered",        color: "text-[#22c55e]", bg: "bg-[#22c55e]/15", icon: CheckCircle },
+  cancelled:  { label: "app.status.cancelled",      color: "text-[#ef4444]", bg: "bg-[#ef4444]/15", icon: XCircle },
 }
 
 const DONUT_COLORS = ["#22c55e", "#f97316", "#3b82f6", "#8b5cf6", "#f59e0b", "#06b6d4"]
@@ -234,6 +235,7 @@ function GlassCard({ children, className = "", delay = 0 }: { children: React.Re
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VendorDashboardPage() {
+  const { t } = useT()
   const [data, setData]       = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod]   = useState(7)
@@ -354,17 +356,17 @@ export default function VendorDashboardPage() {
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {SIDEBAR_ITEMS.map((item, idx) => {
             const badge      = getSidebarBadge(item)
-            const isExpanded = expanded[item.label]
+            const isExpanded = expanded[item.labelKey]
             const isRating   = "badgeKey" in item && item.badgeKey === "rating"
             return (
-              <motion.div key={item.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.04 }}>
+              <motion.div key={item.href} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.04 }}>
                 {"expandable" in item && item.expandable ? (
                   <>
-                    <button onClick={() => toggleSection(item.label)}
+                    <button onClick={() => toggleSection(item.labelKey)}
                       className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
                         transition-all text-white/40 hover:bg-white/5 hover:text-white">
                       <item.icon className="w-4 h-4 shrink-0" />
-                      <span className="flex-1 text-left">{item.label}</span>
+                      <span className="flex-1 text-left">{t(item.labelKey)}</span>
                       <ChevronRight className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`} />
                     </button>
                     <AnimatePresence>
@@ -372,10 +374,10 @@ export default function VendorDashboardPage() {
                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.2 }} className="overflow-hidden pl-7 mt-0.5 space-y-0.5">
                           {"children" in item && item.children?.map((child) => (
-                            <Link key={child.label} href={child.href}
+                            <Link key={t(child.labelKey)} href={child.href}
                               className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/40 hover:bg-white/5 hover:text-white transition-all">
                               <span className="w-1 h-1 rounded-full bg-current opacity-50" />
-                              {child.label}
+                              {t(child.labelKey)}
                             </Link>
                           ))}
                         </motion.div>
@@ -389,7 +391,7 @@ export default function VendorDashboardPage() {
                         ? "bg-[#a3e635]/10 border-l-2 border-[#a3e635] text-[#a3e635] rounded-r-xl pl-[10px]"
                         : "rounded-xl text-white/40 hover:bg-white/5 hover:text-white"}`}>
                     <item.icon className="w-4 h-4 shrink-0" />
-                    <span className="flex-1">{item.label}</span>
+                    <span className="flex-1">{t(item.labelKey)}</span>
                     {badge && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full
                         ${isRating ? "bg-[#f59e0b]/20 text-[#f59e0b]" : "bg-[#3b82f6]/20 text-[#3b82f6]"}`}>
@@ -519,7 +521,7 @@ export default function VendorDashboardPage() {
             className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-xl font-black text-white">
-                Bienvenue, {data?.vendor.name?.split(" ")[0] ?? "…"} 👋
+                {t("vdash.welcome")}, {data?.vendor.name?.split(" ")[0] ?? "…"} 👋
               </h1>
               <p className="text-sm text-white/30 mt-0.5">Voici un aperçu de votre activité aujourd&apos;hui.</p>
             </div>
@@ -538,22 +540,22 @@ export default function VendorDashboardPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
-              <KpiCard label="Ventes aujourd'hui" value={kpi?.today_sales ?? 0}
+              <KpiCard label={t("vdash.kpi.todaySales")} value={kpi?.today_sales ?? 0}
                 displayValue={fmtCFA(kpi?.today_sales ?? 0)}
                 comparison={kpi?.yesterday_sales} compLabel="vs hier"
                 color="#22c55e" icon={TrendingUp} sparkData={sparkSales} delay={0} />
-              <KpiCard label="Commandes du jour" value={kpi?.today_orders ?? 0}
+              <KpiCard label={t("vdash.kpi.todayOrders")} value={kpi?.today_orders ?? 0}
                 displayValue={String(kpi?.today_orders ?? 0)}
                 comparison={kpi?.yesterday_orders} compLabel="vs hier"
                 color="#3b82f6" icon={ShoppingBag} sparkData={sparkOrders} delay={0.05} />
-              <KpiCard label="Revenus du mois" value={kpi?.month_revenue ?? 0}
+              <KpiCard label={t("vdash.kpi.monthRevenue")} value={kpi?.month_revenue ?? 0}
                 displayValue={fmtCFA(kpi?.month_revenue ?? 0)}
                 comparison={kpi?.prev_month_revenue} compLabel="vs mois dernier"
                 color="#a3e635" icon={BarChart3} sparkData={sparkSales} delay={0.1} />
-              <KpiCard label="Produits actifs" value={kpi?.active_products ?? 0}
+              <KpiCard label={t("vdash.kpi.activeProducts")} value={kpi?.active_products ?? 0}
                 displayValue={String(kpi?.active_products ?? 0)}
                 color="#8b5cf6" icon={Package} sparkData={sparkOrders} delay={0.15} />
-              <KpiCard label="Note moyenne" value={kpi?.rating ?? 0}
+              <KpiCard label={t("vdash.kpi.rating")} value={kpi?.rating ?? 0}
                 displayValue={`${(kpi?.rating ?? 0).toFixed(1)}/5`}
                 compLabel={kpi?.reviews_count ? `Basé sur ${kpi.reviews_count} avis` : undefined}
                 color="#f97316" icon={Star} sparkData={sparkOrders} delay={0.2} />
@@ -566,7 +568,7 @@ export default function VendorDashboardPage() {
             <GlassCard className="xl:col-span-2" delay={0.25}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-white font-bold text-sm">Aperçu des ventes</h3>
+                  <h3 className="text-white font-bold text-sm">{t("vdash.salesOverview")}</h3>
                   <p className="text-xs text-white/30 mt-0.5">Ventes &amp; commandes</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -606,11 +608,11 @@ export default function VendorDashboardPage() {
             <GlassCard delay={0.3}>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-white font-bold text-sm">Répartition des ventes</h3>
+                  <h3 className="text-white font-bold text-sm">{t("vdash.salesBreakdown")}</h3>
                   <p className="text-xs text-white/30 mt-0.5">Par catégorie</p>
                 </div>
                 <span className="text-[10px] text-white/30 bg-[#1e1e2e] px-2 py-1 rounded-lg">
-                  {period === 7 ? "Cette semaine" : period === 30 ? "Ce mois" : "Ce trimestre"}
+                  {period === 7 ? t("vdash.thisWeek") : period === 30 ? t("vdash.thisMonth") : t("vdash.thisQuarter")}
                 </span>
               </div>
               {loading && !data ? (
@@ -656,15 +658,15 @@ export default function VendorDashboardPage() {
             {/* Recent orders */}
             <GlassCard className="lg:col-span-3" delay={0.35}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-bold text-sm">Commandes récentes</h3>
+                <h3 className="text-white font-bold text-sm">{t("vdash.recentOrders")}</h3>
                 <Link href="/vendor/orders" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 flex items-center gap-1 transition-colors">
-                  Voir toutes <ArrowUpRight className="w-3 h-3" />
+                  {t("vdash.seeAll")} <ArrowUpRight className="w-3 h-3" />
                 </Link>
               </div>
               {loading && !data ? (
                 <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-12 rounded-xl bg-white/5 animate-pulse" />)}</div>
               ) : (data?.recent_orders ?? []).length === 0 ? (
-                <p className="text-white/30 text-sm text-center py-8">Aucune commande</p>
+                <p className="text-white/30 text-sm text-center py-8">{t("vdash.noOrders")}</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[520px]">
@@ -702,7 +704,7 @@ export default function VendorDashboardPage() {
                             <td className="py-3">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${cfg?.bg ?? ""} ${cfg?.color ?? ""}`}>
                                 <StatusIcon className="w-2.5 h-2.5" />
-                                {cfg?.label ?? order.status}
+                                {cfg ? t(cfg.label) : order.status}
                               </span>
                             </td>
                             <td className="py-3 text-right">
@@ -723,9 +725,9 @@ export default function VendorDashboardPage() {
             {/* Top products */}
             <GlassCard className="lg:col-span-2" delay={0.4}>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-bold text-sm">Produits les plus vendus</h3>
+                <h3 className="text-white font-bold text-sm">{t("vdash.topProducts")}</h3>
                 <Link href="/vendor/products" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 flex items-center gap-1 transition-colors">
-                  Voir tout <ArrowUpRight className="w-3 h-3" />
+                  {t("vdash.seeAll")} <ArrowUpRight className="w-3 h-3" />
                 </Link>
               </div>
               {loading && !data ? (
@@ -799,10 +801,10 @@ export default function VendorDashboardPage() {
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2e]">
           <div className="flex items-center gap-2">
             <Wallet className="w-4 h-4 text-[#3b82f6]" />
-            <h3 className="text-white font-bold text-sm">Mon Wallet</h3>
+            <h3 className="text-white font-bold text-sm">{t("vdash.myWallet")}</h3>
           </div>
           <Link href="/vendor/wallet" className="text-xs text-[#3b82f6] hover:text-[#3b82f6]/80 transition-colors flex items-center gap-1">
-            Voir tout <ArrowUpRight className="w-3 h-3" />
+            {t("vdash.seeAll")} <ArrowUpRight className="w-3 h-3" />
           </Link>
         </div>
 
@@ -882,9 +884,9 @@ export default function VendorDashboardPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-3.5 h-3.5 text-[#f97316]" />
-              <h4 className="text-white text-xs font-bold">Stock faible</h4>
+              <h4 className="text-white text-xs font-bold">{t("vdash.lowStock")}</h4>
             </div>
-            <Link href="/vendor/stocks" className="text-[10px] text-[#3b82f6] hover:opacity-80">Voir tout</Link>
+            <Link href="/vendor/stocks" className="text-[10px] text-[#3b82f6] hover:opacity-80">{t("vdash.seeAll")}</Link>
           </div>
           {loading && !data ? (
             <div className="space-y-2">
@@ -926,21 +928,21 @@ export default function VendorDashboardPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Bell className="w-3.5 h-3.5 text-white/40" />
-              <h4 className="text-white text-xs font-bold">Notifications récentes</h4>
+              <h4 className="text-white text-xs font-bold">{t("vdash.recentNotifs")}</h4>
               {(data?.unread_notifications ?? 0) > 0 && (
                 <span className="text-[9px] bg-[#ef4444] text-white px-1.5 py-0.5 rounded-full font-bold">
                   {data?.unread_notifications}
                 </span>
               )}
             </div>
-            <Link href="/vendor/notifications" className="text-[10px] text-[#3b82f6] hover:opacity-80">Voir toutes</Link>
+            <Link href="/vendor/notifications" className="text-[10px] text-[#3b82f6] hover:opacity-80">{t("vdash.seeAll")}</Link>
           </div>
           {loading && !data ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => <div key={i} className="h-12 rounded-xl bg-white/5 animate-pulse" />)}
             </div>
           ) : (data?.notifications ?? []).length === 0 ? (
-            <p className="text-white/20 text-xs text-center py-3">Aucune notification</p>
+            <p className="text-white/20 text-xs text-center py-3">{t("vdash.noNotifs")}</p>
           ) : (
             <div className="space-y-2">
               {(data?.notifications ?? []).slice(0, 3).map((n) => {
