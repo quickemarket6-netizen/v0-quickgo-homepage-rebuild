@@ -28,18 +28,20 @@ import {
   ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useT } from "@/lib/i18n/context"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
 
 const sidebarItems = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/driver/dashboard", active: true },
-  { icon: MapPin, label: "Missions disponibles", href: "/driver/missions" },
-  { icon: Car, label: "Mes courses", href: "/driver/navigation" },
-  { icon: DollarSign, label: "Revenus", href: "/driver/earnings" },
-  { icon: Wallet, label: "Portefeuille", href: "/wallet" },
-  { icon: TrendingUp, label: "Performance", href: "/driver/ranking" },
-  { icon: MessageSquare, label: "Messages", href: "/driver/messages" },
-  { icon: Gift, label: "Incitations", href: "/driver/ranking" },
-  { icon: HelpCircle, label: "Assistance", href: "/support" },
-  { icon: Settings, label: "Paramètres", href: "/driver/settings" },
+  { icon: LayoutDashboard, labelKey: "snav.dashboard", href: "/driver/dashboard", active: true },
+  { icon: MapPin, labelKey: "snav.missions", href: "/driver/missions" },
+  { icon: Car, labelKey: "snav.myRides", href: "/driver/navigation" },
+  { icon: DollarSign, labelKey: "snav.revenue", href: "/driver/earnings" },
+  { icon: Wallet, labelKey: "snav.wallet", href: "/wallet" },
+  { icon: TrendingUp, labelKey: "snav.performance", href: "/driver/ranking" },
+  { icon: MessageSquare, labelKey: "snav.messages", href: "/driver/messages" },
+  { icon: Gift, labelKey: "snav.incentives", href: "/driver/ranking" },
+  { icon: HelpCircle, labelKey: "snav.assistance", href: "/support" },
+  { icon: Settings, labelKey: "snav.settings", href: "/driver/settings" },
 ]
 
 interface MissionInfo {
@@ -105,6 +107,7 @@ function monthsSince(iso: string) {
 }
 
 export default function DriverDashboardPage() {
+  const { t } = useT()
   const [isOnline, setIsOnline] = useState(false)
   const [togglingOnline, setTogglingOnline] = useState(false)
   const [driver, setDriver] = useState<DriverData | null>(null)
@@ -195,7 +198,7 @@ export default function DriverDashboardPage() {
         <nav className="flex-1 p-4 space-y-1">
           {sidebarItems.map((item) => (
             <Link
-              key={item.label}
+              key={item.href + item.labelKey}
               href={item.href}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                 item.active
@@ -204,7 +207,7 @@ export default function DriverDashboardPage() {
               }`}
             >
               <item.icon className="w-5 h-5" />
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="text-sm font-medium">{t(item.labelKey)}</span>
             </Link>
           ))}
         </nav>
@@ -262,6 +265,7 @@ export default function DriverDashboardPage() {
             </div>
 
             <div className="flex items-center gap-4">
+              <LanguageSwitcher className="hidden sm:inline-flex" />
               {/* Online Toggle */}
               <div className="flex items-center gap-3">
                 <span className={`text-sm ${isOnline ? "text-quickgo-lime" : "text-muted-foreground"}`}>

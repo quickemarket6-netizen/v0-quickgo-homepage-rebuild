@@ -7,32 +7,35 @@ import {
   BarChart3, Tag, Star, Settings, HelpCircle, Bell, Boxes, Truck, Ticket,
   MessageSquare,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
 
 // Sidebar vendeur partagée — thème sombre unifié, item actif déduit de l'URL.
 // Source de vérité unique de la navigation (les pages historiques recopiaient
 // chacune leur propre liste, avec des liens divergents).
 const NAV = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/vendor/dashboard" },
-  { icon: ShoppingBag,     label: "Commandes",       href: "/vendor/orders" },
-  { icon: Package,         label: "Produits",        href: "/vendor/products" },
-  { icon: Boxes,           label: "Stocks",          href: "/vendor/stocks" },
-  { icon: Truck,           label: "Livraisons",      href: "/vendor/deliveries" },
-  { icon: TrendingUp,      label: "Revenus",         href: "/vendor/analytics" },
-  { icon: Wallet,          label: "Portefeuille",    href: "/vendor/wallet" },
-  { icon: BarChart3,       label: "Finances",        href: "/vendor/finances" },
-  { icon: Users,           label: "Clients CRM",     href: "/vendor/crm" },
-  { icon: UserCog,         label: "Employés",        href: "/vendor/employees" },
-  { icon: Tag,             label: "Promotions",      href: "/vendor/promotions" },
-  { icon: Ticket,          label: "Coupons",         href: "/vendor/coupons" },
-  { icon: Star,            label: "Avis",            href: "/vendor/reviews" },
-  { icon: MessageSquare,   label: "Messages",        href: "/vendor/messages" },
-  { icon: Bell,            label: "Notifications",   href: "/vendor/notifications" },
-  { icon: Settings,        label: "Paramètres",      href: "/vendor/settings" },
-  { icon: HelpCircle,      label: "Aide",            href: "/vendor/help" },
+  { icon: LayoutDashboard, key: "snav.dashboard",    href: "/vendor/dashboard" },
+  { icon: ShoppingBag,     key: "snav.orders",       href: "/vendor/orders" },
+  { icon: Package,         key: "snav.products",     href: "/vendor/products" },
+  { icon: Boxes,           key: "snav.stocks",       href: "/vendor/stocks" },
+  { icon: Truck,           key: "snav.deliveries",   href: "/vendor/deliveries" },
+  { icon: TrendingUp,      key: "snav.revenue",      href: "/vendor/analytics" },
+  { icon: Wallet,          key: "snav.wallet",       href: "/vendor/wallet" },
+  { icon: BarChart3,       key: "snav.finances",     href: "/vendor/finances" },
+  { icon: Users,           key: "snav.crm",          href: "/vendor/crm" },
+  { icon: UserCog,         key: "snav.employees",    href: "/vendor/employees" },
+  { icon: Tag,             key: "snav.promotions",   href: "/vendor/promotions" },
+  { icon: Ticket,          key: "snav.coupons",      href: "/vendor/coupons" },
+  { icon: Star,            key: "snav.reviews",      href: "/vendor/reviews" },
+  { icon: MessageSquare,   key: "snav.messages",     href: "/vendor/messages" },
+  { icon: Bell,            key: "snav.notifications", href: "/vendor/notifications" },
+  { icon: Settings,        key: "snav.settings",     href: "/vendor/settings" },
+  { icon: HelpCircle,      key: "snav.help",         href: "/vendor/help" },
 ]
 
 export function VendorSidebar() {
   const pathname = usePathname()
+  const { t } = useT()
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/vendor/dashboard" && pathname.startsWith(href + "/")) || pathname.startsWith(href + "?")
@@ -62,11 +65,14 @@ export function VendorSidebar() {
               }`}
             >
               <item.icon className="w-4 h-4 shrink-0" />
-              <span>{item.label}</span>
+              <span>{t(item.key)}</span>
             </Link>
           )
         })}
       </nav>
+      <div className="p-3 border-t border-[#1e1e2e]">
+        <LanguageSwitcher className="w-full justify-start" />
+      </div>
     </aside>
   )
 }

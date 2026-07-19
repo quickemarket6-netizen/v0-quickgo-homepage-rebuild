@@ -5,6 +5,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
+import { useT } from "@/lib/i18n/context"
+import { LanguageSwitcher } from "@/components/ui/language-switcher"
 import {
   LayoutDashboard, DollarSign, Store, Truck, Package,
   Navigation, Wallet, CreditCard, FileText, Activity,
@@ -23,33 +25,33 @@ async function adminSignOut() {
 }
 
 const NAV = [
-  { icon: LayoutDashboard, label: "Tableau de bord",    href: "/admin"                       },
-  { icon: DollarSign,      label: "Finances",            href: "/admin/finances",     arrow: true },
-  { icon: Store,           label: "Vendeurs",            href: "/admin/vendors"               },
-  { icon: Truck,           label: "Chauffeurs",          href: "/admin/drivers"               },
-  { icon: Package,         label: "Commandes",           href: "/admin/orders"                },
-  { icon: FolderTree,      label: "Catégories",          href: "/admin/categories"            },
-  { icon: Navigation,      label: "Livraisons",          href: "/admin/deliveries"            },
-  { icon: Tag,             label: "Tarifs livraison",    href: "/admin/delivery-rates"        },
-  { icon: Wallet,          label: "Wallets",             href: "/admin/wallets"               },
-  { icon: Banknote,        label: "Wallet livreurs",     href: "/admin/delivery-wallet"       },
-  { icon: CreditCard,      label: "Payouts",             href: "/admin/payouts"               },
-  { icon: FileText,        label: "Transactions",        href: "/admin/transactions"  },
-  { icon: Activity,        label: "Analytics IA",        href: "/admin/analytics"     },
-  { icon: ShieldCheck,     label: "Sécurité",            href: "/admin/security"      },
-  { icon: MessageCircle,   label: "CRM & Support",       href: "/admin/support"       },
-  { icon: Bell,            label: "Notifications",       href: "/admin/notifications"     },
-  { icon: Megaphone,       label: "Communication",       href: "/admin/communication"     },
-  { icon: MapPin,          label: "Gestion des villes",  href: "/admin/zones"             },
-  { icon: Settings,        label: "Paramètres",          href: "/admin/settings"      },
-  { icon: Layers,          label: "CMS & Pages",         href: "/admin/cms"           },
-  { icon: Globe,           label: "SEO Center",          href: "/admin/seo"           },
-  { icon: Users,           label: "Utilisateurs",        href: "/admin/users"         },
-  { icon: Lock,            label: "Permissions & Rôles", href: "/admin/permissions"   },
-  { icon: FileText,        label: "Logs système",        href: "/admin/logs"          },
-  { icon: Plug,            label: "API & Intégrations",  href: "/admin/api"           },
-  { icon: Database,        label: "Sauvegardes",         href: "/admin/backups"       },
-  { icon: Headphones,      label: "Support technique",   href: "/admin/support-tech"  },
+  { icon: LayoutDashboard, labelKey: "snav.dashboard",    href: "/admin"                       },
+  { icon: DollarSign,      labelKey: "snav.finances",            href: "/admin/finances",     arrow: true },
+  { icon: Store,           labelKey: "snav.vendors",            href: "/admin/vendors"               },
+  { icon: Truck,           labelKey: "snav.drivers",          href: "/admin/drivers"               },
+  { icon: Package,         labelKey: "snav.orders",           href: "/admin/orders"                },
+  { icon: FolderTree,      labelKey: "snav.categories",          href: "/admin/categories"            },
+  { icon: Navigation,      labelKey: "snav.deliveries",          href: "/admin/deliveries"            },
+  { icon: Tag,             labelKey: "snav.deliveryRates",    href: "/admin/delivery-rates"        },
+  { icon: Wallet,          labelKey: "snav.wallets",             href: "/admin/wallets"               },
+  { icon: Banknote,        labelKey: "snav.driverWallet",     href: "/admin/delivery-wallet"       },
+  { icon: CreditCard,      labelKey: "snav.payouts",             href: "/admin/payouts"               },
+  { icon: FileText,        labelKey: "snav.transactions",        href: "/admin/transactions"  },
+  { icon: Activity,        labelKey: "snav.analytics",        href: "/admin/analytics"     },
+  { icon: ShieldCheck,     labelKey: "snav.security",            href: "/admin/security"      },
+  { icon: MessageCircle,   labelKey: "snav.crmSupport",       href: "/admin/support"       },
+  { icon: Bell,            labelKey: "snav.notifications",       href: "/admin/notifications"     },
+  { icon: Megaphone,       labelKey: "snav.communication",       href: "/admin/communication"     },
+  { icon: MapPin,          labelKey: "snav.zones",  href: "/admin/zones"             },
+  { icon: Settings,        labelKey: "snav.settings",          href: "/admin/settings"      },
+  { icon: Layers,          labelKey: "snav.cms",         href: "/admin/cms"           },
+  { icon: Globe,           labelKey: "snav.seo",          href: "/admin/seo"           },
+  { icon: Users,           labelKey: "snav.users",        href: "/admin/users"         },
+  { icon: Lock,            labelKey: "snav.permissions", href: "/admin/permissions"   },
+  { icon: FileText,        labelKey: "snav.logs",        href: "/admin/logs"          },
+  { icon: Plug,            labelKey: "snav.api",  href: "/admin/api"           },
+  { icon: Database,        labelKey: "snav.backups",         href: "/admin/backups"       },
+  { icon: Headphones,      labelKey: "snav.techSupport",   href: "/admin/support-tech"  },
 ]
 
 // Active only for an exact match or a real sub-path (href + "/…").  Prevents the
@@ -75,6 +77,7 @@ function Logo() {
 }
 
 function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const { t } = useT()
   return (
     <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
       {NAV.map((item) => {
@@ -92,7 +95,7 @@ function NavList({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
             }`}
           >
             <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-blue-400" : "text-[#6b6b8a] group-hover:text-white"}`} />
-            <span className="flex-1 truncate">{item.label}</span>
+            <span className="flex-1 truncate">{t(item.labelKey)}</span>
             {"arrow" in item && item.arrow && (
               <ChevronDown className="w-3 h-3 shrink-0 opacity-50" />
             )}
@@ -187,6 +190,9 @@ export function AdminSidebar() {
           <Logo />
         </div>
         <NavList pathname={pathname} />
+        <div className="px-3 py-2 border-t border-[#1e1e2e]">
+          <LanguageSwitcher className="w-full justify-start" />
+        </div>
         <ProfileFooter profile={profile} />
       </aside>
 
