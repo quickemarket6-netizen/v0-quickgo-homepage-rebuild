@@ -10,6 +10,7 @@ import {
   RefreshCw, Clock, CheckCircle, XCircle, Truck, Phone, Printer,
   AlertTriangle, Zap, LogOut, User, Boxes, Search, Ticket, MessageSquare,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -167,6 +168,7 @@ function SummaryCard({ label, value, color, onClick }: { label: string; value: n
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VendorOrdersPage() {
+  const { t } = useT()
   const [data, setData]           = useState<OrdersResponse | null>(null)
   const [loading, setLoading]     = useState(true)
   const [filter, setFilter]       = useState("all")
@@ -489,7 +491,7 @@ export default function VendorOrdersPage() {
               <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 3, repeat: Infinity }}>
                 <ShoppingBag className="w-16 h-16 text-white/10" />
               </motion.div>
-              <p className="text-white/40 font-semibold">Aucune commande</p>
+              <p className="text-white/40 font-semibold">{t("vdash.noOrders")}</p>
               <p className="text-white/20 text-sm">
                 {filter !== "all" ? "Essayez un autre filtre" : "Vos commandes apparaîtront ici"}
               </p>

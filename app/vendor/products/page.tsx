@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronRight, Zap, Boxes, Truck, Ticket, MessageSquare, Bell,
   Upload, Download,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import { ProductImageUploader } from "@/components/vendor/ProductImageUploader"
@@ -94,6 +95,7 @@ function formatCFA(n: number) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VendorProductsPage() {
+  const { t } = useT()
   const [vendor, setVendor]     = useState<Vendor | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [loadingVendor, setLoadingVendor]   = useState(true)
@@ -542,7 +544,7 @@ export default function VendorProductsPage() {
               <div className="relative hidden md:block">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                 <Input
-                  placeholder="Rechercher…"
+                  placeholder={t("vp.search")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 w-52 bg-[#16161f]/80 border-[#1e1e2e] rounded-xl h-9 text-sm placeholder:text-white/20 text-white"
@@ -566,12 +568,12 @@ export default function VendorProductsPage() {
               <Button variant="outline" onClick={() => csvInputRef.current?.click()} disabled={importing}
                 className="h-9 border-[#1e1e2e] bg-transparent text-white/60 hover:text-white text-sm rounded-xl gap-2 px-3">
                 <Upload className={`w-4 h-4 ${importing ? "animate-pulse" : ""}`} />
-                <span className="hidden md:inline">{importing ? "Import…" : "Importer CSV"}</span>
+                <span className="hidden md:inline">{importing ? t("vp.importing") : t("vp.importCsv")}</span>
               </Button>
               <Button variant="outline" onClick={exportCsv} disabled={products.length === 0}
                 className="h-9 border-[#1e1e2e] bg-transparent text-white/60 hover:text-white text-sm rounded-xl gap-2 px-3">
                 <Download className="w-4 h-4" />
-                <span className="hidden md:inline">Exporter</span>
+                <span className="hidden md:inline">{t("vp.export")}</span>
               </Button>
               <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) importCsv(f); e.target.value = "" }} />
@@ -579,8 +581,8 @@ export default function VendorProductsPage() {
               <Link href="/vendor/products/new">
                 <Button className="h-9 bg-[#a3e635] hover:bg-[#a3e635]/90 text-black font-bold text-sm rounded-xl gap-2 px-4">
                   <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Ajouter un produit</span>
-                  <span className="sm:hidden">Ajouter</span>
+                  <span className="hidden sm:inline">{t("vnav.addProduct")}</span>
+                  <span className="sm:hidden">{t("vp.add")}</span>
                 </Button>
               </Link>
             </div>

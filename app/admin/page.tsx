@@ -13,6 +13,7 @@ import {
   Zap, UserPlus, LogOut, ChevronRight, ArrowUpRight,
   ArrowDownRight, Clock, Globe, X, User, ExternalLink,
   Navigation, Layers, Lock, Plug, Database, Headphones } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 import {
   AreaChart, Area,
   PieChart, Pie, Cell,
@@ -352,6 +353,7 @@ function Chart24Tooltip({ active, payload, label }: { active?: boolean; payload?
 }
 
 export default function AdminDashboardPage() {
+  const { t } = useT()
   const [data,       setData]       = useState<AdminDashData | null>(null)
   const [loading,    setLoading]    = useState(true)
   const [error,      setError]      = useState<string | null>(null)
@@ -450,7 +452,7 @@ export default function AdminDashboardPage() {
   const kpiCards = [
     {
       id:    "revenue",
-      label: "Revenus aujourd'hui",
+      label: t("adash.kpi.todayRevenue"),
       cur:   kpi?.today_revenue    ?? 0,
       prev:  kpi?.yesterday_revenue ?? 0,
       spark: chart24.map(h => h.revenue),
@@ -462,7 +464,7 @@ export default function AdminDashboardPage() {
     },
     {
       id:    "orders",
-      label: "Commandes actives",
+      label: t("adash.kpi.activeOrders"),
       cur:   kpi?.today_orders    ?? 0,
       prev:  kpi?.yesterday_orders ?? 0,
       spark: chart24.map(h => h.orders),
@@ -474,7 +476,7 @@ export default function AdminDashboardPage() {
     },
     {
       id:    "deliveries",
-      label: "Livraisons en cours",
+      label: t("adash.kpi.activeDeliveries"),
       cur:   kpi?.active_deliveries    ?? 0,
       prev:  kpi?.yesterday_deliveries ?? 0,
       spark: chart24.map(h => Math.round(h.orders * 0.4)),
@@ -486,7 +488,7 @@ export default function AdminDashboardPage() {
     },
     {
       id:    "vendors",
-      label: "Vendeurs actifs",
+      label: t("adash.kpi.activeVendors"),
       cur:   kpi?.active_vendors    ?? 0,
       prev:  kpi?.yesterday_vendors ?? 0,
       spark: Array.from({ length: 24 }, (_, h) => h <= new Date().getHours() ? kpi?.active_vendors ?? 0 : 0),
@@ -498,7 +500,7 @@ export default function AdminDashboardPage() {
     },
     {
       id:    "drivers",
-      label: "Livreurs en ligne",
+      label: t("adash.kpi.onlineDrivers"),
       cur:   kpi?.online_drivers    ?? 0,
       prev:  kpi?.yesterday_drivers ?? 0,
       spark: Array.from({ length: 24 }, (_, h) => h <= new Date().getHours() ? kpi?.online_drivers ?? 0 : 0),
@@ -960,7 +962,7 @@ export default function AdminDashboardPage() {
               {/* header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-white font-bold text-sm leading-none">Aperçu financier global</h2>
+                  <h2 className="text-white font-bold text-sm leading-none">{t("adash.financialOverview")}</h2>
                   <p className="text-[#4a4a6a] text-[10px] mt-0.5">Répartition du chiffre d'affaires</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1786,7 +1788,7 @@ export default function AdminDashboardPage() {
                   <div className="px-5 pt-5 pb-3">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h2 className="text-white font-bold text-sm leading-none">Activités récentes</h2>
+                        <h2 className="text-white font-bold text-sm leading-none">{t("adash.recentActivity")}</h2>
                         <p className="text-[#4a4a6a] text-[10px] mt-0.5">Fil en temps réel · {allActs.length} entrée{allActs.length !== 1 ? "s" : ""}</p>
                       </div>
                       <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-[#1e1e2e] border border-[#2a2a3e]">
@@ -2233,7 +2235,7 @@ export default function AdminDashboardPage() {
               <div className="px-5 pt-5 pb-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-white font-bold text-sm leading-none">Top catégories</h2>
+                    <h2 className="text-white font-bold text-sm leading-none">{t("adash.topCategories")}</h2>
                     <p className="text-[#4a4a6a] text-[10px] mt-0.5">
                       {loading ? "…" : `${data?.top_categories.length ?? 0} catégories actives`}
                     </p>

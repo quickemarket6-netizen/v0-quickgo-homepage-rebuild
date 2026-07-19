@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowRight, Loader2 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 
@@ -49,6 +50,7 @@ const roles = [
 ]
 
 export default function ChooseRolePage() {
+  const { t } = useT()
   const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -66,14 +68,14 @@ export default function ChooseRolePage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        toast.error(body?.error ?? "Impossible de définir le rôle. Réessayez.")
+        toast.error(body?.error ?? t("toast.roleFail"))
         setLoading(false)
         return
       }
 
       router.push(DASHBOARD[selectedRole] ?? "/dashboard")
     } catch {
-      toast.error("Erreur réseau. Vérifiez votre connexion et réessayez.")
+      toast.error(t("toast.network"))
       setLoading(false)
     }
   }

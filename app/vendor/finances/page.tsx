@@ -11,6 +11,7 @@ import {
   LayoutDashboard, ShoppingBag, Users, UserCog, Activity, Info,
   X, Eye, Download,
 } from "lucide-react"
+import { useT } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"
 import { VendorSidebar } from "@/components/vendor/VendorSidebar"
 import { toast } from "sonner"
@@ -144,6 +145,7 @@ function PayoutRequestModal({
   onClose: () => void
   onSuccess: () => void
 }) {
+  const { t } = useT()
   const [amount, setAmount] = useState("")
   const [selectedAccount, setSelectedAccount] = useState<PayoutAccount | null>(
     payoutAccounts.find((a) => a.is_default) ?? payoutAccounts[0] ?? null,
@@ -193,7 +195,7 @@ function PayoutRequestModal({
       >
         <div className="p-6 border-b border-[#1e1e2e] flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white">Demande de retrait</h2>
+            <h2 className="text-lg font-bold text-white">{t("vf.withdrawRequest")}</h2>
             <p className="text-sm text-white/40">Disponible: <span className="font-semibold text-green-400">{formatCFA(availableBalance)}</span></p>
           </div>
           <button onClick={onClose} className="text-white/30 hover:text-white/50 p-1"><X size={20} /></button>
@@ -296,6 +298,7 @@ function PayoutRequestModal({
 
 // ─── Main page ────────────────────────────────────────────────────
 export default function VendorFinancesPage() {
+  const { t } = useT()
   const [vendorId, setVendorId] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [walletData, setWalletData] = useState<VendorWalletData | null>(null)
@@ -354,7 +357,7 @@ export default function VendorFinancesPage() {
         {/* Header */}
         <header className="bg-[#16161f] border-b border-[#1e1e2e] px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
           <div>
-            <h1 className="text-lg font-bold text-white">Mon portefeuille</h1>
+            <h1 className="text-lg font-bold text-white">{t("vf.myWallet")}</h1>
             <p className="text-sm text-white/40">Suivi des revenus et gestion des retraits</p>
           </div>
           <div className="flex items-center gap-3">
@@ -462,7 +465,7 @@ export default function VendorFinancesPage() {
             <div className="col-span-2 bg-[#16161f] rounded-2xl p-5 shadow-sm border border-[#1e1e2e]">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-bold text-white">Revenus — 30 derniers jours</h3>
+                  <h3 className="font-bold text-white">{t("vf.revenue30")}</h3>
                   <p className="text-sm text-white/40">Montant net perçu quotidiennement</p>
                 </div>
                 <div className="text-right">
@@ -474,7 +477,7 @@ export default function VendorFinancesPage() {
             </div>
 
             <div className="bg-[#16161f] rounded-2xl p-5 shadow-sm border border-[#1e1e2e] space-y-4">
-              <h3 className="font-bold text-white">Répartition</h3>
+              <h3 className="font-bold text-white">{t("vf.breakdown")}</h3>
               <div className="space-y-3">
                 {[
                   { label: "Vos revenus nets", amount: revenue30, color: "bg-green-500" },
@@ -526,7 +529,7 @@ export default function VendorFinancesPage() {
           {notifications.length > 0 && (
             <div className="bg-[#16161f] rounded-2xl shadow-sm border border-[#1e1e2e] overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-[#1e1e2e]">
-                <h3 className="font-bold text-white">Notifications financières</h3>
+                <h3 className="font-bold text-white">{t("vf.finNotifs")}</h3>
                 {unreadCount > 0 && (
                   <span className="text-xs bg-red-500/15 text-red-400 px-2 py-0.5 rounded-full font-medium">
                     {unreadCount} non lue{unreadCount > 1 ? "s" : ""}

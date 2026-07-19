@@ -220,8 +220,8 @@ export default function DriverDashboardPage() {
                 <Trophy className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-white font-semibold">Niveau {me?.level ?? "—"}</p>
-                <p className="text-xs text-muted-foreground">{ranking ? `Rang #${ranking.my_rank}` : "…"}</p>
+                <p className="text-white font-semibold">{t("ddash.level")} {me?.level ?? "—"}</p>
+                <p className="text-xs text-muted-foreground">{ranking ? `${t("ddash.rank")} #${ranking.my_rank}` : "…"}</p>
               </div>
             </div>
             <div className="w-full bg-white/10 rounded-full h-2 mb-2">
@@ -230,9 +230,9 @@ export default function DriverDashboardPage() {
             <p className="text-xs text-muted-foreground">{me ? `${me.xp} / ${me.xp_max} XP` : "—"}</p>
             {dailyMission?.mission && (
               <>
-                <p className="text-xs text-quickgo-lime mt-2">Prochaine récompense</p>
+                <p className="text-xs text-quickgo-lime mt-2">{t("ddash.nextReward")}</p>
                 <p className="text-sm font-semibold text-white flex items-center gap-2">
-                  Bonus {fmtCFA(dailyMission.mission.reward_amount)} <Gift className="w-4 h-4 text-quickgo-lime" />
+                  {t("ddash.bonus")} {fmtCFA(dailyMission.mission.reward_amount)} <Gift className="w-4 h-4 text-quickgo-lime" />
                 </p>
               </>
             )}
@@ -244,8 +244,8 @@ export default function DriverDashboardPage() {
               <HelpCircle className="w-5 h-5 text-quickgo-blue" />
             </div>
             <div>
-              <p className="text-white font-medium text-sm">Centre d&apos;aide</p>
-              <p className="text-xs text-muted-foreground">Besoin d&apos;assistance ?</p>
+              <p className="text-white font-medium text-sm">{t("ddash.helpCenter")}</p>
+              <p className="text-xs text-muted-foreground">{t("ddash.needHelp")}</p>
             </div>
           </Link>
         </div>
@@ -269,12 +269,12 @@ export default function DriverDashboardPage() {
               {/* Online Toggle */}
               <div className="flex items-center gap-3">
                 <span className={`text-sm ${isOnline ? "text-quickgo-lime" : "text-muted-foreground"}`}>
-                  {isOnline ? "En ligne" : "Hors ligne"}
+                  {isOnline ? t("ddash.online") : t("ddash.offline")}
                 </span>
                 <button
                   onClick={toggleOnline}
                   disabled={togglingOnline || driver?.status === "delivering"}
-                  title={driver?.status === "delivering" ? "Livraison en cours — indisponible" : undefined}
+                  title={driver?.status === "delivering" ? t("ddash.deliveringLock") : undefined}
                   className={`w-12 h-6 rounded-full transition-all relative disabled:opacity-60 disabled:cursor-not-allowed ${
                     isOnline ? "bg-quickgo-lime" : "bg-gray-600"
                   }`}
@@ -345,24 +345,24 @@ export default function DriverDashboardPage() {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        Bonjour, {firstName} <span>👋</span>
+                        {t("ddash.hello")}, {firstName} <span>👋</span>
                       </h2>
                       <p className="text-sm text-muted-foreground">
-                        {driver ? `Livreur partenaire depuis ${monthsSince(driver.created_at)} mois` : "…"}
+                        {driver ? `${t("ddash.partnerSince")} ${monthsSince(driver.created_at)} ${t("ddash.months")}` : "…"}
                       </p>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                           <span className="text-white font-semibold">{rating.toFixed(1)}</span>
                           <span className="text-xs text-muted-foreground">
-                            ({driver?.total_deliveries ?? 0} livraisons)
+                            ({driver?.total_deliveries ?? 0} {t("ddash.deliveries")})
                           </span>
                         </div>
                         {topPercent !== null && (
                           <div className="flex items-center gap-1">
                             <Trophy className="w-4 h-4 text-yellow-400" />
                             <span className="text-white font-semibold">Top {topPercent}%</span>
-                            <span className="text-xs text-muted-foreground">Dans votre ville</span>
+                            <span className="text-xs text-muted-foreground">{t("ddash.topCity")}</span>
                           </div>
                         )}
                       </div>
@@ -372,13 +372,13 @@ export default function DriverDashboardPage() {
                   {/* Today's Earnings */}
                   <div className="flex-1 bg-card/30 rounded-2xl p-4 ml-auto">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Gains aujourd&apos;hui</span>
+                      <span className="text-sm text-muted-foreground">{t("ddash.todayEarnings")}</span>
                     </div>
                     <p className="text-2xl font-bold text-white">
                       {loading ? "—" : fmtCFA(driver?.today_earnings ?? 0)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {driver?.today_deliveries ?? 0} course{(driver?.today_deliveries ?? 0) > 1 ? "s" : ""} terminée{(driver?.today_deliveries ?? 0) > 1 ? "s" : ""}
+                      {driver?.today_deliveries ?? 0} {t("ddash.ridesDone")}
                     </p>
                   </div>
                 </div>
@@ -386,12 +386,12 @@ export default function DriverDashboardPage() {
                 <div className="flex gap-3 mt-4">
                   <Link href="/driver/settings">
                     <Button variant="outline" className="rounded-full">
-                      Voir mon profil
+                      {t("ddash.viewProfile")}
                     </Button>
                   </Link>
                   <Link href="/driver/earnings">
                     <Button className="rounded-full bg-quickgo-blue hover:bg-quickgo-blue/90">
-                      Voir mes revenus
+                      {t("ddash.viewEarnings")}
                     </Button>
                   </Link>
                 </div>
@@ -400,13 +400,13 @@ export default function DriverDashboardPage() {
               {/* Stats Row */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: "Courses aujourd'hui", value: String(driver?.today_deliveries ?? 0), sub: "Aujourd'hui", icon: Car },
-                  { label: "Livraisons totales", value: String(driver?.total_deliveries ?? 0), sub: "Depuis le début", icon: CheckCircle },
-                  { label: "Note moyenne", value: rating.toFixed(1), sub: rating >= 4.5 ? "Excellent" : rating >= 3.5 ? "Bien" : "—", icon: Star, star: true },
+                  { label: t("ddash.stat.todayRides"), value: String(driver?.today_deliveries ?? 0), sub: t("ddash.stat.today"), icon: Car },
+                  { label: t("ddash.stat.totalDeliveries"), value: String(driver?.total_deliveries ?? 0), sub: t("ddash.stat.sinceStart"), icon: CheckCircle },
+                  { label: t("ddash.stat.rating"), value: rating.toFixed(1), sub: rating >= 4.5 ? t("ddash.stat.excellent") : rating >= 3.5 ? t("ddash.stat.good") : "—", icon: Star, star: true },
                   {
-                    label: "Défi du jour",
+                    label: t("ddash.stat.dailyChallenge"),
                     value: dailyMission?.mission ? `${dailyMission.current_count}/${dailyMission.mission.target_count}` : "—",
-                    sub: dailyMission?.mission ? `Bonus ${fmtCFA(dailyMission.mission.reward_amount)}` : "Aucun défi actif",
+                    sub: dailyMission?.mission ? `${t("ddash.bonus")} ${fmtCFA(dailyMission.mission.reward_amount)}` : t("ddash.noChallenge"),
                     icon: Gift,
                   },
                 ].map((stat, i) => (
@@ -444,15 +444,15 @@ export default function DriverDashboardPage() {
                       <MapPin className="w-7 h-7 text-quickgo-blue" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white">Missions près de vous</h3>
+                      <h3 className="text-lg font-bold text-white">{t("ddash.missionsNear")}</h3>
                       <p className="text-sm text-muted-foreground">
-                        Zone actuelle : {driver?.city ?? "—"} · Trouvez une course à accepter
+                        {t("ddash.currentZone")} : {driver?.city ?? "—"} · {t("ddash.findRide")}
                       </p>
                     </div>
                   </div>
                   <Link href="/driver/missions">
                     <Button variant="outline" className="rounded-full">
-                      Ouvrir
+                      {t("ddash.open")}
                       <ChevronRight className="w-4 h-4 ml-1" />
                     </Button>
                   </Link>
@@ -474,22 +474,22 @@ export default function DriverDashboardPage() {
                     <div>
                       <h3 className="text-lg font-bold text-white">QuickGo Pay</h3>
                       <p className="text-sm text-muted-foreground">
-                        Encaissez, retirez et gérez vos revenus en toute sécurité.
+                        {t("ddash.payDesc")}
                       </p>
                       <Link href="/wallet">
                         <Button variant="link" className="p-0 h-auto text-quickgo-blue">
-                          Accéder au portefeuille
+                          {t("ddash.goWallet")}
                         </Button>
                       </Link>
                     </div>
                   </div>
                   <div className="flex-1 flex items-center justify-end gap-6">
                     <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Solde portefeuille</p>
+                      <p className="text-sm text-muted-foreground">{t("ddash.walletBalance")}</p>
                       <p className="text-2xl font-bold text-white">{loading ? "—" : fmtCFA(walletBalance)}</p>
                       <Link href="/wallet">
                         <Button variant="outline" size="sm" className="mt-2 rounded-full">
-                          Retirer
+                          {t("ddash.withdraw")}
                         </Button>
                       </Link>
                     </div>
@@ -507,7 +507,7 @@ export default function DriverDashboardPage() {
                 className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Livraison en cours</h3>
+                  <h3 className="text-lg font-semibold text-white">{t("ddash.activeDelivery")}</h3>
                   {activeDelivery && (
                     <span className="text-xs text-quickgo-lime bg-quickgo-lime/20 px-2 py-1 rounded-full">
                       {activeDelivery.order_type}
@@ -530,7 +530,7 @@ export default function DriverDashboardPage() {
                       <div className="flex items-center gap-3">
                         <User className="w-4 h-4 text-muted-foreground" />
                         <div>
-                          <p className="text-xs text-muted-foreground">Client</p>
+                          <p className="text-xs text-muted-foreground">{t("ddash.client")}</p>
                           <p className="text-white font-medium">{activeDelivery.customer_name}</p>
                         </div>
                       </div>
@@ -543,13 +543,13 @@ export default function DriverDashboardPage() {
                     </div>
 
                     <div className="bg-card/30 rounded-xl p-3 mb-4 text-center">
-                      <p className="text-xs text-muted-foreground">Gain estimé</p>
+                      <p className="text-xs text-muted-foreground">{t("ddash.estimatedEarning")}</p>
                       <p className="text-white font-semibold">{fmtCFA(activeDelivery.earning)}</p>
                     </div>
 
                     <Link href="/driver/navigation">
                       <Button className="w-full bg-quickgo-blue hover:bg-quickgo-blue/90 rounded-xl">
-                        Voir les détails
+                        {t("ddash.viewDetails")}
                       </Button>
                     </Link>
                   </>
@@ -558,10 +558,10 @@ export default function DriverDashboardPage() {
                     <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-white/5 flex items-center justify-center">
                       <Navigation className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4">Aucune livraison en cours</p>
+                    <p className="text-sm text-muted-foreground mb-4">{t("ddash.noActiveDelivery")}</p>
                     <Link href="/driver/missions">
                       <Button variant="outline" size="sm" className="rounded-full">
-                        Voir les missions disponibles
+                        {t("ddash.seeMissions")}
                       </Button>
                     </Link>
                   </div>
@@ -576,8 +576,8 @@ export default function DriverDashboardPage() {
                 className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Défis & incitations</h3>
-                  <Link href="/driver/missions" className="text-quickgo-blue text-sm">Voir tout</Link>
+                  <h3 className="text-lg font-semibold text-white">{t("ddash.challenges")}</h3>
+                  <Link href="/driver/missions" className="text-quickgo-blue text-sm">{t("ddash.seeAll")}</Link>
                 </div>
 
                 {/* Daily Objective */}
@@ -605,7 +605,7 @@ export default function DriverDashboardPage() {
                   </div>
                 ) : (
                   <div className="bg-card/30 rounded-xl p-4 mb-4 text-center">
-                    <p className="text-sm text-muted-foreground">Aucun défi actif pour le moment</p>
+                    <p className="text-sm text-muted-foreground">{t("ddash.noChallengeNow")}</p>
                   </div>
                 )}
 
@@ -613,11 +613,11 @@ export default function DriverDashboardPage() {
                 <div className="bg-card/30 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Flame className="w-4 h-4 text-orange-500" />
-                    <span className="text-white font-medium">Série en cours</span>
+                    <span className="text-white font-medium">{t("ddash.streak")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Flame className="w-6 h-6 text-orange-500" />
-                    <span className="text-2xl font-bold text-white">{me?.streak ?? 0} jour{(me?.streak ?? 0) > 1 ? "s" : ""}</span>
+                    <span className="text-2xl font-bold text-white">{me?.streak ?? 0} {(me?.streak ?? 0) > 1 ? t("ddash.days") : t("ddash.day")}</span>
                   </div>
                 </div>
               </motion.div>
@@ -630,27 +630,27 @@ export default function DriverDashboardPage() {
                 className="bg-card/50 backdrop-blur-xl rounded-3xl p-6 border border-border/30"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Mon véhicule</h3>
-                  <Link href="/driver/settings" className="text-quickgo-blue text-sm">Voir détails</Link>
+                  <h3 className="text-lg font-semibold text-white">{t("ddash.myVehicle")}</h3>
+                  <Link href="/driver/settings" className="text-quickgo-blue text-sm">{t("ddash.viewDetails")}</Link>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Type</span>
+                    <span className="text-sm text-muted-foreground">{t("ddash.vehType")}</span>
                     <span className="text-white font-medium capitalize">{driver?.vehicle_type ?? "—"}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Marque / Modèle</span>
+                    <span className="text-sm text-muted-foreground">{t("ddash.brandModel")}</span>
                     <span className="text-white font-medium">
                       {[driver?.vehicle_brand, driver?.vehicle_model].filter(Boolean).join(" ") || "—"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Plaque</span>
+                    <span className="text-sm text-muted-foreground">{t("ddash.plate")}</span>
                     <span className="text-white font-medium">{driver?.license_plate ?? "—"}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Statut</span>
+                    <span className="text-sm text-muted-foreground">{t("ddash.vehStatus")}</span>
                     <span className="text-quickgo-lime font-medium capitalize">{driver?.status ?? "—"}</span>
                   </div>
                 </div>
