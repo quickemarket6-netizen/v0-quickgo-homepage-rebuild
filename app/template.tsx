@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { DUR, EASE } from "@/lib/motion"
 
 // Transition de page : un fondu d'opacité à chaque navigation.
 // template.tsx (≠ layout.tsx) est remonté à chaque changement de route, ce qui
@@ -16,7 +17,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: DUR.base, ease: EASE.out }}
     >
       {children}
     </motion.div>

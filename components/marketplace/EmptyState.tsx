@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import { motion } from "framer-motion"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { fadeUp, transition } from "@/lib/motion"
 
 // État vide standard du marketplace : icône, message, action de repli.
 // Un vide sans issue est un cul-de-sac — chaque état vide doit proposer
@@ -23,7 +25,9 @@ export function EmptyState({
   compact?: boolean
 }) {
   return (
-    <div
+    <motion.div
+      {...fadeUp()}
+      transition={transition("slow")}
       className={`w-full flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-[#1e1e2e] bg-[#111118]/60 ${
         compact ? "py-8 px-4" : "py-14 px-6"
       }`}
@@ -42,6 +46,6 @@ export function EmptyState({
           </Button>
         </Link>
       )}
-    </div>
+    </motion.div>
   )
 }

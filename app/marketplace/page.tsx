@@ -17,6 +17,7 @@ import { LanguageSwitcher } from "@/components/ui/language-switcher"
 import { useT } from "@/lib/i18n/context"
 import { useCart } from "@/lib/store/cart"
 import { toast } from "sonner"
+import { spring } from "@/lib/motion"
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -336,7 +337,7 @@ export default function MarketplacePage() {
                     key={cartMounted ? localCartCount : data?.cartCount ?? 0}
                     initial={{ scale: 0.4 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    transition={spring.bouncy}
                     className="absolute top-1 right-1 min-w-4 h-4 rounded-full bg-[#3b82f6] text-white text-[9px] flex items-center justify-center px-0.5">
                     {cartMounted ? localCartCount : data!.cartCount}
                   </motion.span>

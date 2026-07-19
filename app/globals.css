@@ -4,6 +4,14 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Motion tokens — miroir CSS de lib/motion.ts (source de vérité unique
+     des durées/courbes). Pour les transitions & animations non-Framer. */
+  --dur-fast: 0.15s;
+  --dur-base: 0.25s;
+  --dur-slow: 0.45s;
+  --dur-slower: 0.7s;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
   /* QuickGo Brand Colors - Dark Cyberpunk Theme */
   --background: oklch(0.08 0.01 260);
   --foreground: oklch(0.98 0 0);
