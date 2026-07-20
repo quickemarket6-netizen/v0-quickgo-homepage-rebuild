@@ -10,6 +10,7 @@
 import { createClient } from "@supabase/supabase-js"
 import * as dotenv from "dotenv"
 import * as path from "path"
+import { CATEGORY_IMAGES, VENDOR_IMAGES, PRODUCT_IMAGES } from "./media-assets"
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") })
 
@@ -324,14 +325,21 @@ async function main() {
   console.log("🗂️  Création des catégories...")
   const { data: cats, error: catErr } = await supabase
     .from("categories")
-    .upsert(CATEGORIES, { onConflict: "slug" })
+    .upsert(
+      CATEGORIES.map(c => ({ ...c, image_url: CATEGORY_IMAGES[c.slug] ?? null })),
+      { onConflict: "slug" },
+    )
     .select("id,slug")
   if (catErr) err("categories", catErr)
   else ok(`${cats?.length ?? 0} catégories insérées`)
 
   // ── Step 4: Vendors ───────────────────────────────────────────────────────
   console.log("🏪 Création des vendeurs...")
-  const vendorRows = makeVendors(vendorOwners.map(u => u.id))
+  const vendorRows = makeVendors(vendorOwners.map(u => u.id)).map(v => ({
+    ...v,
+    cover_url: VENDOR_IMAGES[v.slug]?.cover ?? null,
+    logo_url:  VENDOR_IMAGES[v.slug]?.logo  ?? null,
+  }))
   const { data: insertedVendors, error: vendErr } = await supabase
     .from("vendors")
     .upsert(vendorRows, { onConflict: "slug" })
@@ -393,7 +401,10 @@ async function main() {
 
   // ── Step 7: Products ──────────────────────────────────────────────────────
   console.log("📦 Création des produits (60+)...")
-  const productRows = makeProducts(vendorIds)
+  const productRows = makeProducts(vendorIds).map(p => ({
+    ...p,
+    image_url: PRODUCT_IMAGES[p.name] ?? null,
+  }))
   const { data: insertedProducts, error: prodErr } = await supabase
     .from("products")
     .upsert(productRows, { onConflict: "vendor_id,name" })

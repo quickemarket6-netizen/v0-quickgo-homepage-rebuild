@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   FolderTree, Plus, Edit2, Trash2, RefreshCw, Save,
@@ -16,6 +17,7 @@ interface Category {
   slug: string
   icon: string | null
   color: string | null
+  image_url?: string | null
   is_active: boolean
   sort_order: number
   created_at?: string
@@ -358,13 +360,19 @@ export default function AdminCategoriesPage() {
                       {cat.sort_order}
                     </div>
 
-                    {/* Icon swatch */}
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
-                      style={{ backgroundColor: (cat.color ?? "#a3e635") + "22", border: `1px solid ${(cat.color ?? "#a3e635")}44` }}
-                    >
-                      {cat.icon || "📦"}
-                    </div>
+                    {/* Icon swatch — vignette image si présente, sinon emoji */}
+                    {cat.image_url ? (
+                      <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-[#1e1e2e]">
+                        <Image src={cat.image_url} alt={cat.name} fill className="object-cover" sizes="40px" />
+                      </div>
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
+                        style={{ backgroundColor: (cat.color ?? "#a3e635") + "22", border: `1px solid ${(cat.color ?? "#a3e635")}44` }}
+                      >
+                        {cat.icon || "📦"}
+                      </div>
+                    )}
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">

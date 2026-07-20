@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "seed": "npx tsx scripts/seed.ts",
+    "backfill:images": "npx tsx scripts/backfill-images.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
