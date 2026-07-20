@@ -14,9 +14,9 @@ import {
   Gift,
   Search,
   CheckCircle,
-  Loader2,
   Inbox,
 } from "lucide-react"
+import { ListSkeleton } from "@/components/ui/list-skeleton"
 
 // In-app notification feed (public.notifications). This is the operational feed
 // drivers actually receive: order assigned, delivery confirmed, cash remittance,
@@ -154,9 +154,7 @@ export default function DriverMessagesPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
+          <ListSkeleton rows={6} />
         ) : filtered.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

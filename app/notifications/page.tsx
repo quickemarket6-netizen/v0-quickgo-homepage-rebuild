@@ -17,13 +17,13 @@ import {
   Settings,
   Trash2,
   X,
-  Loader2,
   AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PushToggle } from "@/components/notifications/PushToggle"
 import { Navbar } from "@/components/navbar/navbar"
 import { Footer } from "@/components/footer/footer"
+import { ListSkeleton } from "@/components/ui/list-skeleton"
 
 type NotificationType = "order" | "delivery" | "payment" | "promo" | "message" | "review"
 
@@ -242,12 +242,7 @@ export default function NotificationsPage() {
           </motion.div>
 
           {/* Loading state */}
-          {isLoading && (
-            <div className="flex flex-col items-center justify-center py-16 gap-4">
-              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              <p className="text-muted-foreground text-sm">Chargement des notifications...</p>
-            </div>
-          )}
+          {isLoading && <ListSkeleton rows={6} />}
 
           {/* Error state */}
           {!isLoading && loadError && (

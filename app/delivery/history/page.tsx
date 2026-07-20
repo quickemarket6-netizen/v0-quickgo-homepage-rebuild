@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
+import { ListSkeleton } from "@/components/ui/list-skeleton"
 import {
   Package,
   Truck,
@@ -20,7 +21,6 @@ import {
   Plus,
   Calendar,
   RotateCcw,
-  Loader2,
   AlertTriangle,
 } from "lucide-react"
 
@@ -242,12 +242,7 @@ export default function DeliveryHistoryPage() {
         {/* Deliveries List */}
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Loading State */}
-          {loading && (
-            <div className="flex flex-col items-center justify-center py-20">
-              <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
-              <p className="text-muted-foreground">Chargement de vos livraisons...</p>
-            </div>
-          )}
+          {loading && <ListSkeleton rows={5} />}
 
           {/* Error State */}
           {!loading && error && (
