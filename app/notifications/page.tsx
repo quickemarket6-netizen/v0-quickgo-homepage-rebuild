@@ -24,6 +24,7 @@ import { PushToggle } from "@/components/notifications/PushToggle"
 import { Navbar } from "@/components/navbar/navbar"
 import { Footer } from "@/components/footer/footer"
 import { ListSkeleton } from "@/components/ui/list-skeleton"
+import { spring } from "@/lib/motion"
 
 type NotificationType = "order" | "delivery" | "payment" | "promo" | "message" | "review"
 
@@ -221,24 +222,37 @@ export default function NotificationsPage() {
             transition={{ delay: 0.1 }}
             className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide"
           >
-            {filterOptions.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => setFilter(option.id)}
-                className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-all ${
-                  filter === option.id
-                    ? "bg-quickgo-blue text-white"
-                    : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-quickgo-blue/50"
-                }`}
-              >
-                {option.label}
-                {option.id === "unread" && unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded-full bg-white/20 text-xs">
-                    {unreadCount}
+            {filterOptions.map((option) => {
+              const isActive = filter === option.id
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => setFilter(option.id)}
+                  className={`relative px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
+                    isActive
+                      ? "text-white"
+                      : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-quickgo-blue/50"
+                  }`}
+                >
+                  {/* Pilule active partagée : glisse d'un filtre à l'autre (layoutId) */}
+                  {isActive && (
+                    <motion.span
+                      layoutId="notifFilterPill"
+                      className="absolute inset-0 rounded-full bg-quickgo-blue"
+                      transition={spring.snappy}
+                    />
+                  )}
+                  <span className="relative z-10 inline-flex items-center">
+                    {option.label}
+                    {option.id === "unread" && unreadCount > 0 && (
+                      <span className="ml-2 px-1.5 py-0.5 rounded-full bg-white/20 text-xs">
+                        {unreadCount}
+                      </span>
+                    )}
                   </span>
-                )}
-              </button>
-            ))}
+                </button>
+              )
+            })}
           </motion.div>
 
           {/* Loading state */}

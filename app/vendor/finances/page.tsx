@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
+import { spring } from "@/lib/motion"
 import {
   Wallet, TrendingUp, ArrowDownLeft, ArrowUpRight, Clock,
   CheckCircle2, XCircle, AlertTriangle, RefreshCw, Plus,
@@ -563,9 +564,17 @@ export default function VendorFinancesPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-3.5 text-sm font-medium border-b-2 transition-all ${activeTab === tab ? "border-quickgo-blue text-quickgo-blue" : "border-transparent text-white/40 hover:text-white"}`}
+                  className={`relative px-4 py-3.5 text-sm font-medium transition-colors ${activeTab === tab ? "text-quickgo-blue" : "text-white/40 hover:text-white"}`}
                 >
                   {tab === "payouts" ? "Mes retraits" : "Commissions & commandes"}
+                  {/* Soulignement actif partagé : glisse entre les onglets (layoutId) */}
+                  {activeTab === tab && (
+                    <motion.span
+                      layoutId="vendorFinancesTab"
+                      className="absolute left-0 right-0 bottom-0 h-0.5 bg-quickgo-blue"
+                      transition={spring.snappy}
+                    />
+                  )}
                 </button>
               ))}
             </div>
