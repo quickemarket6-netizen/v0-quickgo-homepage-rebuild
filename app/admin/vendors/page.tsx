@@ -10,9 +10,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
 
+// vendors.status n'a que 3 valeurs possibles (contrainte CHECK) : active,
+// inactive, suspended — pas de "pending". Une boutique "inactive" est, en
+// pratique, une boutique qui vient d'être créée et attend une revue admin
+// (rien d'autre dans ce panneau ne repasse un vendeur à "inactive").
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   active:    { label: "Actif",       className: "bg-green-500/20 text-green-400" },
-  pending:   { label: "En attente",  className: "bg-yellow-500/20 text-yellow-400" },
+  inactive:  { label: "En attente",  className: "bg-yellow-500/20 text-yellow-400" },
   suspended: { label: "Suspendu",    className: "bg-red-500/20 text-red-400" },
 }
 
@@ -88,7 +92,7 @@ export default function AdminVendorsPage() {
 
   const statsCards = [
     { key: "active",    label: "Actifs",      icon: Store,       color: "from-quickgo-blue to-quickgo-cyan" },
-    { key: "pending",   label: "En attente",  icon: Clock,       color: "from-yellow-500 to-orange-500" },
+    { key: "inactive",  label: "En attente",  icon: Clock,       color: "from-yellow-500 to-orange-500" },
     { key: "suspended", label: "Suspendus",   icon: XCircle,     color: "from-red-500 to-pink-500" },
     { key: "verified",  label: "Vérifiés",    icon: ShieldCheck, color: "from-green-500 to-emerald-500" },
   ]
@@ -144,7 +148,7 @@ export default function AdminVendorsPage() {
                 className="pl-10 bg-card/50 border-border/30" />
             </div>
             <div className="flex items-center gap-2">
-              {["all", "active", "pending", "suspended"].map((s) => (
+              {["all", "active", "inactive", "suspended"].map((s) => (
                 <Button key={s} size="sm" variant={statusFilter === s ? "default" : "outline"}
                   onClick={() => { setStatusFilter(s); setPage(1) }} className="rounded-full">
                   {s === "all" ? "Tous" : STATUS_CONFIG[s]?.label ?? s}
@@ -246,7 +250,7 @@ export default function AdminVendorsPage() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-1">
-                            {vendor.status === "pending" && (
+                            {vendor.status === "inactive" && (
                               <button
                                 title="Approuver"
                                 aria-label="Approuver"
@@ -256,7 +260,7 @@ export default function AdminVendorsPage() {
                                 <UserCheck className="w-4 h-4 text-green-400" />
                               </button>
                             )}
-                            {vendor.status === "pending" && (
+                            {vendor.status === "inactive" && (
                               <button
                                 title="Rejeter"
                                 aria-label="Rejeter"

@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
   const summary = {
     active: (data ?? []).filter((v) => v.status === "active").length,
-    pending: (data ?? []).filter((v) => v.status === "pending").length,
+    inactive: (data ?? []).filter((v) => v.status === "inactive").length,
     suspended: (data ?? []).filter((v) => v.status === "suspended").length,
     verified: (data ?? []).filter((v) => v.is_verified).length,
   }

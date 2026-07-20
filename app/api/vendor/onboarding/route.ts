@@ -87,13 +87,15 @@ export async function POST(req: NextRequest) {
     phone:       phone ?? null,
     email:       body.email ?? user.email,
     logo_url:    logoUrl ?? null,
-    status:      "pending",
   }
 
   let vendor: { id: string } | null = null
   let vErr: { message: string; code?: string } | null = null
 
   if (existing) {
+    // Resoumission (ex. après une erreur) : on met à jour les infos, sans
+    // toucher status/is_verified — sinon un vendeur déjà approuvé qui
+    // repasse par ce formulaire se ferait repasser "inactive" par erreur.
     const res = await supabase
       .from("vendors")
       .update(vendorPayload)
@@ -103,12 +105,17 @@ export async function POST(req: NextRequest) {
     vendor = res.data
     vErr = res.error
   } else {
+    // vendors_status_check n'autorise que active/inactive/suspended (pas de
+    // "pending") : une nouvelle boutique démarre "inactive" + non vérifiée.
+    // L'admin (app/admin/vendors) l'approuve (active/is_verified=true) ou
+    // la rejette (suspended).
+    const newVendorPayload = { ...vendorPayload, status: "inactive", is_verified: false }
     // slug UNIQUE : en cas de collision (deux boutiques au même nom), on
     // retente une fois avec un court suffixe aléatoire.
     for (const slug of [baseSlug, `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`]) {
       const res = await supabase
         .from("vendors")
-        .insert({ ...vendorPayload, slug })
+        .insert({ ...newVendorPayload, slug })
         .select("id")
         .single()
       vendor = res.data
