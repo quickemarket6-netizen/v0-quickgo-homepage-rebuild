@@ -11,7 +11,10 @@ import { Button } from "@/components/ui/button"
 
 const DASHBOARD: Record<string, string> = {
   client: "/dashboard",
-  vendor: "/vendor/dashboard",
+  // Un rôle "vendor" seul ne crée aucune ligne dans `vendors` — sans passer
+  // par l'onboarding, toutes les routes vendeur répondent "Vendeur
+  // introuvable". Direction l'assistant d'inscription, pas le dashboard.
+  vendor: "/vendor/onboarding",
   driver: "/driver/dashboard",
   admin: "/admin",
 }

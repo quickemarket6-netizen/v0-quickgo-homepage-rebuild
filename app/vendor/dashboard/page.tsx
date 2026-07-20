@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   LayoutDashboard, ShoppingBag, Package, TrendingUp, Wallet, Users, UserCog, BarChart3,
   Tag, Star, Settings, HelpCircle, Bell, BellRing, Search, ChevronDown, RefreshCw,
@@ -236,6 +237,7 @@ function GlassCard({ children, className = "", delay = 0 }: { children: React.Re
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function VendorDashboardPage() {
   const { t } = useT()
+  const router = useRouter()
   const [data, setData]       = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod]   = useState(7)
@@ -247,9 +249,13 @@ export default function VendorDashboardPage() {
     setLoading(true)
     try {
       const res = await fetch(`/api/vendor/dashboard?period=${p}`)
+      // Rôle "vendor" posé mais aucune ligne `vendors` (onboarding jamais
+      // complété) : plutôt que des erreurs "Vendeur introuvable" partout,
+      // on renvoie directement vers l'assistant d'inscription.
+      if (res.status === 403) { router.replace("/vendor/onboarding"); return }
       if (res.ok) setData(await res.json())
     } finally { setLoading(false) }
-  }, [])
+  }, [router])
 
   useEffect(() => { fetchDashboard(7) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
