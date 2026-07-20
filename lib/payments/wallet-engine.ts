@@ -101,13 +101,13 @@ export async function creditVendorPending(params: OrderFinancials, db?: Supabase
   // Create financial notification for vendor
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("owner_id")
+    .select("user_id")
     .eq("id", params.vendorId)
     .single()
 
-  if (vendor?.owner_id) {
+  if (vendor?.user_id) {
     await supabase.from("financial_notifications").insert({
-      user_id: vendor.owner_id,
+      user_id: vendor.user_id,
       type: "funds_held",
       title: "Paiement reçu",
       message: `${formatCFA(commission.vendorNetAmount)} en attente de validation livraison`,
@@ -157,13 +157,13 @@ export async function releasePendingFunds(orderId: string, db?: SupabaseClient):
   // Notify vendor funds available
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("owner_id")
+    .select("user_id")
     .eq("id", commLog.vendor_id)
     .single()
 
-  if (vendor?.owner_id) {
+  if (vendor?.user_id) {
     await supabase.from("financial_notifications").insert({
-      user_id: vendor.owner_id,
+      user_id: vendor.user_id,
       type: "funds_available",
       title: "Fonds disponibles",
       message: `${formatCFA(commLog.vendor_net_amount)} maintenant disponibles pour retrait`,
@@ -371,13 +371,13 @@ export async function completePayoutTransfer(
   // Notify vendor
   const { data: payout } = await supabase
     .from("vendor_payouts")
-    .select("vendor_id, amount, vendors(owner_id)")
+    .select("vendor_id, amount, vendors(user_id)")
     .eq("id", payoutId)
-    .single() as { data: { vendor_id: string; amount: number; vendors: { owner_id: string } | null } | null }
+    .single() as { data: { vendor_id: string; amount: number; vendors: { user_id: string } | null } | null }
 
-  if (payout?.vendors?.owner_id) {
+  if (payout?.vendors?.user_id) {
     await supabase.from("financial_notifications").insert({
-      user_id: payout.vendors.owner_id,
+      user_id: payout.vendors.user_id,
       type: "payout_completed",
       title: "Retrait effectué",
       message: `${formatCFA(payout.amount)} transféré avec succès sur votre compte`,
@@ -435,13 +435,13 @@ export async function rejectPayout(
   // Notify vendor
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("owner_id")
+    .select("user_id")
     .eq("id", payout.vendor_id)
     .single()
 
-  if (vendor?.owner_id) {
+  if (vendor?.user_id) {
     await supabase.from("financial_notifications").insert({
-      user_id: vendor.owner_id,
+      user_id: vendor.user_id,
       type: "payout_rejected",
       title: "Retrait refusé",
       message: `Votre demande de retrait de ${formatCFA(payout.amount)} a été refusée. Raison: ${reason}`,
@@ -486,13 +486,13 @@ export async function setWalletFrozen(
   // Notify vendor
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("owner_id")
+    .select("user_id")
     .eq("id", vendorId)
     .single()
 
-  if (vendor?.owner_id) {
+  if (vendor?.user_id) {
     await supabase.from("financial_notifications").insert({
-      user_id: vendor.owner_id,
+      user_id: vendor.user_id,
       type: frozen ? "wallet_frozen" : "funds_available",
       title: frozen ? "Portefeuille gelé" : "Portefeuille réactivé",
       message: frozen

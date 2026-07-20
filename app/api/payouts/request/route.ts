@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
   if (score >= 80) {
     // High fraud risk — block and alert
     const supabase = await createClient()
-    const { data: vendor } = await supabase.from("vendors").select("owner_id").eq("id", vendor_id).single()
-    if (vendor?.owner_id) {
+    const { data: vendor } = await supabase.from("vendors").select("user_id").eq("id", vendor_id).single()
+    if (vendor?.user_id) {
       await supabase.from("financial_notifications").insert({
-        user_id: vendor.owner_id,
+        user_id: vendor.user_id,
         type: "fraud_alert",
         title: "Retrait bloqué — vérification requise",
         message: "Votre demande de retrait nécessite une vérification manuelle. Notre équipe vous contactera.",

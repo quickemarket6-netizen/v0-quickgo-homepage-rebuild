@@ -5,7 +5,7 @@ const MAX_VARIANTS = 20
 
 async function getOwnedProduct(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, productId: string) {
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", userId).single()
+    .from("vendors").select("id").eq("user_id", userId).single()
   if (!vendor) return null
   const { data: product } = await supabase
     .from("products").select("id").eq("id", productId).eq("vendor_id", vendor.id).single()

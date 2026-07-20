@@ -51,26 +51,41 @@ export async function POST(req: NextRequest) {
     .update({ full_name: `${firstName} ${lastName}`.trim(), phone, role: "vendor" })
     .eq("id", user.id)
 
-  // Un utilisateur ne possède qu'une seule boutique (contrainte owner_id
-  // UNIQUE) : si une ligne existe déjà pour cet owner_id, on met à jour son
-  // slug existant plutôt que d'en générer un nouveau à chaque soumission.
+  // Un utilisateur ne possède qu'une seule boutique. On vérifie l'existence
+  // explicitement (plutôt qu'un upsert+onConflict) : ça évite de dépendre
+  // d'une contrainte UNIQUE sur vendors.user_id dont on ne peut pas garantir
+  // la présence.
   const { data: existing } = await supabase
     .from("vendors")
-    .select("slug")
-    .eq("owner_id", user.id)
+    .select("id, slug")
+    .eq("user_id", user.id)
     .maybeSingle()
+
+  // category_id (UUID) est une FK vers `categories` — le formulaire envoie un
+  // libellé libre ("Electronique", "Mode"…), donc correspondance approchée
+  // par nom. Si rien ne correspond, category_id reste null plutôt que de
+  // deviner.
+  let categoryId: string | null = null
+  if (category) {
+    const { data: cat } = await supabase
+      .from("categories")
+      .select("id")
+      .ilike("name", `%${category}%`)
+      .limit(1)
+      .maybeSingle()
+    categoryId = cat?.id ?? null
+  }
 
   const baseSlug = existing?.slug ?? (slugify(businessName) || "boutique")
   const vendorPayload = {
-    owner_id:    user.id,
+    user_id:     user.id,
     name:        businessName,
     description: description ?? null,
-    category:    category ?? null,
+    category_id: categoryId,
     address:     address ?? null,
     city:        city ?? "yaounde",
     phone:       phone ?? null,
     email:       body.email ?? user.email,
-    tax_id:      taxId ?? null,
     logo_url:    logoUrl ?? null,
     status:      "pending",
   }
@@ -78,26 +93,39 @@ export async function POST(req: NextRequest) {
   let vendor: { id: string } | null = null
   let vErr: { message: string; code?: string } | null = null
 
-  // slug UNIQUE : en cas de collision (deux boutiques au même nom), on
-  // retente une fois avec un court suffixe aléatoire.
-  for (const slug of [baseSlug, `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`]) {
+  if (existing) {
     const res = await supabase
       .from("vendors")
-      .upsert({ ...vendorPayload, slug }, { onConflict: "owner_id" })
+      .update(vendorPayload)
+      .eq("id", existing.id)
       .select("id")
       .single()
     vendor = res.data
     vErr = res.error
-    if (!vErr || vErr.code !== "23505") break
+  } else {
+    // slug UNIQUE : en cas de collision (deux boutiques au même nom), on
+    // retente une fois avec un court suffixe aléatoire.
+    for (const slug of [baseSlug, `${baseSlug}-${Math.random().toString(36).slice(2, 6)}`]) {
+      const res = await supabase
+        .from("vendors")
+        .insert({ ...vendorPayload, slug })
+        .select("id")
+        .single()
+      vendor = res.data
+      vErr = res.error
+      if (!vErr || vErr.code !== "23505") break
+    }
   }
 
   if (vErr) return NextResponse.json({ error: vErr.message }, { status: 500 })
 
-  // KYC document URLs go to user metadata (no dedicated columns on vendors)
-  if (idCardUrl || businessLicenseUrl) {
+  // Documents KYC + numéro fiscal : pas de colonnes dédiées sur `vendors`,
+  // tout part dans les métadonnées utilisateur.
+  if (taxId || idCardUrl || businessLicenseUrl) {
     await supabase.auth.updateUser({
       data: {
         vendor_documents: {
+          tax_id: taxId ?? null,
           id_card: idCardUrl ?? null,
           business_license: businessLicenseUrl ?? null,
           submitted_at: new Date().toISOString(),

@@ -177,10 +177,10 @@ export async function POST(request: Request) {
   const vendorIds = [...groups.keys()]
   const { data: vendors } = await supabase
     .from("vendors")
-    .select("id, delivery_fee, owner_id")
+    .select("id, delivery_fee, user_id")
     .in("id", vendorIds)
   const vendorFeeMap = new Map((vendors ?? []).map((v) => [v.id, v.delivery_fee as number | null]))
-  const vendorOwnerMap = new Map((vendors ?? []).map((v) => [v.id, v.owner_id as string | null]))
+  const vendorOwnerMap = new Map((vendors ?? []).map((v) => [v.id, v.user_id as string | null]))
 
   const optionFee = DELIVERY_OPTION_FEES[delivery_option as string]
 

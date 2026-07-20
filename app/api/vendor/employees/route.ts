@@ -14,7 +14,7 @@ async function getVendor(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { user: null, vendor: null }
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   return { user, vendor: vendor as { id: string } | null }
 }
 

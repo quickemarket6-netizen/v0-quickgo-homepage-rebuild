@@ -192,16 +192,16 @@ export async function POST(
   })
 
   const { data: vendor } = await supabase
-    .from("vendors").select("owner_id, name").eq("id", order.vendor_id).single()
-  if (vendor?.owner_id) {
+    .from("vendors").select("user_id, name").eq("id", order.vendor_id).single()
+  if (vendor?.user_id) {
     await supabase.from("notifications").insert({
-      user_id: vendor.owner_id,
+      user_id: vendor.user_id,
       title: "Commande annulée",
       message: `La commande ${order.order_number} a été annulée par le client.`,
       type: "order",
       data: { order_id: id },
     })
-    await sendPushToUser(vendor.owner_id, {
+    await sendPushToUser(vendor.user_id, {
       title: "Commande annulée",
       body: `La commande ${order.order_number} a été annulée par le client.`,
       url: "/vendor/orders",

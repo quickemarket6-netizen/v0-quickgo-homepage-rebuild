@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const { data: vendor } = await supabase
     .from("vendors")
     .select("id, name, commission_rate")
-    .eq("owner_id", user.id)
+    .eq("user_id", user.id)
     .single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const rateCheck = await checkPayoutRateLimit(vendor.id)
@@ -136,7 +136,7 @@ export async function PATCH(req: NextRequest) {
   if (!payout_id) return NextResponse.json({ error: "payout_id requis" }, { status: 400 })
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   // Only cancel pending payouts

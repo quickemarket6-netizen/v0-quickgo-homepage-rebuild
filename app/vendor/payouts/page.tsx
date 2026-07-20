@@ -262,7 +262,7 @@ export default function PayoutsPage() {
     const load = async () => {
       const { data: { user } } = await supabase.current.auth.getUser()
       if (!user) return
-      const { data: v } = await supabase.current.from("vendors").select("name").eq("owner_id", user.id).single()
+      const { data: v } = await supabase.current.from("vendors").select("name").eq("user_id", user.id).single()
       if (v) {
         const name = (v as { name: string }).name
         setVendorName(name)

@@ -246,7 +246,7 @@ export default function VendorStocksPage() {
     const loadVendor = async () => {
       const { data: { user: u } } = await supabase.current.auth.getUser()
       if (!u) return
-      const { data: v } = await supabase.current.from("vendors").select("name").eq("owner_id", u.id).single()
+      const { data: v } = await supabase.current.from("vendors").select("name").eq("user_id", u.id).single()
       if (v) { setVendorName((v as { name: string }).name); setVendorInitials(initials((v as { name: string }).name)) }
     }
     void loadVendor()

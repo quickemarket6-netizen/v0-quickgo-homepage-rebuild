@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const { data: vendor } = await supabase
     .from("vendors")
     .select("id, name, logo_url, is_verified, rating, commission_rate, status")
-    .eq("owner_id", user.id)
+    .eq("user_id", user.id)
     .single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 

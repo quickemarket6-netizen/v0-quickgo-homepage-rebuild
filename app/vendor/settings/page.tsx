@@ -157,7 +157,7 @@ export default function SettingsPage() {
   useEffect(() => {
     supabase.auth.getUser().then((res: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
       if (!res.data.user) return
-      supabase.from("vendors").select("name").eq("owner_id", res.data.user.id).single()
+      supabase.from("vendors").select("name").eq("user_id", res.data.user.id).single()
         .then((r: { data: { name: string } | null }) => { if (r.data) setVendorName(r.data.name) })
     })
   }, [supabase])

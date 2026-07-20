@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 
 async function getVendorId(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data } = await supabase.from("vendors").select("id").eq("owner_id", userId).single()
+  const { data } = await supabase.from("vendors").select("id").eq("user_id", userId).single()
   return data?.id ?? null
 }
 

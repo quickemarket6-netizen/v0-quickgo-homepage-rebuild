@@ -16,7 +16,7 @@ import { toast } from "sonner"
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface PayoutItem {
-  id: string; owner_id: string; owner_name: string
+  id: string; user_id: string; owner_name: string
   owner_type: "vendor" | "driver"
   amount: number; method: string
   requested_at: string; processed_at: string | null

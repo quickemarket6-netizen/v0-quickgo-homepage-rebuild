@@ -60,13 +60,13 @@ export async function POST(req: NextRequest) {
       // Notify vendor
       const { data: vendor } = await supabase
         .from("vendors")
-        .select("owner_id")
+        .select("user_id")
         .eq("id", p.vendor_id)
         .single()
 
-      if (vendor?.owner_id) {
+      if (vendor?.user_id) {
         await supabase.from("financial_notifications").insert({
-          user_id: vendor.owner_id,
+          user_id: vendor.user_id,
           type: "payout_failed",
           title: "Retrait échoué",
           message: `Votre retrait a échoué (${status}). Les fonds ont été remis à disposition.`,

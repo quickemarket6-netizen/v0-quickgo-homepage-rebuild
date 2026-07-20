@@ -435,7 +435,7 @@ export default function EmployeesPage() {
     supabase.auth.getUser().then((res: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
       const user = res.data.user
       if (!user) return
-      supabase.from("vendors").select("name").eq("owner_id", user.id).single()
+      supabase.from("vendors").select("name").eq("user_id", user.id).single()
         .then((r: { data: { name: string } | null }) => { if (r.data) setVendorName(r.data.name) })
     })
   }, [])

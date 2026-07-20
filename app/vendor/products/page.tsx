@@ -120,7 +120,7 @@ export default function VendorProductsPage() {
       const { data: v } = await supabase
         .from("vendors")
         .select("id, name, slug, logo_url, rating, status")
-        .eq("owner_id", user.id)
+        .eq("user_id", user.id)
         .single()
       setVendor(v ?? null)
       setLoadingVendor(false)

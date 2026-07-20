@@ -32,7 +32,7 @@ export async function POST(
   const { data: vendor } = await supabase
     .from("vendors")
     .select("id, name")
-    .eq("owner_id", user.id)
+    .eq("user_id", user.id)
     .single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 

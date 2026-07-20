@@ -93,10 +93,10 @@ export async function GET(_req: NextRequest) {
     const catMap: Record<string, string> = Object.fromEntries(cats.map((c) => [c.slug, c.id]))
 
     // ── 4. Vendeurs ────────────────────────────────────────────────────────
-    await sb.from("vendors").delete().in("owner_id", [vendor1Id, vendor2Id])
+    await sb.from("vendors").delete().in("user_id", [vendor1Id, vendor2Id])
     const { data: vendors, error: vendErr } = await sb.from("vendors").insert([
-      { owner_id: vendor1Id, name: "TechShop Douala",   description: "Smartphones, laptops, accessoires high-tech importés.", category_id: catMap["electronique"], city: "Douala",  status: "active", is_verified: true, rating: 4.7, commission_rate: 5, delivery_fee: 1500 },
-      { owner_id: vendor2Id, name: "Chez Fatima Resto", description: "Cuisine camerounaise authentique. Ndolé, poulet DG.",   category_id: catMap["restaurant"],   city: "Yaoundé", status: "active", is_verified: true, rating: 4.9, commission_rate: 5, delivery_fee: 500  },
+      { user_id: vendor1Id, name: "TechShop Douala",   description: "Smartphones, laptops, accessoires high-tech importés.", category_id: catMap["electronique"], city: "Douala",  status: "active", is_verified: true, rating: 4.7, commission_rate: 5, delivery_fee: 1500 },
+      { user_id: vendor2Id, name: "Chez Fatima Resto", description: "Cuisine camerounaise authentique. Ndolé, poulet DG.",   category_id: catMap["restaurant"],   city: "Yaoundé", status: "active", is_verified: true, rating: 4.9, commission_rate: 5, delivery_fee: 500  },
     ]).select()
     if (vendErr || !vendors) throw new Error(`Échec vendeurs: ${vendErr?.message ?? "data null"}`)
     ok(`${vendors.length} vendeurs`)

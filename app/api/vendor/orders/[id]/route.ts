@@ -6,7 +6,7 @@ async function getVendorId(supabase: Awaited<ReturnType<typeof createClient>>, u
   const { data } = await supabase
     .from("vendors")
     .select("id")
-    .eq("owner_id", userId)
+    .eq("user_id", userId)
     .single()
   return data?.id ?? null
 }

@@ -10,7 +10,7 @@ export async function GET() {
   const { data: vendor } = await supabase
     .from("vendors")
     .select("id, name, commission_rate")
-    .eq("owner_id", user.id)
+    .eq("user_id", user.id)
     .single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   // Rate limit (3 requests / hour)

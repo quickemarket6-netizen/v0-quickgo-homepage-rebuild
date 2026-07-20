@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const filter = req.nextUrl.searchParams.get("filter") ?? "all"
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const body = await req.json() as {
@@ -140,7 +140,7 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const { coupon_id, is_active } = await req.json() as { coupon_id?: string; is_active?: boolean }
@@ -161,7 +161,7 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const { coupon_id } = await req.json() as { coupon_id?: string }

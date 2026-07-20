@@ -9,7 +9,7 @@ export async function GET() {
   const { data: vendor } = await supabase
     .from("vendors")
     .select("id, name, description, logo_url, cover_url, category, address, city, phone, delivery_radius, delivery_fee, delivery_time_min, is_open, notification_prefs")
-    .eq("owner_id", user.id).single()
+    .eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const { data: profile } = await supabase
@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
   const { data: vendor } = await supabase
-    .from("vendors").select("id").eq("owner_id", user.id).single()
+    .from("vendors").select("id").eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const body = await req.json() as Record<string, unknown> & { section: string }

@@ -98,7 +98,7 @@ export default function NewProductPage() {
     const load = async () => {
       const { data: { user } } = await supabase.current.auth.getUser()
       if (!user) { router.push("/auth/login"); return }
-      const { data: v } = await supabase.current.from("vendors").select("name").eq("owner_id", user.id).single()
+      const { data: v } = await supabase.current.from("vendors").select("name").eq("user_id", user.id).single()
       if (v) { setVendorName((v as { name: string }).name); setVendorInitials(initials((v as { name: string }).name)) }
     }
     void load()

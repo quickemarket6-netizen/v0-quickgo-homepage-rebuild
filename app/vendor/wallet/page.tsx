@@ -183,7 +183,7 @@ export default function VendorWalletPage() {
     const loadVendor = async () => {
       const { data: { user } } = await supabase.current.auth.getUser()
       if (!user) return
-      const { data: v } = await supabase.current.from("vendors").select("name, status").eq("owner_id", user.id).single()
+      const { data: v } = await supabase.current.from("vendors").select("name, status").eq("user_id", user.id).single()
       if (v) { setVendorName(v.name); setVendorStatus(v.status) }
     }
     void loadVendor()

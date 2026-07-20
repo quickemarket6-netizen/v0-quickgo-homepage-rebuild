@@ -243,11 +243,11 @@ export async function verifyVendorOwnership(vendorId: string): Promise<{
 
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("owner_id")
+    .select("user_id")
     .eq("id", vendorId)
     .single()
 
-  if (!vendor || vendor.owner_id !== user.id) {
+  if (!vendor || vendor.user_id !== user.id) {
     return { valid: false, error: "Accès refusé — vous n'êtes pas propriétaire de ce vendeur" }
   }
 
