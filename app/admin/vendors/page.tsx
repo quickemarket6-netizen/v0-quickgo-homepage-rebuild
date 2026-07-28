@@ -80,12 +80,24 @@ export default function AdminVendorsPage() {
   }
 
   const patchVendor = async (id: string, updates: Record<string, unknown>) => {
-    const res = await fetch("/api/admin/vendors", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...updates }),
-    })
-    if (res.ok) fetchVendors(search, statusFilter, page)
+    try {
+      const res = await fetch("/api/admin/vendors", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...updates }),
+      })
+      if (!res.ok) {
+        // Sans ça, un refus (RLS, session expirée…) ne laissait aucune trace :
+        // le bouton semblait fonctionner mais rien ne changeait.
+        const data = await res.json().catch(() => ({}))
+        setError(data.error ?? `Échec de la mise à jour (erreur ${res.status})`)
+        return
+      }
+      setError(null)
+      fetchVendors(search, statusFilter, page)
+    } catch {
+      setError("Erreur réseau pendant la mise à jour")
+    }
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
@@ -164,7 +176,7 @@ export default function AdminVendorsPage() {
               className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/30 mb-6">
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-semibold">Échec du chargement des vendeurs</p>
+                <p className="text-white text-sm font-semibold">Une erreur est survenue</p>
                 <p className="text-muted-foreground text-xs mt-0.5">{error}</p>
               </div>
               <Button onClick={() => fetchVendors(search, statusFilter, page)} size="sm" variant="outline"

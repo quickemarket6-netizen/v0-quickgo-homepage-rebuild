@@ -1,13 +1,22 @@
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin, getClientIP } from "@/lib/payments/security"
 import { logAdminAction } from "@/lib/security/log-admin-action"
+
+// Le RLS de `vendors` n'expose que les boutiques actives et ne laisse chacun
+// modifier que la sienne — aucune policy admin. Via le client de session, ce
+// panneau ne verrait donc jamais une boutique "inactive" (celle qui attend
+// justement une approbation) et le PATCH d'approbation ne toucherait aucune
+// ligne, en silence. On opère au service_role, l'accès étant déjà gardé par
+// verifyAdmin() (contrôle serveur sur profiles.role).
+const SERVICE_KEY_MISSING = "Configuration serveur incomplète : SUPABASE_SERVICE_ROLE_KEY absente"
 
 export async function GET(req: NextRequest) {
   const admin = await verifyAdmin()
   if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
+  if (!supabase) return NextResponse.json({ error: SERVICE_KEY_MISSING }, { status: 500 })
   const { searchParams } = new URL(req.url)
   const status = searchParams.get("status") ?? "all"
   const search = searchParams.get("search") ?? ""
@@ -46,17 +55,45 @@ export async function GET(req: NextRequest) {
     orderMap[o.vendor_id] = (orderMap[o.vendor_id] ?? 0) + 1
   }
 
-  const vendors = (data ?? []).map((v) => ({
-    ...v,
-    total_orders: orderMap[v.id] ?? 0,
-  }))
-
-  const summary = {
-    active: (data ?? []).filter((v) => v.status === "active").length,
-    inactive: (data ?? []).filter((v) => v.status === "inactive").length,
-    suspended: (data ?? []).filter((v) => v.status === "suspended").length,
-    verified: (data ?? []).filter((v) => v.is_verified).length,
+  // Les ressources embarquées de PostgREST arrivent en objet (relation
+  // many-to-one) ou en tableau selon que la contrainte unique est détectée. On
+  // aplatit systématiquement : le client attend `category` en simple chaîne, et
+  // rendre un objet directement en JSX fait planter React ("Objects are not
+  // valid as a React child").
+  function one<T>(rel: T | T[] | null | undefined): T | null {
+    return Array.isArray(rel) ? (rel[0] ?? null) : (rel ?? null)
   }
+
+  const vendors = (data ?? []).map((v) => {
+    const category = one(v.category as { name?: string } | { name?: string }[] | null)
+    return {
+      ...v,
+      category:     category?.name ?? null,
+      owner:        one(v.owner),
+      wallet:       one(v.wallet),
+      total_orders: orderMap[v.id] ?? 0,
+    }
+  })
+
+  // Les compteurs portent sur toute la table, pas sur la page courante : sinon
+  // un vendeur en attente en page 2 (ou masqué par le filtre de statut actif)
+  // ne serait pas compté, et la carte "En attente" afficherait 0 alors qu'une
+  // demande attend une approbation.
+  const countBy = async (column: "status" | "is_verified", value: string | boolean) => {
+    const { count: c } = await supabase
+      .from("vendors")
+      .select("id", { count: "exact", head: true })
+      .eq(column, value)
+    return c ?? 0
+  }
+
+  const [active, inactive, suspended, verified] = await Promise.all([
+    countBy("status", "active"),
+    countBy("status", "inactive"),
+    countBy("status", "suspended"),
+    countBy("is_verified", true),
+  ])
+  const summary = { active, inactive, suspended, verified }
 
   return NextResponse.json({ vendors, total: count ?? 0, summary })
 }
@@ -65,7 +102,9 @@ export async function PATCH(req: NextRequest) {
   const admin = await verifyAdmin()
   if (!admin.valid) return NextResponse.json({ error: admin.error }, { status: 403 })
 
-  const supabase = await createClient()
+  const supabase = createAdminClient()
+  if (!supabase) return NextResponse.json({ error: SERVICE_KEY_MISSING }, { status: 500 })
+
   const { id, status, is_verified, commission_rate } = await req.json()
   if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 })
 
