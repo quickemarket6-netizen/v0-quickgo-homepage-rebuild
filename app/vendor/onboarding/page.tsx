@@ -39,6 +39,7 @@ const categories = [
 export default function VendorOnboardingPage() {
   const [step, setStep] = useState(1)
   const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [formData, setFormData] = useState({
     // Personal Info
     firstName: "",
@@ -109,7 +110,7 @@ export default function VendorOnboardingPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Erreur lors de la soumission")
-      window.location.href = "/vendor/dashboard"
+      setSubmitted(true)
     } catch (err) {
       alert(err instanceof Error ? err.message : "Erreur inattendue")
     } finally {
@@ -130,6 +131,42 @@ export default function VendorOnboardingPage() {
       default:
         return false
     }
+  }
+
+  if (submitted) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full text-center space-y-6"
+        >
+          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <CheckCircle2 className="w-10 h-10 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Demande soumise !</h1>
+            <p className="text-muted-foreground">
+              Votre boutique <span className="font-semibold text-foreground">{formData.businessName}</span> a bien été enregistrée.
+              Notre équipe va vérifier vos informations et vous notifier par email sous <strong>24 à 48h ouvrables</strong>.
+            </p>
+          </div>
+          <div className="bg-muted/50 rounded-xl p-4 text-left space-y-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="w-4 h-4 shrink-0" />
+              <span>Délai de vérification : 24 à 48h ouvrables</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Shield className="w-4 h-4 shrink-0" />
+              <span>Vous recevrez un email à l'activation de votre compte</span>
+            </div>
+          </div>
+          <Link href="/" className="block">
+            <Button className="w-full">Retour à l'accueil</Button>
+          </Link>
+        </motion.div>
+      </main>
+    )
   }
 
   return (
