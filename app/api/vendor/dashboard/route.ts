@@ -10,13 +10,25 @@ export async function GET(req: NextRequest) {
   // categories) : la demander faisait échouer toute la requête, donc 403
   // "Vendeur introuvable" et rebond sans fin vers l'onboarding. On passe par la
   // ressource embarquée, aplatie ensuite en chaîne comme l'attend le client.
+  // maybeSingle() (et non single()) pour distinguer deux situations que le code
+  // précédent confondait en un seul 403 muet :
+  //   - aucune boutique  -> 404, la page renvoie vers l'onboarding (légitime)
+  //   - requête en échec -> 500 avec le motif réel (colonne absente, RLS…)
+  // Les confondre transformait n'importe quelle erreur SQL en boucle de
+  // redirection silencieuse, impossible à diagnostiquer depuis le navigateur.
   const { data: vendorRow, error: vErr } = await supabase
     .from("vendors")
     .select("id, name, description, logo_url, is_verified, rating, commission_rate, status, category:categories(name)")
     .eq("user_id", user.id)
-    .single()
+    .maybeSingle()
 
-  if (vErr || !vendorRow) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
+  if (vErr) {
+    return NextResponse.json(
+      { error: `Lecture de la boutique impossible : ${vErr.message}`, code: vErr.code },
+      { status: 500 },
+    )
+  }
+  if (!vendorRow) return NextResponse.json({ error: "Aucune boutique pour ce compte" }, { status: 404 })
 
   const categoryRel = vendorRow.category as { name?: string } | { name?: string }[] | null
   const vendor = {

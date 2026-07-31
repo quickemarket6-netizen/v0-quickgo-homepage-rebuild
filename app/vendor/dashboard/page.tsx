@@ -240,6 +240,7 @@ export default function VendorDashboardPage() {
   const router = useRouter()
   const [data, setData]       = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [period, setPeriod]   = useState(7)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ Produits: false, Portefeuille: false })
   const searchRef = useRef<HTMLInputElement>(null)
@@ -249,11 +250,20 @@ export default function VendorDashboardPage() {
     setLoading(true)
     try {
       const res = await fetch(`/api/vendor/dashboard?period=${p}`)
-      // Rôle "vendor" posé mais aucune ligne `vendors` (onboarding jamais
-      // complété) : plutôt que des erreurs "Vendeur introuvable" partout,
-      // on renvoie directement vers l'assistant d'inscription.
-      if (res.status === 403) { router.replace("/vendor/onboarding"); return }
-      if (res.ok) setData(await res.json())
+      // Seul un 404 (aucune ligne `vendors`) justifie de renvoyer vers
+      // l'assistant d'inscription. Rediriger sur toute erreur, comme avant,
+      // transformait la moindre panne serveur en boucle onboarding ↔ dashboard
+      // sans jamais afficher le motif.
+      if (res.status === 404) { router.replace("/vendor/onboarding"); return }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setLoadError(body.error ?? `Erreur ${res.status}`)
+        return
+      }
+      setLoadError(null)
+      setData(await res.json())
+    } catch {
+      setLoadError("Impossible de joindre le serveur")
     } finally { setLoading(false) }
   }, [router])
 
@@ -341,6 +351,30 @@ export default function VendorDashboardPage() {
   }
 
   const today = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+
+  // Le motif d'échec est affiché tel quel : sans ça, une erreur serveur laissait
+  // un écran vide ou une redirection inexpliquée.
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center space-y-5">
+          <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
+            <AlertTriangle className="w-8 h-8 text-red-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white mb-2">Espace vendeur indisponible</h1>
+            <p className="text-sm text-white/50 break-words">{loadError}</p>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <Button onClick={() => fetchDashboard(period)} className="gap-2">
+              <RefreshCw className="w-4 h-4" /> Réessayer
+            </Button>
+            <Link href="/"><Button variant="outline">Accueil</Button></Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex">
