@@ -6,13 +6,23 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
-  const { data: vendor, error: vErr } = await supabase
+  // `category` n'est pas une colonne de vendors (c'est category_id, une FK vers
+  // categories) : la demander faisait échouer toute la requête, donc 403
+  // "Vendeur introuvable" et rebond sans fin vers l'onboarding. On passe par la
+  // ressource embarquée, aplatie ensuite en chaîne comme l'attend le client.
+  const { data: vendorRow, error: vErr } = await supabase
     .from("vendors")
-    .select("id, name, description, logo_url, is_verified, rating, commission_rate, status, category")
+    .select("id, name, description, logo_url, is_verified, rating, commission_rate, status, category:categories(name)")
     .eq("user_id", user.id)
     .single()
 
-  if (vErr || !vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
+  if (vErr || !vendorRow) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
+
+  const categoryRel = vendorRow.category as { name?: string } | { name?: string }[] | null
+  const vendor = {
+    ...vendorRow,
+    category: (Array.isArray(categoryRel) ? categoryRel[0] : categoryRel)?.name ?? null,
+  }
   const vendorId = vendor.id
 
   const period = Math.min(90, Math.max(7, parseInt(req.nextUrl.searchParams.get("period") ?? "7")))

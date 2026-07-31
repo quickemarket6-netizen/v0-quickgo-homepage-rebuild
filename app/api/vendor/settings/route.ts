@@ -6,21 +6,28 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 })
 
+  // `category` n'est pas une colonne de vendors (c'est category_id, une FK) :
+  // la demander faisait échouer la requête entière, d'où un 403 trompeur.
   const { data: vendor } = await supabase
     .from("vendors")
-    .select("id, name, description, logo_url, cover_url, category, address, city, phone, delivery_radius, delivery_fee, delivery_time_min, is_open, notification_prefs")
+    .select("id, name, description, logo_url, cover_url, category:categories(name), address, city, phone, delivery_radius, delivery_fee, delivery_time_min, is_open, notification_prefs")
     .eq("user_id", user.id).single()
   if (!vendor) return NextResponse.json({ error: "Vendeur introuvable" }, { status: 403 })
 
   const { data: profile } = await supabase
     .from("profiles").select("full_name, phone, avatar_url").eq("id", user.id).single()
 
-  const v = vendor as {
+  const raw = vendor as unknown as {
     id: string; name: string; description: string | null; logo_url: string | null
-    cover_url: string | null; category: string | null; address: string | null
+    cover_url: string | null; category: { name?: string } | { name?: string }[] | null
+    address: string | null
     city: string | null; phone: string | null; delivery_radius: number | null
     delivery_fee: number | null; delivery_time_min: number | null
     is_open: boolean | null; notification_prefs: Record<string, boolean> | null
+  }
+  const v = {
+    ...raw,
+    category: (Array.isArray(raw.category) ? raw.category[0] : raw.category)?.name ?? null,
   }
   const p = profile as { full_name: string | null; phone: string | null; avatar_url: string | null } | null
 
@@ -73,7 +80,19 @@ export async function PATCH(req: NextRequest) {
     const update: Record<string, unknown> = {}
     if (body.name             !== undefined) update.name             = (body.name as string).trim()
     if (body.description      !== undefined) update.description      = (body.description as string).trim()
-    if (body.category         !== undefined) update.category         = body.category
+    // Idem à l'écriture : on résout le libellé vers category_id (cf.
+    // app/api/vendor/onboarding). Un libellé qui ne correspond à rien remet la
+    // catégorie à null plutôt que d'inventer une association.
+    if (body.category !== undefined) {
+      const label = String(body.category ?? "").trim()
+      if (!label) {
+        update.category_id = null
+      } else {
+        const { data: cat } = await supabase
+          .from("categories").select("id").ilike("name", `%${label}%`).limit(1).maybeSingle()
+        update.category_id = cat?.id ?? null
+      }
+    }
     if (body.address          !== undefined) update.address          = (body.address as string).trim()
     if (body.city             !== undefined) update.city             = (body.city as string).trim()
     if (body.delivery_radius  !== undefined) update.delivery_radius  = body.delivery_radius
