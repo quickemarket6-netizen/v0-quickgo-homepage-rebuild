@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin"
+import { escapeFilter } from "@/lib/utils"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin, getClientIP } from "@/lib/payments/security"
 import { logAdminAction } from "@/lib/security/log-admin-action"
@@ -37,7 +38,10 @@ export async function GET(req: NextRequest) {
     .range(offset, offset + limit - 1)
 
   if (status !== "all") query = query.eq("status", status)
-  if (search) query = query.or(`name.ilike.%${search}%,city.ilike.%${search}%`)
+  if (search) {
+    const s = escapeFilter(search)
+    query = query.or(`name.ilike.%${s}%,city.ilike.%${s}%`)
+  }
 
   const { data, error, count } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

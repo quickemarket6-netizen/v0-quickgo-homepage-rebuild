@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin, getClientIP } from "@/lib/payments/security"
 import { logAdminAction } from "@/lib/security/log-admin-action"
+import { escapeFilter } from "@/lib/utils"
 
 export async function GET(req: NextRequest) {
   const admin = await verifyAdmin()
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   if (status !== "all") query = query.eq("status", status)
   if (search) {
-    query = query.or(`order_number.ilike.%${search}%`)
+    query = query.or(`order_number.ilike.%${escapeFilter(search)}%`)
   }
 
   const { data, error, count } = await query

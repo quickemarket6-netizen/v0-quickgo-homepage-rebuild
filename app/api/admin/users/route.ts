@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAdmin, getClientIP } from "@/lib/payments/security"
 import { logAdminAction } from "@/lib/security/log-admin-action"
+import { escapeFilter } from "@/lib/utils"
 
 export async function GET(req: NextRequest) {
   const admin = await verifyAdmin()
@@ -23,7 +24,10 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1)
 
-  if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
+  if (search) {
+    const s = escapeFilter(search)
+    query = query.or(`full_name.ilike.%${s}%,email.ilike.%${s}%,phone.ilike.%${s}%`)
+  }
 
   const { data: profiles, error, count } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

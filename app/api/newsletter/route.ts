@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
+import { checkRateLimit } from "@/lib/payments/security"
+import { extractIP } from "@/lib/security/threat-logger"
 import { NextResponse } from "next/server"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -7,6 +9,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 // Passe par la RPC subscribe_newsletter (upsert idempotent, ne révèle jamais
 // si l'email était déjà inscrit).
 export async function POST(request: Request) {
+  // Endpoint anonyme qui écrit en base : sans limite, il permet d'inonder la
+  // table d'inscriptions. Même cadrage que /api/auth/login-event.
+  const ip = extractIP(request.headers)
+  const rl = await checkRateLimit(`newsletter:${ip}`, { maxRequests: 5, windowMs: 10 * 60 * 1000 })
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Trop de tentatives, réessayez plus tard." }, { status: 429 })
+  }
+
   const body = await request.json().catch(() => null)
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : ""
   const source = typeof body?.source === "string" ? body.source.slice(0, 40) : "footer"

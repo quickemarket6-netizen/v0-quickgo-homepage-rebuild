@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -784,7 +785,7 @@ export default function VendorDashboardPage() {
                       <div className="w-10 h-10 rounded-xl shrink-0 overflow-hidden"
                         style={{ background: `${DONUT_COLORS[i % DONUT_COLORS.length]}22`, border: `1px solid ${DONUT_COLORS[i % DONUT_COLORS.length]}33` }}>
                         {p.image_url
-                          ? <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                          ? <Image src={p.image_url} alt={p.name} width={40} height={40} className="w-full h-full object-cover" />
                           : <div className="w-full h-full flex items-center justify-center">
                               <Package className="w-4 h-4" style={{ color: DONUT_COLORS[i % DONUT_COLORS.length] }} />
                             </div>}
@@ -943,7 +944,7 @@ export default function VendorDashboardPage() {
                     <div className="w-9 h-9 rounded-xl overflow-hidden shrink-0"
                       style={{ background: isCritical ? "#ef444420" : "#f9741620", border: `1px solid ${isCritical ? "#ef444440" : "#f9741640"}` }}>
                       {p.images?.[0]
-                        ? <img src={p.images[0]} alt={p.name} className="w-full h-full object-cover" />
+                        ? <Image src={p.images[0]} alt={p.name} width={36} height={36} className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center">
                             <Package className="w-4 h-4" style={{ color: isCritical ? "#ef4444" : "#f97316" }} />
                           </div>}

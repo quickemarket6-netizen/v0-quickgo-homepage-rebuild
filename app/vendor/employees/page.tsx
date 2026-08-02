@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Users2, UserCog, Crown, Briefcase, TrendingUp, Headphones, Truck, Calculator,
@@ -92,7 +93,7 @@ function MemberAvatar({ member, size = 40 }: { member: Member; size?: number }) 
   const cfg = ROLE_CFG[member.role]
   if (member.avatar_url) {
     return (
-      <img src={member.avatar_url} alt={member.name}
+      <Image src={member.avatar_url} alt={member.name} width={size} height={size}
         style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover" }} />
     )
   }

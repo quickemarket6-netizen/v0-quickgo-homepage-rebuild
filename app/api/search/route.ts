@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { escapeFilter } from "@/lib/utils"
 import { NextResponse } from "next/server"
 
 // GET /api/search?q= — recherche globale publique : produits + boutiques.
@@ -11,10 +12,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ products: [], vendors: [] })
   }
 
-  // Échappe les jokers ILIKE et retire les caractères réservés de la syntaxe
-  // .or() de PostgREST (virgule, parenthèses) qui casseraient le filtre
-  const escaped = q.replace(/[,()]/g, " ").replace(/[%_\\]/g, (c) => `\\${c}`).trim()
-  const pattern = `%${escaped}%`
+  const pattern = `%${escapeFilter(q)}%`
 
   const supabase = await createClient()
 
