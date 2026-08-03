@@ -1,5 +1,5 @@
 // QuickGo Service Worker — offline shell + notifications push
-const CACHE = "quickgo-v2"
+const CACHE = "quickgo-v3"
 const OFFLINE_URL = "/"
 
 const PRECACHE = [
@@ -63,6 +63,27 @@ self.addEventListener("fetch", (event) => {
   // Skip cross-origin, API, and Supabase requests
   if (url.origin !== location.origin) return
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/")) return
+
+  // Le document de navigation référence des chunks JS/CSS dont le nom
+  // (hash de build) change à chaque déploiement. Le servir depuis le cache
+  // ferait charger des chunks qui n'existent plus sur le serveur (404) : il
+  // lui faut toujours réseau-d'abord, avec le cache seulement en secours hors
+  // ligne. Les autres entrées (assets statiques versionnés) restent
+  // cache-first.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200 && response.type === "basic") {
+            const clone = response.clone()
+            caches.open(CACHE).then((cache) => cache.put(event.request, clone))
+          }
+          return response
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match(OFFLINE_URL)))
+    )
+    return
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
