@@ -5,12 +5,25 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { spring } from "@/lib/motion"
 import {
-  Wallet, TrendingUp, ArrowDownLeft, ArrowUpRight, Clock,
-  CheckCircle2, XCircle, AlertTriangle, RefreshCw, Plus,
-  ChevronRight, CreditCard, Banknote, Smartphone, Lock,
-  Shield, Bell, Package, BarChart3, Store, Settings,
-  LayoutDashboard, ShoppingBag, Users, UserCog, Activity, Info,
-  X, Eye, Download,
+  Wallet,
+  TrendingUp,
+  ArrowUpRight,
+  Clock,
+  CheckCircle2,
+  RefreshCw,
+  ChevronRight,
+  CreditCard,
+  Lock,
+  Bell,
+  Package,
+  BarChart3,
+  Settings,
+  LayoutDashboard,
+  ShoppingBag,
+  Users,
+  Activity,
+  Info,
+  X,
 } from "lucide-react"
 import { useT } from "@/lib/i18n/context"
 import { Button } from "@/components/ui/button"

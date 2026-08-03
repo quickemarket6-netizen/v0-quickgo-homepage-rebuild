@@ -4,10 +4,24 @@ import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  ArrowLeft, Plus, Trash2, Star, CheckCircle2, AlertTriangle,
-  RefreshCw, CreditCard, Smartphone, Banknote, Shield,
-  X, Phone, User, Wallet, LayoutDashboard, Package,
-  ShoppingBag, Users, UserCog, Settings,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Star,
+  CheckCircle2,
+  AlertTriangle,
+  RefreshCw,
+  CreditCard,
+  Shield,
+  X,
+  Phone,
+  User,
+  Wallet,
+  LayoutDashboard,
+  Package,
+  ShoppingBag,
+  Users,
+  Settings,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { VendorSidebar } from "@/components/vendor/VendorSidebar"

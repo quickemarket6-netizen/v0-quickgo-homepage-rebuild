@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   MapPin,
   Clock,
-  DollarSign,
   Zap,
   Filter,
   Search,
@@ -20,7 +19,6 @@ import {
   Building2,
   TrendingUp,
   Navigation,
-  Users,
   AlertCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"

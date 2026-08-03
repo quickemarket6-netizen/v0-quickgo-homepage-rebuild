@@ -3,25 +3,22 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import Image from "next/image"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { 
-  Camera, 
-  Palette, 
-  TrendingUp, 
-  Users, 
-  Star, 
-  CheckCircle, 
+import {
+  Camera,
+  Palette,
+  TrendingUp,
+  Users,
+  Star,
+  CheckCircle,
   ArrowRight,
   MessageCircle,
   Sparkles,
-  BarChart3,
   Megaphone,
-  PenTool,
   Video,
-  Globe
+  Globe,
 } from "lucide-react"
 
 const services = [

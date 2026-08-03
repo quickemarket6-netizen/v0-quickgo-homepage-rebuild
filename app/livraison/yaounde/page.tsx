@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { MapPin, Clock, Truck, Star, Phone, ArrowRight, CheckCircle } from 'lucide-react'
+import { MapPin, Clock, Truck, Phone, ArrowRight, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Navbar } from '@/components/navbar/navbar'
 import { Footer } from '@/components/footer/footer'

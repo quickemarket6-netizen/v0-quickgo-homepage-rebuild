@@ -2,21 +2,12 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import Image from "next/image"
-import { 
-  Users, 
-  DollarSign, 
-  Share2, 
-  Gift, 
-  TrendingUp, 
-  CheckCircle2,
+import {
+  Users,
+  DollarSign,
+  Gift,
   ArrowRight,
-  Smartphone,
-  Globe,
   Zap,
-  Star,
-  Copy,
-  ExternalLink
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar/navbar"

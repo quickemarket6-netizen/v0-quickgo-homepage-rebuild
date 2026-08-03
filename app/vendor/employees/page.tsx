@@ -1,14 +1,42 @@
 "use client"
 
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useEffect, useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Users2, UserCog, Crown, Briefcase, TrendingUp, Headphones, Truck, Calculator,
-  UserPlus, MoreVertical, Pencil, Trash2, CheckCircle2, XCircle, Clock,
-  ChevronDown, LayoutDashboard, Package, ShoppingCart, Wallet, Star,
-  MessageSquare, Bell, BarChart3, Users, Tag, Ticket, Truck as TruckIcon,
-  HelpCircle, Settings, CreditCard, X, Check, Shield,
+  Users2,
+  UserCog,
+  Crown,
+  Briefcase,
+  TrendingUp,
+  Headphones,
+  Truck,
+  Calculator,
+  UserPlus,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Wallet,
+  Star,
+  MessageSquare,
+  Bell,
+  BarChart3,
+  Users,
+  Tag,
+  Ticket,
+  Truck as TruckIcon,
+  HelpCircle,
+  Settings,
+  CreditCard,
+  X,
+  Check,
+  Shield,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 

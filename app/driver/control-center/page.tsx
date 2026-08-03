@@ -2,27 +2,20 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
   ArrowLeft,
   MapPin,
-  Navigation,
   Clock,
   Users,
   Package,
   TrendingUp,
-  Zap,
   Activity,
   Radio,
-  Eye,
-  BarChart3,
   Layers,
   RefreshCw,
   Filter,
   ChevronRight,
-  AlertTriangle,
-  CheckCircle,
-  Circle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 

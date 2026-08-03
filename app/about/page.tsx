@@ -1,22 +1,18 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Image from "next/image"
 import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { 
-  Target, 
-  Users, 
-  Zap, 
-  Globe, 
+import {
+  Target,
+  Zap,
+  Globe,
   Award,
-  TrendingUp,
   Heart,
   Truck,
-  MapPin,
-  ArrowRight
+  ArrowRight,
 } from "lucide-react"
 
 const stats = [

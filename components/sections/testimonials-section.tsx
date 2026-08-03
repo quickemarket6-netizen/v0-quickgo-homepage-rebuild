@@ -3,7 +3,6 @@
 import { motion, useInView } from "framer-motion"
 import { useT } from "@/lib/i18n/context"
 import { useRef, useState, useEffect } from "react"
-import Image from "next/image"
 import { Star, Quote, ChevronLeft, ChevronRight, Verified, MapPin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 

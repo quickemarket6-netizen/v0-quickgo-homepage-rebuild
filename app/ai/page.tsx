@@ -1,8 +1,6 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Image from "next/image"
-import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -14,7 +12,6 @@ import {
   ShoppingCart,
   MapPin,
   HelpCircle,
-  Zap,
   ArrowRight,
   Send,
   Mic,

@@ -7,7 +7,7 @@ import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle, Loader2, AlertCircle } from "lucide-react"
+import { Lock, Eye, EyeOff, CheckCircle, Loader2, AlertCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 export default function ResetPasswordPage() {

@@ -4,17 +4,23 @@ import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Send, Bot, User, Sparkles, ChevronDown, Loader2, 
-  MessageSquare, Zap, Brain, Settings, RefreshCw,
-  Copy, Check, ThumbsUp, ThumbsDown, Volume2, VolumeX,
-  Trash2, Download, Share2, Mic, MicOff, Plus
+import {
+  Send,
+  Bot,
+  User,
+  Sparkles,
+  ChevronDown,
+  Loader2,
+  Copy,
+  Check,
+  ThumbsUp,
+  ThumbsDown,
+  Plus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
   DropdownMenu, 
   DropdownMenuContent, 

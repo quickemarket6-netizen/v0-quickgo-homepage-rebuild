@@ -5,10 +5,25 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import {
-  ArrowLeft, Package, Clock, CheckCircle2, Truck, XCircle,
-  Phone, MapPin, RefreshCw, AlertCircle, ChevronRight,
-  LayoutDashboard, ShoppingBag, Users, Wallet, Settings,
-  BarChart3, PrinterIcon, User, CreditCard,
+  ArrowLeft,
+  Package,
+  Clock,
+  CheckCircle2,
+  Truck,
+  XCircle,
+  Phone,
+  MapPin,
+  RefreshCw,
+  AlertCircle,
+  LayoutDashboard,
+  ShoppingBag,
+  Users,
+  Wallet,
+  Settings,
+  BarChart3,
+  PrinterIcon,
+  User,
+  CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { VendorSidebar } from "@/components/vendor/VendorSidebar"

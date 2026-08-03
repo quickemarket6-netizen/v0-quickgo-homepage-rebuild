@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Home, ArrowLeft, Search, HelpCircle } from "lucide-react"
+import { Home, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function NotFound() {

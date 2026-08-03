@@ -5,11 +5,32 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import {
-  Home, Compass, Package, MapPin, Heart, Wallet, MessageSquare,
-  Tag, HelpCircle, Settings, Bell, ShoppingCart, ChevronRight,
-  ChevronLeft, Star, Plus, Bike, Car, Zap, UtensilsCrossed,
-  ShoppingBag, Phone as PhoneIcon, Crown, Truck,
-  History, TicketPercent, ArrowRight, X,
+  Home,
+  Compass,
+  Package,
+  MapPin,
+  Heart,
+  Wallet,
+  MessageSquare,
+  Tag,
+  HelpCircle,
+  Settings,
+  Bell,
+  ShoppingCart,
+  ChevronRight,
+  ChevronLeft,
+  Star,
+  Plus,
+  Bike,
+  Car,
+  Zap,
+  UtensilsCrossed,
+  ShoppingBag,
+  Phone as PhoneIcon,
+  Crown,
+  History,
+  TicketPercent,
+  ArrowRight,
 } from "lucide-react"
 import { GlobalSearch } from "@/components/marketplace/GlobalSearch"
 import { EmptyState } from "@/components/marketplace/EmptyState"

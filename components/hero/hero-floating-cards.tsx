@@ -1,15 +1,11 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { 
-  Zap, 
-  Shield, 
-  Clock, 
-  Headphones, 
-  MapPin, 
-  Package,
-  CreditCard,
-  Bot
+import {
+  Zap,
+  Shield,
+  Headphones,
+  MapPin,
 } from "lucide-react"
 
 const floatingCards = [

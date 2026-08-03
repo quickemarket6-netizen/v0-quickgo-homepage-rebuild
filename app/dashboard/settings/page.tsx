@@ -6,8 +6,16 @@ import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import {
-  ArrowLeft, User, Bell, Shield, Smartphone, Globe, LogOut,
-  ChevronRight, Camera, Save, Loader2, CheckCircle,
+  ArrowLeft,
+  User,
+  Bell,
+  Shield,
+  Globe,
+  LogOut,
+  ChevronRight,
+  Camera,
+  Save,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

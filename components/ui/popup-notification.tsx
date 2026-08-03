@@ -2,19 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  X, 
-  Bell, 
-  Package, 
-  Truck, 
-  CreditCard, 
-  Gift, 
+import {
+  X,
+  Package,
+  Truck,
+  Gift,
   AlertTriangle,
   CheckCircle,
   Info,
   Phone,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'

@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { verifyPayment, validateWebhookSignature } from "@/lib/payments/cinetpay"
-import { creditVendorPending, calculateCommission } from "@/lib/payments/wallet-engine"
+import { creditVendorPending } from "@/lib/payments/wallet-engine"
 
 // CinetPay sends POST with form data or JSON
 export async function POST(req: NextRequest) {

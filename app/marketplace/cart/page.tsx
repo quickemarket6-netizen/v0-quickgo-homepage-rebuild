@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { useCart, cartItemProductId } from "@/lib/store/cart"
 import type { CartItem } from "@/lib/store/cart"
 import {
-  ShoppingCart,
   Plus,
   Minus,
   Trash2,

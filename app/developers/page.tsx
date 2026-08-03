@@ -2,12 +2,10 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { 
-  Code2, 
-  Webhook, 
-  Key, 
-  FileJson, 
-  Terminal, 
+import {
+  Code2,
+  Webhook,
+  Key,
   Zap,
   Shield,
   Globe,
@@ -15,8 +13,7 @@ import {
   Copy,
   CheckCircle2,
   Book,
-  MessageSquare,
-  Github
+  Github,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Navbar } from "@/components/navbar/navbar"

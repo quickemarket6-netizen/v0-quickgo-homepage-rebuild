@@ -1,21 +1,19 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
+import {
   Briefcase,
   MapPin,
-  Clock,
   Users,
   Zap,
   Heart,
   Gift,
   ArrowRight,
-  Search
+  Search,
 } from "lucide-react"
 
 const benefits = [

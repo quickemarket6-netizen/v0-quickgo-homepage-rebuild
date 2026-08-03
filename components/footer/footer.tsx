@@ -3,23 +3,21 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
-import { 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin, 
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
   Youtube,
   MapPin,
   Phone,
   Mail,
-  Clock,
   Shield,
   Zap,
   Headphones,
   Star,
-  Package
+  Package,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { InstallAppButton } from "@/components/pwa/InstallAppButton"
 import { NewsletterForm } from "@/components/footer/NewsletterForm"
 import { useT } from "@/lib/i18n/context"

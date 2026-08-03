@@ -12,9 +12,22 @@ import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/store/cart"
 import { safeJsonLd } from "@/lib/seo/safe-json-ld"
 import {
-  Star, Heart, ShoppingCart, Plus, Minus, ChevronLeft,
-  Truck, Shield, RotateCcw, Check, Store, Clock,
-  Zap, MapPin, Phone, ArrowRight, Share2,
+  Star,
+  Heart,
+  ShoppingCart,
+  Plus,
+  Minus,
+  Truck,
+  Shield,
+  RotateCcw,
+  Check,
+  Store,
+  Clock,
+  Zap,
+  MapPin,
+  Phone,
+  ArrowRight,
+  Share2,
 } from "lucide-react"
 
 interface ProductVariant {

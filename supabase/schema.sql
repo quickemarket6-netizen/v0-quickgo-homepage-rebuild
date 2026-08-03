@@ -1,3 +1,19 @@
+-- ⚠️ FICHIER PÉRIMÉ — NE PAS REJOUER SUR LA BASE DE PRODUCTION ⚠️
+--
+-- Ce schéma décrit un état antérieur de la base. Les colonnes suivantes ont
+-- changé de nom depuis, et les policies ci-dessous les référencent encore :
+--
+--   vendors.owner_id   →  vendors.user_id
+--   vendors.is_active  →  vendors.status  ('active' | 'inactive' | 'suspended')
+--   vendors.category   →  vendors.category_id  (FK vers categories)
+--
+-- Rejouer ce fichier recrée des policies RLS mortes : le vendeur ne peut plus
+-- lire sa propre boutique ni créer de produit, et l'admin ne voit plus les
+-- boutiques en attente d'approbation. Les correctifs sont dans
+-- migrations/fix_vendors_rls.sql et migrations/fix_owner_id_rls.sql.
+--
+-- Pour régénérer une référence fidèle :  supabase db dump --schema public
+--
 -- QuickGo Supabase Database Schema
 -- Run this in your Supabase SQL editor to set up all tables
 
