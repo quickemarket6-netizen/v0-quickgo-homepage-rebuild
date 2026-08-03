@@ -35,21 +35,36 @@ CREATE POLICY "variants_vendor_all" ON public.product_variants
     EXISTS (
       SELECT 1 FROM public.products p
       JOIN public.vendors v ON v.id = p.vendor_id
-      WHERE p.id = product_id AND v.owner_id = auth.uid()
+      WHERE p.id = product_id AND v.user_id = auth.uid()
     )
   );
 
--- Variante choisie, tracée dans le panier et les lignes de commande
-ALTER TABLE public.cart_items
-  ADD COLUMN IF NOT EXISTS variant_id UUID REFERENCES public.product_variants(id) ON DELETE SET NULL;
--- Un même produit peut être au panier en plusieurs variantes
-ALTER TABLE public.cart_items DROP CONSTRAINT IF EXISTS cart_items_user_id_product_id_key;
-CREATE UNIQUE INDEX IF NOT EXISTS cart_items_user_product_variant_idx
-  ON public.cart_items (user_id, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid));
+-- Variante choisie, tracée dans le panier et les lignes de commande.
+-- Conditionné à l'existence des tables : toutes les migrations du dépôt n'ont
+-- pas été appliquées en production, et une table absente ferait échouer le
+-- script entier (l'éditeur SQL Supabase exécute tout dans une transaction).
+DO $do$
+BEGIN
+  IF to_regclass('public.cart_items') IS NULL THEN
+    RAISE NOTICE 'cart_items absente — variantes au panier ignorées';
+  ELSE
+    EXECUTE 'ALTER TABLE public.cart_items
+               ADD COLUMN IF NOT EXISTS variant_id UUID REFERENCES public.product_variants(id) ON DELETE SET NULL';
+    -- Un même produit peut être au panier en plusieurs variantes
+    EXECUTE 'ALTER TABLE public.cart_items DROP CONSTRAINT IF EXISTS cart_items_user_id_product_id_key';
+    EXECUTE $p$CREATE UNIQUE INDEX IF NOT EXISTS cart_items_user_product_variant_idx
+                 ON public.cart_items (user_id, product_id, COALESCE(variant_id, '00000000-0000-0000-0000-000000000000'::uuid))$p$;
+  END IF;
 
-ALTER TABLE public.order_items
-  ADD COLUMN IF NOT EXISTS variant_id    UUID REFERENCES public.product_variants(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS variant_label TEXT;
+  IF to_regclass('public.order_items') IS NULL THEN
+    RAISE NOTICE 'order_items absente — variantes en commande ignorées';
+  ELSE
+    EXECUTE 'ALTER TABLE public.order_items
+               ADD COLUMN IF NOT EXISTS variant_id    UUID REFERENCES public.product_variants(id) ON DELETE SET NULL,
+               ADD COLUMN IF NOT EXISTS variant_label TEXT';
+  END IF;
+END
+$do$;
 
 -- ── VUES PRODUIT (statistiques de conversion) ────────────────
 -- Une ligne par affichage de fiche produit ; insertion anonyme
@@ -75,6 +90,6 @@ CREATE POLICY "views_insert_all" ON public.product_views
 DROP POLICY IF EXISTS "views_vendor_select" ON public.product_views;
 CREATE POLICY "views_vendor_select" ON public.product_views
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.owner_id = auth.uid())
+    EXISTS (SELECT 1 FROM public.vendors v WHERE v.id = vendor_id AND v.user_id = auth.uid())
     OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('admin', 'super_admin'))
   );

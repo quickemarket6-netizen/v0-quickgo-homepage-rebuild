@@ -20,7 +20,7 @@ CREATE POLICY "order_items_vendor_update" ON public.order_items
       JOIN public.vendors v ON v.id = o.vendor_id
       WHERE o.id = order_id
         AND o.status IN ('pending', 'confirmed', 'preparing')
-        AND v.owner_id = auth.uid()
+        AND v.user_id = auth.uid()
     )
   );
 
@@ -32,6 +32,6 @@ CREATE POLICY "order_items_vendor_delete" ON public.order_items
       JOIN public.vendors v ON v.id = o.vendor_id
       WHERE o.id = order_id
         AND o.status IN ('pending', 'confirmed', 'preparing')
-        AND v.owner_id = auth.uid()
+        AND v.user_id = auth.uid()
     )
   );
