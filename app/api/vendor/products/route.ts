@@ -12,7 +12,6 @@ function slugify(text: string): string {
     .slice(0, 80)
 }
 
-// GET  — own products (all statuses, for vendor management)
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -40,7 +39,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(data ?? [])
 }
 
-// POST — create a new product
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -62,10 +60,11 @@ export async function POST(req: NextRequest) {
   if (!name || typeof price !== "number" || price <= 0)
     return NextResponse.json({ error: "Nom et prix obligatoires" }, { status: 400 })
 
+  const baseSlug = slugify(name.trim())
+  const slug = `${baseSlug}-${Date.now().toString(36)}`
+
   const { data, error } = await supabase
     .from("products")
-    const baseSlug = slugify(name.trim())
-    const slug = `${baseSlug}-${Date.now().toString(36)}`
     .insert({
       vendor_id: vendor.id,
       name: name.trim(),
