@@ -64,6 +64,8 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabase
     .from("products")
+    const baseSlug = slugify(name.trim())
+    const slug = `${baseSlug}-${Date.now().toString(36)}`
     .insert({
       vendor_id: vendor.id,
       name: name.trim(),
