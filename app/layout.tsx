@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MotionProvider } from "@/components/motion-provider"
 import { I18nProvider } from "@/lib/i18n/context"
+import { QueryProvider } from "@/components/query-provider"
 import { RegisterSW } from "@/components/pwa/RegisterSW"
 import { SITE_URL } from "@/lib/site-config"
 import "./globals.css"
@@ -92,6 +93,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
       >
+        <QueryProvider>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <I18nProvider>
           <MotionProvider>
@@ -102,6 +104,7 @@ export default function RootLayout({
           </MotionProvider>
           </I18nProvider>
         </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   )

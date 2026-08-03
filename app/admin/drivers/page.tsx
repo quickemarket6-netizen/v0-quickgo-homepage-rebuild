@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useRef } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Truck, Search, Star, Phone, CheckCircle, Clock, Ban,
@@ -40,40 +41,39 @@ interface DriverRow {
 const PAGE_SIZE = 20
 
 export default function AdminDriversPage() {
-  const [drivers, setDrivers] = useState<DriverRow[]>([])
-  const [total, setTotal] = useState(0)
-  const [summary, setSummary] = useState<Record<string, number>>({})
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  // La saisie est débattue avant d'entrer dans la clé de requête : sans ça,
+  // chaque frappe déclencherait un appel réseau.
+  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [page, setPage] = useState(1)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchDrivers = useCallback(async (q: string, status: string, p: number) => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams({ search: q, status, page: String(p), limit: String(PAGE_SIZE) })
+  // Chargement piloté par react-query : la clé décrit ce qui est affiché, et
+  // toute variation la refait d'elle-même. Plus de setState dans un effet, et
+  // les résultats sont mis en cache entre navigations.
+  const { data, isPending, error, refetch } = useQuery({
+    queryKey: ["admin-drivers", debouncedSearch, statusFilter, page],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        search: debouncedSearch, status: statusFilter,
+        page: String(page), limit: String(PAGE_SIZE),
+      })
       const res = await fetch(`/api/admin/drivers?${params}`)
       if (!res.ok) throw new Error(`Erreur ${res.status} lors du chargement des livreurs`)
-      const data = await res.json()
-      setDrivers(data.drivers)
-      setTotal(data.total)
-      setSummary(data.summary ?? {})
-      setError(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur de chargement")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+      return res.json() as Promise<{ drivers: DriverRow[]; total: number; summary?: Record<string, number> }>
+    },
+  })
 
-  useEffect(() => { fetchDrivers(search, statusFilter, page) }, [statusFilter, page, fetchDrivers])
+  const drivers = data?.drivers ?? []
+  const total   = data?.total ?? 0
+  const summary = data?.summary ?? {}
+  const loading = isPending
 
   const handleSearch = (val: string) => {
     setSearch(val)
     if (searchTimer.current) clearTimeout(searchTimer.current)
-    searchTimer.current = setTimeout(() => { setPage(1); fetchDrivers(val, statusFilter, 1) }, 350)
+    searchTimer.current = setTimeout(() => { setPage(1); setDebouncedSearch(val) }, 350)
   }
 
   const initials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -119,7 +119,7 @@ export default function AdminDriversPage() {
         toast.success("Livreur ajouté avec succès")
         setShowAddModal(false)
         setAddForm({ email: "", vehicle_type: "moto", city: "" })
-        fetchDrivers(search, statusFilter, page)
+        refetch()
       } else {
         toast.error(data.error ?? "Erreur lors de l'ajout")
       }
@@ -214,9 +214,9 @@ export default function AdminDriversPage() {
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-semibold">Échec du chargement des livreurs</p>
-                <p className="text-muted-foreground text-xs mt-0.5">{error}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{error.message}</p>
               </div>
-              <Button onClick={() => fetchDrivers(search, statusFilter, page)} size="sm" variant="outline"
+              <Button onClick={() => refetch()} size="sm" variant="outline"
                 className="rounded-full gap-2 shrink-0">
                 <RefreshCw className="w-3.5 h-3.5" /> Réessayer
               </Button>
