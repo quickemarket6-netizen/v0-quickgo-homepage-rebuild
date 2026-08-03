@@ -1,6 +1,17 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/[\s]+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80)
+}
+
 // GET  — own products (all statuses, for vendor management)
 export async function GET(req: NextRequest) {
   const supabase = await createClient()
