@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
     .insert({
       vendor_id: vendor.id,
       name: name.trim(),
+      slug,
       description: description?.trim() ?? null,
       price,
       original_price: original_price ?? null,
