@@ -15,12 +15,12 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AdminSidebar } from "@/app/admin/_components/AdminSidebar"
-import { 
-  THREAT_LEVEL_CONFIG, 
+import {
+  THREAT_LEVEL_CONFIG,
   THREAT_TYPE_LABELS,
   type ThreatEvent,
-  type ThreatLevel 
-} from '@/lib/security/cybersecurity'
+  type ThreatLevel
+} from '@/lib/security/threat-types'
 
 interface BlockedIPEntry { ip_address: string; reason?: string; blocked_at: string; expires_at?: string; auto_blocked: boolean }
 interface SecurityKpi { total_threats: number; critical_threats: number; high_threats: number; blocked_ips_count: number; threats_today: number; security_score: number; failed_logins_24h: number }

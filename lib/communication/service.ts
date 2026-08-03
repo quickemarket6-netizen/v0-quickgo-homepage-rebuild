@@ -1,6 +1,9 @@
 // Unified Communication Service
 // Handles: Push notifications, SMS (Africa's Talking), WhatsApp Business API, Email, In-app
 
+import { sendPushToSubscription, sendPushToUser, type WebPushSubscription } from '@/lib/push/send'
+import { sendEmail } from '@/lib/email/resend'
+
 export type CommunicationChannel = 'push' | 'email' | 'sms' | 'whatsapp' | 'popup' | 'call'
 
 export type MessageType =
@@ -93,21 +96,44 @@ export const smsTemplates = {
     `QuickGo: Validez votre paiement de ${data.amount.toLocaleString()} FCFA. Code: ${data.code}`,
 }
 
+// Le corps du message est saisi dans le panneau admin : on l'échappe avant de
+// le placer dans du HTML d'email.
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 // ── Push Notification Service ────────────────────────────────
+// Délègue à lib/push/send.ts, seule voie d'envoi push du projet (configuration
+// VAPID et purge des abonnements expirés au même endroit).
 export class PushNotificationService {
-  async sendPush(_subscription: PushSubscription, payload: NotificationPayload) {
-    // Production: use the `web-push` npm package with VAPID keys.
-    // VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set.
-    console.log('[Push] Payload:', payload)
-    return { success: true }
+  async sendPush(subscription: WebPushSubscription, payload: NotificationPayload) {
+    const res = await sendPushToSubscription(subscription, {
+      title: payload.title,
+      body:  payload.body,
+      url:   payload.url,
+    })
+    return { success: res.success }
   }
 
-  async sendBulkPush(subscriptions: PushSubscription[], payload: NotificationPayload) {
-    const results = await Promise.allSettled(subscriptions.map(s => this.sendPush(s, payload)))
+  async sendToUser(userId: string, payload: NotificationPayload) {
+    const { sent, failed } = await sendPushToUser(userId, {
+      title: payload.title,
+      body:  payload.body,
+      url:   payload.url,
+    })
+    return { success: sent > 0, sent, failed }
+  }
+
+  async sendBulkPush(subscriptions: WebPushSubscription[], payload: NotificationPayload) {
+    const results = await Promise.all(subscriptions.map(s => this.sendPush(s, payload)))
     return {
-      total: subscriptions.length,
-      success: results.filter(r => r.status === 'fulfilled').length,
-      failed:  results.filter(r => r.status === 'rejected').length,
+      total:   subscriptions.length,
+      success: results.filter(r => r.success).length,
+      failed:  results.filter(r => !r.success).length,
     }
   }
 }
@@ -291,7 +317,7 @@ export class CommunicationManager {
 
   async sendMessage(
     message: Message,
-    contacts: { phone?: string; email?: string; pushSubscription?: PushSubscription }[],
+    contacts: { userId?: string; phone?: string; email?: string; pushSubscription?: WebPushSubscription }[],
   ) {
     const results: Record<CommunicationChannel, { success: number; failed: number }> = {
       push:     { success: 0, failed: 0 },
@@ -306,10 +332,16 @@ export class CommunicationManager {
       for (const contact of contacts) {
         try {
           switch (channel) {
+            // Le push part vers tous les appareils enregistrés du destinataire
+            // (userId) ; un abonnement explicite reste accepté pour les
+            // appelants qui en tiennent un.
             case 'push':
-              if (contact.pushSubscription) {
-                await this.push.sendPush(contact.pushSubscription, { title: message.title, body: message.body, data: message.data })
-                results.push.success++
+              if (contact.userId) {
+                const r = await this.push.sendToUser(contact.userId, { title: message.title, body: message.body, data: message.data })
+                r.success ? results.push.success++ : results.push.failed++
+              } else if (contact.pushSubscription) {
+                const r = await this.push.sendPush(contact.pushSubscription, { title: message.title, body: message.body, data: message.data })
+                r.success ? results.push.success++ : results.push.failed++
               }
               break
 
@@ -328,8 +360,15 @@ export class CommunicationManager {
               break
 
             case 'email':
-              // Email handled separately via /api/email
-              if (contact.email) results.email.success++
+              if (contact.email) {
+                const r = await sendEmail({
+                  to:      contact.email,
+                  subject: message.title,
+                  html:    `<p>${escapeHtml(message.body).replace(/\n/g, '<br>')}</p>`,
+                  text:    message.body,
+                })
+                r.success ? results.email.success++ : results.email.failed++
+              }
               break
 
             case 'popup':

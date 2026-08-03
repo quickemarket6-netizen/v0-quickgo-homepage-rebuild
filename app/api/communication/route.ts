@@ -53,25 +53,27 @@ export async function POST(request: NextRequest) {
         }
 
         // Get recipient contacts based on selection
-        let contacts: { phone?: string; email?: string }[] = []
+        // `id` est indispensable au canal push : les abonnements sont stockés
+        // par utilisateur, pas par téléphone ou email.
+        let contacts: { userId?: string; phone?: string; email?: string }[] = []
 
         if (recipients?.userIds?.length) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('phone, email')
+            .select('id, phone, email')
             .in('id', recipients.userIds)
 
-          contacts = profiles || []
+          contacts = (profiles ?? []).map((p) => ({ userId: p.id, phone: p.phone, email: p.email }))
         } else if (recipients?.segment) {
           // Get users by segment
-          let query = supabase.from('profiles').select('phone, email')
-          
+          let query = supabase.from('profiles').select('id, phone, email')
+
           if (recipients.segment !== 'all') {
             query = query.eq('role', recipients.segment)
           }
-          
+
           const { data: profiles } = await query.limit(1000)
-          contacts = profiles || []
+          contacts = (profiles ?? []).map((p) => ({ userId: p.id, phone: p.phone, email: p.email }))
         } else if (phone || email) {
           contacts = [{ phone, email }]
         }

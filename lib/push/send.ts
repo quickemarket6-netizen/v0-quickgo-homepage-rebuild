@@ -28,32 +28,60 @@ function ensureVapid(): boolean {
   return true
 }
 
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
+export interface WebPushSubscription {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+}
+
+/**
+ * Envoi vers un abonnement précis. Voie d'envoi unique du projet : tout passe
+ * par ici, pour n'avoir qu'une configuration VAPID et qu'un traitement des
+ * abonnements expirés.
+ *
+ * `expired` signale un abonnement révoqué (404/410) que l'appelant doit purger.
+ */
+export async function sendPushToSubscription(
+  subscription: WebPushSubscription,
+  payload: PushPayload,
+): Promise<{ success: boolean; expired: boolean }> {
+  if (!ensureVapid()) return { success: false, expired: false }
+
   try {
-    if (!ensureVapid()) return
+    await webpush.sendNotification(subscription, JSON.stringify(payload))
+    return { success: true, expired: false }
+  } catch (err) {
+    const status = (err as { statusCode?: number })?.statusCode
+    return { success: false, expired: status === 404 || status === 410 }
+  }
+}
+
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
+  try {
+    if (!ensureVapid()) return { sent: 0, failed: 0 }
 
     const supabase = await createClient()
     const { data: subs } = await supabase.rpc("get_push_subscriptions", { p_user_id: userId })
-    if (!subs || subs.length === 0) return
+    if (!subs || subs.length === 0) return { sent: 0, failed: 0 }
 
-    const json = JSON.stringify(payload)
-    await Promise.allSettled(
+    const results = await Promise.all(
       (subs as { endpoint: string; p256dh: string; auth: string }[]).map(async (s) => {
-        try {
-          await webpush.sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            json,
-          )
-        } catch (err) {
-          // 404/410 : abonnement expiré → purge
-          const status = (err as { statusCode?: number })?.statusCode
-          if (status === 404 || status === 410) {
-            await supabase.rpc("delete_push_subscription", { p_endpoint: s.endpoint }).then(() => {}, () => {})
-          }
+        const res = await sendPushToSubscription(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          payload,
+        )
+        if (res.expired) {
+          await supabase.rpc("delete_push_subscription", { p_endpoint: s.endpoint }).then(() => {}, () => {})
         }
+        return res.success
       }),
     )
+
+    return {
+      sent:   results.filter(Boolean).length,
+      failed: results.filter((ok) => !ok).length,
+    }
   } catch (err) {
     console.error("[push] envoi échoué:", err)
+    return { sent: 0, failed: 0 }
   }
 }
